@@ -14,6 +14,11 @@
   --color-brand-900: #3b0f7a;
   --color-brand-950: #1e0a3e;
 
+  /* Dark surface (Onflow-inspired navy) */
+  --color-dark: #0c0a1d;
+  --color-dark-card: #16132d;
+  --color-dark-border: #2a2550;
+
   /* Agent: Development Director - Emerald */
   --color-agent-dev: #10b981;
   --color-agent-dev-light: #d1fae5;
@@ -42,9 +47,9 @@
   --radius-xl: 16px;
 
   /* Animation */
-  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-fade-in: fade-in 0.5s ease-out;
   --animate-slide-in-right: slide-in-right 0.3s ease-out;
-  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-up: slide-up 0.6s ease-out;
   --animate-bounce-dot: bounce-dot 1.4s ease-in-out infinite;
 }
 
@@ -60,7 +65,7 @@
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -69,10 +74,14 @@
   40% { transform: translateY(-6px); }
 }
 
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.6); }
 }
 
 /* Base styles */
@@ -87,7 +96,6 @@
     color: var(--color-brand-900);
   }
 
-  /* Custom scrollbar for sidebar */
   .sidebar-scroll::-webkit-scrollbar {
     width: 4px;
   }
@@ -115,6 +123,10 @@
       hover:shadow-lg hover:border-brand-200 transition-all duration-200 cursor-pointer;
   }
 
+  .card-dark {
+    @apply bg-dark-card rounded-2xl border border-dark-border;
+  }
+
   .input-field {
     @apply w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
       text-slate-900 placeholder:text-slate-400
@@ -123,19 +135,19 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5
-      text-sm font-semibold text-white shadow-sm
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-6 py-3
+      text-sm font-semibold text-white
       hover:bg-brand-600 active:bg-brand-700
       focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:ring-offset-2
-      transition-all duration-150;
+      transition-all duration-200;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300
-      bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-300
+      bg-white px-6 py-3 text-sm font-semibold text-slate-700
       hover:bg-slate-50 active:bg-slate-100
       focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:ring-offset-2
-      transition-all duration-150;
+      transition-all duration-200;
   }
 
   .btn-ghost {
@@ -145,12 +157,19 @@
       transition-all duration-150;
   }
 
+  .btn-light {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/20
+      bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm
+      hover:bg-white/20
+      transition-all duration-200;
+  }
+
   .label {
     @apply text-xs font-medium uppercase tracking-wider text-slate-500;
   }
 
   .heading-display {
-    @apply text-5xl font-extrabold tracking-tight text-slate-900 lg:text-6xl;
+    @apply text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl;
   }
 
   .heading-1 {
@@ -164,18 +183,26 @@
   .heading-3 {
     @apply text-base font-semibold text-slate-900;
   }
+
+  /* Section layouts */
+  .section-dark {
+    @apply bg-dark text-white;
+  }
+
+  .section-container {
+    @apply mx-auto max-w-7xl px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-20 lg:py-28;
+  }
 }
 
-/* Landing page gradient */
-.hero-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--color-brand-500) 0%,
-    var(--color-brand-700) 25%,
-    #4338ca 50%,
-    var(--color-agent-ea) 75%,
-    var(--color-brand-500) 100%
-  );
-  background-size: 400% 400%;
-  animation: gradient-shift 15s ease infinite;
+/* Decorative glow */
+.glow-purple {
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+}
+
+.glow-purple-intense {
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.25) 0%, transparent 60%);
 }

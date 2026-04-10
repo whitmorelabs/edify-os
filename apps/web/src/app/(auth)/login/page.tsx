@@ -93,7 +93,21 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-slate-500">
+      <div className="mt-6 flex items-center gap-4">
+        <div className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs text-slate-400">or</span>
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <Link
+        href="/dashboard"
+        className="btn-ghost mt-4 w-full text-brand-500 hover:bg-brand-50"
+      >
+        Skip to Demo Dashboard
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+
+      <p className="mt-6 text-center text-sm text-slate-500">
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"

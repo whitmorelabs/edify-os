@@ -70,11 +70,10 @@ export function ChatPanel() {
       <aside
         className={`
           fixed right-0 top-0 h-screen z-50
-          lg:relative lg:z-0
-          w-full lg:w-[420px] flex-shrink-0
+          w-full sm:w-[420px] flex-shrink-0
           flex flex-col bg-white border-l border-slate-200 shadow-xl
           transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+          ${isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'}
         `}
       >
         {/* Header */}

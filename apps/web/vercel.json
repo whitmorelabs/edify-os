@@ -1,0 +1,5 @@
+{
+  "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter @edify/shared build && cd apps/web && npx next build",
+  "framework": "nextjs"
+}

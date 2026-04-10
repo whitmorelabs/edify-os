@@ -31,7 +31,7 @@ export function Sidebar() {
   const { openChat, activeAgent, isOpen } = useChatPanel();
 
   return (
-    <aside className="w-64 h-screen sticky top-0 flex flex-col bg-brand-950 overflow-y-auto sidebar-scroll">
+    <aside className="w-64 shrink-0 h-screen flex flex-col bg-brand-950 overflow-y-auto sidebar-scroll">
       {/* Header */}
       <div className="flex items-center gap-2.5 p-5">
         <Sparkles size={22} className="text-brand-300" />
