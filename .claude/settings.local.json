@@ -16,7 +16,16 @@
       "Bash(pnpm --filter @edify/web add clsx tailwind-merge)",
       "Bash(grep -c \"^  {$\" /Users/zlok/Desktop/Milo/apps/web/src/app/dashboard/integrations/page.tsx)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(pnpm add:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel --version)",
+      "Bash(vercel --yes)",
+      "Bash(vercel login:*)",
+      "Bash(vercel link:*)",
+      "Bash(vercel logout:*)",
+      "Bash(vercel deploy:*)"
     ]
   }
 }

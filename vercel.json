@@ -1,0 +1,6 @@
+{
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --filter @edify/shared build && pnpm --filter @edify/web exec next build",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs"
+}
