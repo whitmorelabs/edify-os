@@ -1,0 +1,21 @@
+{
+  "name": "@edify/slack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Edify OS Slack bot powered by Bolt.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.1.0",
+    "@edify/shared": "workspace:*",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

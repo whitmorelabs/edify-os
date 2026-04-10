@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --version)",
+      "Bash(brew --version)",
+      "Bash(brew install:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm --filter @edify/shared build)",
+      "Bash(pip3 install:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(mkdir -p dashboard)",
+      "Bash(mv \"\\(dashboard\\)/layout.tsx\" dashboard/)",
+      "Bash(mv \"\\(dashboard\\)/page.tsx\" dashboard/)",
+      "Bash(mv \"\\(dashboard\\)/inbox\" dashboard/)",
+      "Bash(mv \"\\(dashboard\\)/team\" dashboard/)",
+      "Bash(pnpm --filter @edify/web add clsx tailwind-merge)",
+      "Bash(grep -c \"^  {$\" /Users/zlok/Desktop/Milo/apps/web/src/app/dashboard/integrations/page.tsx)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

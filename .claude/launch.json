@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@edify/web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@edify/api", "dev"],
+      "port": 3001
+    },
+    {
+      "name": "slack",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@edify/slack", "dev"],
+      "port": 0
+    },
+    {
+      "name": "agents",
+      "runtimeExecutable": "/Users/zlok/Desktop/Milo/services/agents/.venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "src.main:app", "--reload", "--host", "0.0.0.0", "--port", "8001"],
+      "port": 8001
+    }
+  ]
+}
