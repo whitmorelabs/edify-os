@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand - Cyan / Teal (Spial-inspired) */
-  --color-brand-50: #ecfeff;
-  --color-brand-100: #cffafe;
-  --color-brand-200: #a5f3fc;
-  --color-brand-300: #67e8f9;
-  --color-brand-400: #00d4ff;
-  --color-brand-500: #06b6d4;
-  --color-brand-600: #0891b2;
-  --color-brand-700: #0e7490;
-  --color-brand-800: #155e75;
-  --color-brand-900: #164e63;
-  --color-brand-950: #083344;
+  /* Brand - Deep Violet */
+  --color-brand-50: #f5f0ff;
+  --color-brand-100: #ede5ff;
+  --color-brand-200: #d4c4ff;
+  --color-brand-300: #b89dff;
+  --color-brand-400: #9b6fff;
+  --color-brand-500: #7c3aed;
+  --color-brand-600: #6d28d9;
+  --color-brand-700: #5b21b6;
+  --color-brand-800: #4c1d95;
+  --color-brand-900: #3b0f7a;
+  --color-brand-950: #1e0a3e;
 
-  /* Dark surface (Spial-inspired deep navy) */
-  --color-dark: #0a0a1a;
-  --color-dark-card: #111127;
-  --color-dark-border: rgba(255, 255, 255, 0.1);
+  /* Dark surface (Onflow-inspired navy) */
+  --color-dark: #0c0a1d;
+  --color-dark-card: #16132d;
+  --color-dark-border: #2a2550;
 
   /* Agent: Development Director - Emerald */
   --color-agent-dev: #10b981;
@@ -80,8 +80,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.6); }
 }
 
 /* Base styles */
@@ -103,7 +103,7 @@
     background: transparent;
   }
   .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(0, 212, 255, 0.2);
+    background: rgba(212, 196, 255, 0.2);
     border-radius: 2px;
   }
 }
@@ -194,23 +194,15 @@
   }
 
   .section-padding {
-    @apply py-20 lg:py-28;
+    @apply py-24 lg:py-32;
   }
 }
 
 /* Decorative glow */
 .glow-purple {
-  background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
 }
 
 .glow-purple-intense {
-  background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.15) 0%, transparent 60%);
-}
-
-.glow-cyan {
-  background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.12) 0%, transparent 70%);
-}
-
-.glow-cyan-intense {
-  background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.2) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.25) 0%, transparent 60%);
 }

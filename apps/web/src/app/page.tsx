@@ -15,6 +15,7 @@ import {
   Quote,
   ChevronRight,
   ChevronDown,
+  Play,
   Star,
   Users,
   Target,
@@ -22,9 +23,10 @@ import {
   Menu,
   X,
   Mail,
+  ImageIcon,
 } from "lucide-react";
 
-/* -- Agent data ----------------------------------------------------------- */
+/* ── Agent data ────────────────────────────────────────────────── */
 const agents = [
   {
     icon: Landmark,
@@ -71,17 +73,66 @@ const agents = [
       "Task coordination",
     ],
   },
+  {
+    icon: BarChart3,
+    name: "Program Coordinator",
+    color: "text-violet-400",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    description:
+      "Tracks outcomes and impact metrics. Prepares reports for funders, manages program timelines, and monitors deliverables.",
+    capabilities: [
+      "Impact reporting",
+      "Program timeline management",
+      "Funder report generation",
+      "Deliverable tracking",
+    ],
+  },
 ];
 
-/* -- Stats ---------------------------------------------------------------- */
+/* ── Stats ─────────────────────────────────────────────────────── */
 const stats = [
   { value: "10x", label: "Capacity multiplier", icon: Zap },
   { value: "24/7", label: "Always working", icon: Clock },
-  { value: "95%", label: "Approval rate", icon: Target },
-  { value: "500+", label: "Nonprofits served", icon: Users },
+  { value: "$2M+", label: "Grants discovered", icon: Target },
+  { value: "90%", label: "Less admin cost", icon: Users },
 ];
 
-/* -- Testimonials --------------------------------------------------------- */
+/* ── Value props for alternating sections ───────────────────────── */
+const valueProps = [
+  {
+    tag: "Privacy First",
+    title: "Your data, your control",
+    desc: "Bring your own API key. Your data is encrypted at rest and never used for training. Full privacy by design. We never see your donors, your emails, or your strategy.",
+    bullets: [
+      "BYOK encryption model",
+      "SOC 2 compliant infrastructure",
+      "Zero data retention policy",
+    ],
+  },
+  {
+    tag: "Proactive Intelligence",
+    title: "Opportunities found before you ask",
+    desc: "The heartbeat system monitors grants, emails, and social media around the clock. It surfaces relevant opportunities, flags deadlines, and drafts responses before they hit your radar.",
+    bullets: [
+      "Automated grant discovery",
+      "Deadline tracking & alerts",
+      "Smart email triage",
+    ],
+  },
+  {
+    tag: "Built-in Trust",
+    title: "Confidence scoring on every output",
+    desc: "Every output includes a confidence score. High confidence items auto-execute. Low confidence items ask for your input. You stay in control while scaling your throughput.",
+    bullets: [
+      "Adjustable autonomy levels",
+      "Approval queue dashboard",
+      "Audit trail for every action",
+    ],
+  },
+];
+
+/* ── Testimonials ──────────────────────────────────────────────── */
 const testimonials = [
   {
     quote:
@@ -106,44 +157,7 @@ const testimonials = [
   },
 ];
 
-/* -- Value props for alternating sections --------------------------------- */
-const valueProps = [
-  {
-    icon: Shield,
-    tag: "Privacy First",
-    title: "Your data, your control",
-    desc: "Bring your own API key. Your data is encrypted at rest and never used for training. Full privacy by design. We never see your donors, your emails, or your strategy.",
-    bullets: [
-      "BYOK encryption model",
-      "SOC 2 compliant infrastructure",
-      "Zero data retention policy",
-    ],
-  },
-  {
-    icon: Zap,
-    tag: "Proactive Intelligence",
-    title: "Opportunities found before you ask",
-    desc: "The heartbeat system monitors grants, emails, and social media around the clock. It surfaces relevant opportunities, flags deadlines, and drafts responses before they hit your radar.",
-    bullets: [
-      "Automated grant discovery",
-      "Deadline tracking & alerts",
-      "Smart email triage",
-    ],
-  },
-  {
-    icon: BarChart3,
-    tag: "Built-in Trust",
-    title: "Confidence scoring on every output",
-    desc: "Every output includes a confidence score. High confidence items auto-execute. Low confidence items ask for your input. You stay in control while scaling your throughput.",
-    bullets: [
-      "Adjustable autonomy levels",
-      "Approval queue dashboard",
-      "Audit trail for every action",
-    ],
-  },
-];
-
-/* -- FAQ ------------------------------------------------------------------ */
+/* ── FAQ ──────────────────────────────────────────────────────── */
 const faqs = [
   {
     q: "Is this really built for nonprofits?",
@@ -171,17 +185,17 @@ const faqs = [
   },
 ];
 
-/* ========================================================================= */
+/* ═══════════════════════════════════════════════════════════════ */
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen bg-dark text-white overflow-hidden">
-      {/* ----------------------------------------------------------------- */}
-      {/* Fixed Navigation                                                  */}
-      {/* ----------------------------------------------------------------- */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-dark/70 backdrop-blur-xl">
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 1. Fixed Nav Bar                                          */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-dark/60 backdrop-blur-xl border-b border-white/5">
         <div className="section-container flex items-center justify-between py-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
@@ -191,36 +205,42 @@ export default function LandingPage() {
             <span className="text-lg font-bold tracking-tight">Edify OS</span>
           </Link>
 
-          {/* Desktop nav links */}
+          {/* Center nav links */}
           <div className="hidden md:flex items-center gap-8">
             <a
-              href="#agents"
-              className="text-sm text-white/50 hover:text-brand-400 transition-colors"
-            >
-              AI Team
-            </a>
-            <a
               href="#features"
-              className="text-sm text-white/50 hover:text-brand-400 transition-colors"
+              className="text-sm text-white/50 hover:text-white transition-colors"
             >
               Features
             </a>
             <a
+              href="#how-it-works"
+              className="text-sm text-white/50 hover:text-white transition-colors"
+            >
+              How it Works
+            </a>
+            <a
+              href="#agents"
+              className="text-sm text-white/50 hover:text-white transition-colors"
+            >
+              AI Team
+            </a>
+            <a
               href="#testimonials"
-              className="text-sm text-white/50 hover:text-brand-400 transition-colors"
+              className="text-sm text-white/50 hover:text-white transition-colors"
             >
               Testimonials
             </a>
-            <a
-              href="#faq"
-              className="text-sm text-white/50 hover:text-brand-400 transition-colors"
-            >
-              FAQ
-            </a>
           </div>
 
-          {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Right side CTAs */}
+          <div className="hidden md:flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="text-sm text-brand-300 hover:text-brand-200 font-medium transition-colors"
+            >
+              Demo
+            </Link>
             <Link
               href="/login"
               className="text-sm text-white/50 hover:text-white transition-colors font-medium"
@@ -255,18 +275,25 @@ export default function LandingPage() {
           <div className="md:hidden border-t border-white/5 bg-dark/95 backdrop-blur-xl">
             <div className="section-container py-4 flex flex-col gap-3">
               <a
-                href="#agents"
-                className="text-sm text-white/60 hover:text-white py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                AI Team
-              </a>
-              <a
                 href="#features"
                 className="text-sm text-white/60 hover:text-white py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Features
+              </a>
+              <a
+                href="#how-it-works"
+                className="text-sm text-white/60 hover:text-white py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                How it Works
+              </a>
+              <a
+                href="#agents"
+                className="text-sm text-white/60 hover:text-white py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                AI Team
               </a>
               <a
                 href="#testimonials"
@@ -275,14 +302,13 @@ export default function LandingPage() {
               >
                 Testimonials
               </a>
-              <a
-                href="#faq"
-                className="text-sm text-white/60 hover:text-white py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                FAQ
-              </a>
-              <div className="flex items-center gap-3 pt-2 border-t border-white/5">
+              <div className="flex items-center gap-3 pt-3 border-t border-white/5">
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-brand-300 hover:text-brand-200"
+                >
+                  Demo
+                </Link>
                 <Link
                   href="/login"
                   className="text-sm text-white/60 hover:text-white"
@@ -302,40 +328,38 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* Hero Section                                                      */}
-      {/* ----------------------------------------------------------------- */}
-      <section className="relative pt-32 pb-20 lg:pt-44 lg:pb-32 overflow-hidden">
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 2. Hero Section                                           */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="relative pt-36 pb-24 lg:pt-48 lg:pb-36 overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[700px] glow-cyan-intense pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[700px] glow-purple-intense pointer-events-none" />
 
         <div className="section-container relative">
           <div className="max-w-4xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/10 border border-brand-500/20 px-4 py-2 text-sm font-medium text-brand-400 mb-8">
+            {/* Badge pill */}
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/10 border border-brand-500/20 px-4 py-2 text-sm font-medium text-brand-300 mb-10">
               <Sparkles className="h-4 w-4" />
               AI-Powered Teams for Nonprofits
             </div>
 
-            {/* Headline */}
+            {/* Big headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight leading-[1.08]">
               Your nonprofit just
               <br className="hidden sm:block" />
               hired its{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-cyan-300">
-                smartest team
-              </span>
+              <span className="text-brand-400">smartest team</span>
             </h1>
 
-            {/* Subhead */}
-            <p className="mt-6 text-lg sm:text-xl text-white/45 leading-relaxed max-w-2xl mx-auto">
+            {/* Supporting paragraph */}
+            <p className="mt-8 text-lg sm:text-xl text-white/45 leading-relaxed max-w-2xl mx-auto">
               Edify OS gives your organization a full AI leadership team — a
               Director of Development, Marketing Director, and Executive
               Assistant — working around the clock so you can focus on mission.
             </p>
 
-            {/* CTA buttons */}
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
+            {/* Two CTA buttons */}
+            <div className="mt-12 flex flex-wrap justify-center gap-4">
               <Link
                 href="/signup"
                 className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/25 transition-all duration-200"
@@ -344,10 +368,11 @@ export default function LandingPage() {
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <a
-                href="#agents"
+                href="#how-it-works"
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-8 py-3.5 text-base font-semibold text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-200"
               >
-                Meet Your Team
+                <Play className="h-4 w-4" />
+                See How It Works
               </a>
             </div>
 
@@ -363,39 +388,184 @@ export default function LandingPage() {
                 <Users className="h-4 w-4" /> 500+ Nonprofits
               </span>
             </div>
+
+            {/* Hero image placeholder */}
+            <div className="mt-20 mx-auto max-w-3xl">
+              <div className="relative rounded-2xl border border-white/10 bg-white/[0.02] aspect-[16/9] flex flex-col items-center justify-center gap-4">
+                <div className="absolute -top-px left-12 right-12 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent" />
+                <ImageIcon className="h-12 w-12 text-white/10" />
+                <span className="text-sm text-white/15 font-medium">
+                  Hero Image
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* Stats Strip                                                       */}
-      {/* ----------------------------------------------------------------- */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 3. Stats Strip                                            */}
+      {/* ────────────────────────────────────────────────────────── */}
       <section className="border-y border-white/5">
-        <div className="section-container py-16 lg:py-20">
-          <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
+        <div className="section-container py-20 lg:py-24">
+          <div className="grid grid-cols-2 gap-10 lg:grid-cols-4">
             {stats.map((s) => (
               <div key={s.label} className="text-center">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/10 mb-4">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/10 mb-5">
                   <s.icon className="h-6 w-6 text-brand-400" />
                 </div>
                 <p className="text-3xl sm:text-4xl font-extrabold text-white">
                   {s.value}
                 </p>
-                <p className="mt-1 text-sm text-white/35">{s.label}</p>
+                <p className="mt-2 text-sm text-white/35">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* AI Agent Cards                                                    */}
-      {/* ----------------------------------------------------------------- */}
-      <section id="agents" className="section-padding relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] glow-cyan pointer-events-none" />
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 4. Features / Alternating Two-Column Sections             */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section id="features" className="py-24 lg:py-32">
+        <div className="section-container">
+          {/* Section header */}
+          <div className="text-center mb-24">
+            <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">
+              Why Edify OS
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
+              Built for nonprofits that need
+              <br className="hidden sm:block" /> to do more with less
+            </h2>
+          </div>
+
+          {/* Alternating sections */}
+          <div className="space-y-32 lg:space-y-40">
+            {valueProps.map((vp, i) => (
+              <div
+                key={vp.title}
+                className={`flex flex-col gap-12 lg:gap-20 lg:flex-row lg:items-center ${
+                  i % 2 !== 0 ? "lg:flex-row-reverse" : ""
+                }`}
+              >
+                {/* Image placeholder side */}
+                <div className="flex-1">
+                  <div className="relative rounded-2xl border border-white/10 bg-white/[0.02] aspect-[4/3] flex flex-col items-center justify-center gap-4">
+                    <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent" />
+                    <ImageIcon className="h-10 w-10 text-white/10" />
+                    <span className="text-sm text-white/15 font-medium">
+                      Image
+                    </span>
+                  </div>
+                </div>
+
+                {/* Text side */}
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-4">
+                    {vp.tag}
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-5">
+                    {vp.title}
+                  </h3>
+                  <p className="text-white/45 leading-relaxed text-lg mb-8">
+                    {vp.desc}
+                  </p>
+                  <ul className="space-y-3">
+                    {vp.bullets.map((b) => (
+                      <li
+                        key={b}
+                        className="flex items-center gap-3 text-sm text-white/55"
+                      >
+                        <CheckCircle className="h-4 w-4 text-brand-400 shrink-0" />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/signup"
+                    className="mt-8 inline-flex items-center gap-2 text-brand-400 font-semibold hover:text-brand-300 transition-colors"
+                  >
+                    Learn more
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 4b. How It Works                                          */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section
+        id="how-it-works"
+        className="py-24 lg:py-32 border-t border-white/5"
+      >
+        <div className="section-container">
+          <div className="text-center mb-20">
+            <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">
+              How It Works
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
+              From signup to a full AI team
+              <br className="hidden sm:block" /> in under 5 minutes
+            </h2>
+          </div>
+
+          <div className="grid gap-10 lg:grid-cols-2 max-w-5xl mx-auto">
+            {[
+              {
+                num: "01",
+                title: "Tell us your mission",
+                desc: "Share your organization details, programs, and brand voice. Your AI team learns your unique context and communication style.",
+              },
+              {
+                num: "02",
+                title: "Your team gets to work",
+                desc: "AI agents research grants, draft campaigns, triage emails, and manage tasks — all running 24/7 in the background.",
+              },
+              {
+                num: "03",
+                title: "Review & approve",
+                desc: "Every output lands in your approval queue. You stay in control — approve, edit, or redirect with a single click.",
+              },
+              {
+                num: "04",
+                title: "Scale your impact",
+                desc: "As trust grows, increase autonomy. Your AI team handles more while you focus on strategy, leadership, and community.",
+              },
+            ].map((step) => (
+              <div key={step.num} className="flex gap-6 group">
+                <div className="shrink-0">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-400 text-lg font-extrabold group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                    {step.num}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="text-white/40 leading-relaxed">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 5. AI Team Cards                                          */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section
+        id="agents"
+        className="py-24 lg:py-32 relative border-t border-white/5"
+      >
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] glow-purple pointer-events-none" />
 
         <div className="section-container relative">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">
               Your AI Team
             </p>
@@ -403,13 +573,13 @@ export default function LandingPage() {
               Three leaders. Twelve subagents.
               <br className="hidden sm:block" /> One unstoppable team.
             </h2>
-            <p className="mt-4 text-white/40 max-w-xl mx-auto">
+            <p className="mt-5 text-white/40 max-w-xl mx-auto text-lg">
               Each agent specializes in a critical area of nonprofit operations,
               backed by subagents that handle specific tasks.
             </p>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {agents.map((a) => (
               <div
                 key={a.name}
@@ -420,7 +590,7 @@ export default function LandingPage() {
                 >
                   <a.icon className={`h-7 w-7 ${a.color}`} />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{a.name}</h3>
+                <h3 className="text-lg font-bold text-white mb-2">{a.name}</h3>
                 <p className="text-sm text-white/40 leading-relaxed mb-5">
                   {a.description}
                 </p>
@@ -450,84 +620,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* Alternating Feature Sections                                      */}
-      {/* ----------------------------------------------------------------- */}
-      <section id="features" className="section-padding border-t border-white/5">
-        <div className="section-container">
-          <div className="text-center mb-20">
-            <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">
-              Why Edify OS
-            </p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-              Built for nonprofits that need
-              <br className="hidden sm:block" /> to do more with less
-            </h2>
-          </div>
-
-          <div className="space-y-24 lg:space-y-32">
-            {valueProps.map((vp, i) => (
-              <div
-                key={vp.title}
-                className={`flex flex-col gap-12 lg:gap-16 lg:flex-row lg:items-center ${
-                  i % 2 !== 0 ? "lg:flex-row-reverse" : ""
-                }`}
-              >
-                {/* Visual side */}
-                <div className="flex-1">
-                  <div className="relative rounded-2xl border border-white/10 bg-dark-card p-8 sm:p-12">
-                    <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500/10 mb-6">
-                      <vp.icon className="h-8 w-8 text-brand-400" />
-                    </div>
-                    <div className="space-y-4">
-                      {vp.bullets.map((b) => (
-                        <div
-                          key={b}
-                          className="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/5 px-4 py-3"
-                        >
-                          <CheckCircle className="h-5 w-5 text-brand-400 shrink-0" />
-                          <span className="text-sm text-white/60">{b}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Text side */}
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">
-                    {vp.tag}
-                  </p>
-                  <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-4">
-                    {vp.title}
-                  </h3>
-                  <p className="text-white/45 leading-relaxed text-lg">
-                    {vp.desc}
-                  </p>
-                  <Link
-                    href="/signup"
-                    className="mt-6 inline-flex items-center gap-2 text-brand-400 font-semibold hover:text-brand-300 transition-colors"
-                  >
-                    Learn more
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------------------------------------------------------- */}
-      {/* Testimonials                                                      */}
-      {/* ----------------------------------------------------------------- */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 6. Testimonials                                           */}
+      {/* ────────────────────────────────────────────────────────── */}
       <section
         id="testimonials"
-        className="section-padding border-t border-white/5"
+        className="py-24 lg:py-32 border-t border-white/5"
       >
         <div className="section-container">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">
               Testimonials
             </p>
@@ -536,13 +637,13 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-8 lg:grid-cols-3">
             {testimonials.map((t) => (
               <div
                 key={t.name}
                 className="rounded-2xl border border-white/10 bg-dark-card p-8 hover:border-white/20 transition-colors duration-300"
               >
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-5">
                   {Array.from({ length: t.stars }).map((_, i) => (
                     <Star
                       key={i}
@@ -550,11 +651,22 @@ export default function LandingPage() {
                     />
                   ))}
                 </div>
-                <Quote className="h-8 w-8 text-brand-500/40 mb-3" />
-                <p className="text-white/55 leading-relaxed mb-6">{t.quote}</p>
-                <div>
-                  <p className="font-bold text-white">{t.name}</p>
-                  <p className="text-sm text-white/35">{t.title}</p>
+                <Quote className="h-8 w-8 text-brand-500/30 mb-4" />
+                <p className="text-white/55 leading-relaxed mb-8">{t.quote}</p>
+                <div className="flex items-center gap-4">
+                  {/* Avatar placeholder */}
+                  <div className="h-11 w-11 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs text-white/20 font-bold">
+                      {t.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">{t.name}</p>
+                    <p className="text-sm text-white/35">{t.title}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -562,28 +674,28 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* FAQ Section                                                       */}
-      {/* ----------------------------------------------------------------- */}
-      <section id="faq" className="section-padding border-t border-white/5">
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 7. FAQ Accordion                                          */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section id="faq" className="py-24 lg:py-32 border-t border-white/5">
         <div className="section-container">
-          <div className="text-center mb-16">
+          <div className="text-center mb-20">
             <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">
               FAQ
             </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
               Frequently asked questions
             </h2>
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-3">
+          <div className="max-w-3xl mx-auto space-y-4">
             {faqs.map((faq, i) => (
               <div
                 key={i}
                 className="rounded-2xl border border-white/10 bg-dark-card overflow-hidden transition-colors hover:border-white/15"
               >
                 <button
-                  className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
+                  className="w-full flex items-center justify-between gap-4 px-7 py-6 text-left"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   aria-expanded={openFaq === i}
                 >
@@ -595,7 +707,7 @@ export default function LandingPage() {
                   />
                 </button>
                 {openFaq === i && (
-                  <div className="px-6 pb-5 -mt-1">
+                  <div className="px-7 pb-6 -mt-1">
                     <p className="text-white/50 leading-relaxed">{faq.a}</p>
                   </div>
                 )}
@@ -605,27 +717,26 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* CTA Footer Section                                                */}
-      {/* ----------------------------------------------------------------- */}
-      <section className="section-padding relative overflow-hidden">
-        <div className="absolute inset-0 glow-cyan-intense pointer-events-none" />
-        <div className="absolute inset-0 border-t border-white/5" />
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 8. CTA Section                                            */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="py-24 lg:py-32 relative overflow-hidden border-t border-white/5">
+        <div className="absolute inset-0 glow-purple-intense pointer-events-none" />
 
         <div className="section-container relative text-center">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
               Ready to multiply your{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-cyan-300">
+              <span className="text-brand-400">
                 nonprofit&apos;s impact
               </span>
               ?
             </h2>
-            <p className="mt-4 text-lg text-white/45 max-w-xl mx-auto">
+            <p className="mt-6 text-lg text-white/45 max-w-xl mx-auto">
               Stop drowning in execution. Start leading. Your AI team is ready
               to work.
             </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <div className="mt-12 flex flex-wrap justify-center gap-4">
               <Link
                 href="/signup"
                 className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/25 transition-all duration-200"
@@ -644,15 +755,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* Footer                                                            */}
-      {/* ----------------------------------------------------------------- */}
-      <footer className="border-t border-white/5 bg-[#07071a]">
-        <div className="section-container py-16">
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 9. Footer                                                 */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/5 bg-[#08071a]">
+        <div className="section-container py-20">
           <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
             {/* Brand column */}
             <div className="lg:col-span-1">
-              <div className="flex items-center gap-2.5 mb-4">
+              <div className="flex items-center gap-2.5 mb-5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
                   <Sparkles className="h-4 w-4 text-white" />
                 </div>
@@ -666,18 +777,10 @@ export default function LandingPage() {
 
             {/* Product column */}
             <div>
-              <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
+              <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-5">
                 Product
               </h4>
               <ul className="space-y-3">
-                <li>
-                  <a
-                    href="#agents"
-                    className="text-sm text-white/30 hover:text-white/60 transition-colors"
-                  >
-                    AI Team
-                  </a>
-                </li>
                 <li>
                   <a
                     href="#features"
@@ -688,18 +791,26 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="#testimonials"
+                    href="#how-it-works"
                     className="text-sm text-white/30 hover:text-white/60 transition-colors"
                   >
-                    Testimonials
+                    How it Works
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#faq"
+                    href="#agents"
                     className="text-sm text-white/30 hover:text-white/60 transition-colors"
                   >
-                    FAQ
+                    AI Team
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#testimonials"
+                    className="text-sm text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    Testimonials
                   </a>
                 </li>
               </ul>
@@ -707,7 +818,7 @@ export default function LandingPage() {
 
             {/* Company column */}
             <div>
-              <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
+              <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-5">
                 Company
               </h4>
               <ul className="space-y-3">
@@ -727,15 +838,39 @@ export default function LandingPage() {
                     Sign In
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="text-sm text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    Demo
+                  </Link>
+                </li>
               </ul>
             </div>
 
-            {/* Connect column */}
+            {/* Legal / Connect column */}
             <div>
-              <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
-                Connect
+              <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-5">
+                Legal
               </h4>
               <ul className="space-y-3">
+                <li>
+                  <a
+                    href="#"
+                    className="text-sm text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-sm text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    Terms of Service
+                  </a>
+                </li>
                 <li>
                   <a
                     href="mailto:hello@edifyos.com"
@@ -750,21 +885,15 @@ export default function LandingPage() {
           </div>
 
           {/* Bottom bar */}
-          <div className="mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="mt-16 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-white/20">
               &copy; 2026 Edify OS. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-sm text-white/20">
-              <a
-                href="#"
-                className="hover:text-white/40 transition-colors"
-              >
+              <a href="#" className="hover:text-white/40 transition-colors">
                 Privacy Policy
               </a>
-              <a
-                href="#"
-                className="hover:text-white/40 transition-colors"
-              >
+              <a href="#" className="hover:text-white/40 transition-colors">
                 Terms of Service
               </a>
             </div>
