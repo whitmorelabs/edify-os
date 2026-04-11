@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.router import router as execute_router
 from src.decision_lab.router import router as decision_lab_router
+from src.documents.router import router as documents_router
 from src.heartbeat.router import router as heartbeat_router
 from src.config import settings
 
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(execute_router, prefix="/api/v1", tags=["execution"])
     app.include_router(decision_lab_router, prefix="/api/v1", tags=["decision-lab"])
     app.include_router(heartbeat_router, prefix="/api/v1", tags=["heartbeat"])
+    app.include_router(documents_router, prefix="/api/v1", tags=["documents"])
 
     @app.get("/health")
     async def health() -> dict[str, str]:

@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building, Mail, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { signUp } from "@/lib/supabase/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [orgName, setOrgName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,10 +19,24 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    // TODO: Supabase auth + org creation
-    setTimeout(() => {
-      window.location.href = "/onboarding";
-    }, 500);
+
+    if (!isSupabaseConfigured()) {
+      // Dev/mock mode — skip auth and go straight to onboarding
+      router.push("/onboarding");
+      return;
+    }
+
+    const { error: authError } = await signUp(email, password, orgName);
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Supabase will send a confirmation email if enabled.
+    // For local dev (email confirmation off), the session is active immediately.
+    router.push("/onboarding");
   };
 
   return (
