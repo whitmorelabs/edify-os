@@ -594,9 +594,9 @@ function FAQSection() {
 /* ── CTA Section ──────────────────────────────────────────────── */
 function CTASection() {
   return (
-    <section className="text-center py-[100px] bg-[#f7f6f5]">
-      <div className="spial-container">
-        <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] mx-auto mb-10 leading-[1.3]">
+    <section className="py-[120px] bg-[#f7f6f5]">
+      <div className="spial-container flex flex-col items-center justify-center text-center">
+        <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] leading-[1.3] mb-12">
           Join today &amp; empower your team to achieve extraordinary goals
           together
         </h2>
