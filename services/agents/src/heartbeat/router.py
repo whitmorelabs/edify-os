@@ -6,8 +6,8 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from src.claude.client import ClaudeClient
 from src.heartbeat.config import HeartbeatConfigManager
+from src.llm import LLMClientFactory
 from src.heartbeat.executor import HeartbeatExecutor
 from src.heartbeat.models import (
     HeartbeatConfig,
@@ -145,7 +145,7 @@ async def trigger_heartbeat(
     """
     db_pool = request.app.state.db_pool
 
-    client = ClaudeClient(api_key=anthropic_api_key)
+    client = LLMClientFactory.create(provider="anthropic", api_key=anthropic_api_key)
     memory = MemoryRetriever(db_pool=db_pool, org_id=org_id)
     executor = HeartbeatExecutor(client=client, memory=memory, org_id=org_id)
     notifier = _make_notifier(request)

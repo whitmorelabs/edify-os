@@ -10,7 +10,7 @@ from typing import Any, TYPE_CHECKING
 from src.prompts.loader import PromptLoader
 
 if TYPE_CHECKING:
-    from src.claude.client import ClaudeClient
+    from src.llm.base import BaseLLMClient
     from src.memory.retriever import MemoryRetriever
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class BaseAgent(ABC):
     temperature: float = 0.3
 
     # Injected by __init__ in each subclass
-    _client: "ClaudeClient"
+    _client: "BaseLLMClient"
     _memory: "MemoryRetriever"
 
     @abstractmethod

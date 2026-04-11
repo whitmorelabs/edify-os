@@ -1008,3 +1008,274 @@ Full read of all user guide and onboarding code, then fixed every issue found.
 - `apps/web/src/app/api/heartbeat/route.ts`
 - `apps/web/src/app/api/heartbeat/history/route.ts`
 - `services/agents/src/heartbeat/executor.py`
+
+---
+
+## 2026-04-10 -- Generic LLM Client (provider-swappable)
+
+**Task:** Replace the Claude-only client with a generic LLM client that defaults to Claude but supports pluggable providers.
+
+### Files Created
+- services/agents/src/llm/__init__.py -- package init, exports BaseLLMClient + LLMClientFactory
+- services/agents/src/llm/base.py -- BaseLLMClient ABC defining the complete() + close() interface
+- services/agents/src/llm/anthropic_client.py -- AnthropicClient(BaseLLMClient), moved from claude/client.py
+- services/agents/src/llm/openai_compat_client.py -- OpenAICompatClient(BaseLLMClient) for OpenAI, Qwen, Groq, Together
+- services/agents/src/llm/factory.py -- LLMClientFactory.create(provider, api_key, **kwargs)
+
+### Files Updated (consumers)
+- services/agents/src/claude/client.py -- converted to backwards-compat shim (AnthropicClient as ClaudeClient)
+- services/agents/src/claude/__init__.py -- re-exports ClaudeClient, LLMClientFactory, BaseLLMClient
+- services/agents/src/orchestrator/engine.py -- uses LLMClientFactory.create(), added llm_provider param
+- services/agents/src/orchestrator/executor.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/orchestrator/planner.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/agents/base.py -- TYPE_CHECKING import updated to BaseLLMClient
+- services/agents/src/agents/primary/base_primary.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/agents/sub/base_subagent.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/agents/sub/dispatcher.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/decision_lab/orchestrator.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/decision_lab/synthesis.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/decision_lab/router.py -- uses LLMClientFactory.create()
+- services/agents/src/heartbeat/executor.py -- type hint: ClaudeClient -> BaseLLMClient
+- services/agents/src/heartbeat/router.py -- uses LLMClientFactory.create()
+
+### Architecture Notes
+- All consumers use BaseLLMClient interface; zero provider awareness required downstream
+- OpenAICompatClient translates Anthropic tool schemas to OpenAI function calling format and normalises responses back to Anthropic format, so all parsing helpers remain unchanged
+- Factory supports: anthropic (default), openai, qwen (DashScope), groq, together
+- claude/client.py kept as shim -- no existing imports break
+- openai SDK is imported lazily in OpenAICompatClient so it is not required unless that provider is actually used
+
+---
+
+## 2026-04-10 — Core Chat Interface for Talking to Archetypes
+
+**Task:** Build the full conversational UI where users talk to their AI team members.
+
+### Files Created
+
+**API Routes:**
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — POST endpoint accepting `{ message, conversationId? }`. Returns archetype-appropriate mock responses (5 per archetype, voice-matched). Falls through to real backend if `AGENT_SERVICE_URL` env var is set. 800-1600ms simulated latency.
+- `apps/web/src/app/api/team/[slug]/conversations/route.ts` — GET returns conversation list (local mock + seeded defaults per archetype). POST creates new conversation.
+
+**Client API Wrapper:**
+- `apps/web/src/app/dashboard/team/[slug]/api.ts` — Full typed API layer: `sendMessage`, `getConversations`, `getMessages`, `saveMessage`, `createConversation`, `generateTitle`. Messages persisted to localStorage keyed by `chat:messages:{conversationId}`. Conversations persisted at `chat:conversations:{slug}`.
+
+**Chat Components:**
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — Message list with auto-scroll, relative timestamps ("just now", "2 min ago"), inline markdown rendering (bold, italic, code, headers, lists), archetype avatar on assistant messages, typing indicator.
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatInput.tsx` — Auto-resizing textarea, Enter to send / Shift+Enter for newline, disabled while waiting for response, character hint at 200+, collapsible suggested prompts row.
+- `apps/web/src/app/dashboard/team/[slug]/components/ConversationSidebar.tsx` — List of past conversations with dates, "New conversation" button, active conversation highlight, collapsible to icon strip.
+
+**Pages:**
+- `apps/web/src/app/dashboard/team/[slug]/page.tsx` — Full-height chat page. Header with archetype icon + name + description. Empty state with 4 suggested prompts per archetype. Messages persisted to localStorage. Conversations auto-created on first send, titled from first message. Falls back to local-only if API unavailable.
+- `apps/web/src/app/dashboard/team/page.tsx` (updated) — Now shows all 7 archetype cards (was 3). Card links to `/dashboard/team/[slug]`. Shows last conversation title from localStorage as preview. Green active pulse indicator. Uses `ARCHETYPE_CONFIG` and `ARCHETYPE_SLUGS`.
+
+### Key Decisions
+- Messages stored in localStorage per conversation until real backend wires up — no data loss on page refresh
+- Markdown rendered with a custom lightweight parser (no external deps) — handles bold, italic, code, headers, lists
+- Mock responses are voice-matched per archetype and rotate based on message content hash for variety
+- Language follows rules: "team member", "your [Role]" — no agent/LLM/model language
+- Chat page breaks out of dashboard's padded layout using `-m-6 lg:-m-8` + `calc(100vh)` for true full-height chat
+
+### TypeScript
+`tsc --noEmit` passed with 0 errors.
+
+---
+
+## 2026-04-10 — Organization Onboarding Briefing Flow
+
+**Task:** Build the multi-step briefing flow where nonprofits brief their AI team with org info and documents.
+
+### Files Created
+
+**`apps/web/src/app/dashboard/briefing/page.tsx`**
+Main briefing page. 4-step flow with step indicator (numbered circles, progress bar, "Step X of 4" label). Handles localStorage draft persistence (org profile + programs + goals auto-save on every change). Completion state stored at `edify_briefing_completed`. Calls `POST /api/briefing` on finish. Navigation: Back/Next with validation gates (step 0 requires org name, step 1 requires at least one program). "Skip for now" option on docs step when no files are added.
+
+**`apps/web/src/app/dashboard/briefing/components/Step1OrgProfile.tsx`**
+Org profile form: org name, mission statement, website (optional), annual budget range dropdown (5 tiers), org type dropdown (8 categories), full-time staff, regular volunteers, primary service area, founded year. Responsive 2-column grid on sm+. Exports `OrgProfileData` interface.
+
+**`apps/web/src/app/dashboard/briefing/components/Step2Programs.tsx`**
+Dynamic multi-program form. Each program has: name, description, annual budget (optional), people served/year (optional), key outcomes (comma-separated text). "Add another program" button with dashed border. Remove button per program (disabled when only 1 program). Exports `Program` and `ProgramsData` interfaces.
+
+**`apps/web/src/app/dashboard/briefing/components/Step3Goals.tsx`**
+Goals selection: 12 common nonprofit goals as checkbox-style toggle buttons in a 2-column responsive grid. Free-text "anything else" textarea. Selected count shown below grid. Exports `GoalsData` interface.
+
+**`apps/web/src/app/dashboard/briefing/components/Step4Documents.tsx`**
+Document upload: drag-and-drop zone + file input. Accepts PDF, DOC, DOCX, TXT, CSV, XLS, XLSX up to 10MB. Per-file category dropdown (10 categories). Internal state with functional updates for concurrent upload safety. Simulated progress bar with 200ms ticks to 85% then real fetch completes to 100%. Error states: file too large, wrong type, upload failure. "Your team has this document" confirmation on success. Exports `UploadedDoc` and `DocumentsData` interfaces.
+
+**`apps/web/src/app/dashboard/briefing/components/BriefingComplete.tsx`**
+Completion screen: celebration icon, personalized message with org name, 3-number summary (programs briefed, priorities set, documents shared), 3 quick-link cards (Development Director, Decision Lab, Check-in Schedules), Settings footer note.
+
+**`apps/web/src/app/api/briefing/route.ts`**
+`POST /api/briefing` — accepts `{ orgProfile, programs, goals }`. Shapes data to match `orgs` table + `memory_entries` table structure. Returns shaped memory entries for programs (category: `programs`) and goals (category: `general`). Category mapping documented inline. Returns success + shaped data.
+
+**`apps/web/src/app/api/briefing/upload/route.ts`**
+`POST /api/briefing/upload` — accepts multipart/form-data with `file` + `category`. Validates file type (by MIME + extension fallback) and size (10MB cap). Returns mock `docId`, `memoryCategories` array, and friendly message. Category map aligns with valid `memory_entries` categories in schema: `financial_statement -> general`, `event_plan -> general`, `staff_roster -> contacts` (schema doesn't have financials/events/volunteers yet).
+
+### Files Modified
+
+**`apps/web/src/app/dashboard/settings/page.tsx`**
+Added "Organization Briefing" card at the top of the settings page (above "Your Team's Schedule"). Links to `/dashboard/briefing`. Uses `FileText` icon from lucide-react.
+
+**`apps/web/src/components/sidebar.tsx`**
+Added `useEffect` to check `edify_briefing_completed` localStorage flag on mount. When briefing is not complete, shows a "Brief Your Team" link between the main nav and the divider -- styled with a `Setup` badge and subtle branded border to draw attention. Defaults to `briefingComplete = true` to avoid flash of the prompt on first render.
+
+### Language Rules Applied
+- "Brief your team" / "your team will use this" throughout -- no mention of AI, models, data ingestion
+- "Upload documents to brief your team" not "document ingestion"
+- "Your team has this document" on upload success
+- "Your team will refer to these when thinking about strategy" not "this data trains the model"
+
+### Design Decisions
+- Step4Documents uses internal `useState` for docs to enable functional updates in async upload callbacks -- prevents concurrent upload race conditions
+- `makeDefaultPrograms()` is a function (not a module-level const) to defer `crypto.randomUUID()` call until client-side render
+- Category mapping in both API routes comments explain the schema mismatch (no `financials`/`events`/`volunteers` categories in schema yet) and fall back to `general`
+- Sidebar briefing prompt defaults to hidden (`briefingComplete = true`) to avoid hydration flash, then shows after client-side localStorage read
+
+---
+
+## 2026-04-10 — In-App Notification System
+
+**Task:** Build a real-time notification system for team check-in updates, messages, and system events.
+
+### Files Created
+
+**`apps/web/src/components/notifications/types.ts`**
+TypeScript types: `NotificationType` ("checkin" | "message" | "system"), `ArchetypeSlug` (all 7 archetypes), `Notification` interface (id, type, title, body, archetype?, link, timestamp, read), and `NotificationContextType`.
+
+**`apps/web/src/components/notifications/NotificationProvider.tsx`**
+React context provider wrapping the full dashboard. Polls `/api/notifications` every 30 seconds. Merges server data with localStorage-persisted read/dismissed state. Dispatches a `edify:new-notifications` CustomEvent for the toast system when new items arrive. Exposes: `notifications`, `unreadCount`, `markAsRead()`, `markAllAsRead()`, `dismissNotification()`.
+
+**`apps/web/src/components/notifications/NotificationBell.tsx`**
+Bell icon button for the sidebar header. Shows a red badge with unread count. Pulses for 2 seconds when unread count increases. Opens/closes `NotificationDropdown` on click.
+
+**`apps/web/src/components/notifications/NotificationDropdown.tsx`**
+Dropdown panel. Shows up to 20 recent notifications. "Mark all as read" link in header when there are unreads. Closes on outside click and Escape key. Empty state ("You're all caught up!") when no notifications. Footer "View all in Inbox" link.
+
+**`apps/web/src/components/notifications/NotificationItem.tsx`**
+Individual notification row. Archetype notifications show the archetype icon and bg color; system notifications show an Info icon; others show a Bell icon. Unread: bold title + blue left border. Relative timestamp formatting (just now, 5 min ago, etc.).
+
+**`apps/web/src/components/notifications/ToastNotification.tsx`**
+Fixed top-right toast stack (max 3). Slides in on arrival, auto-dismisses after 5 seconds. Click navigates to notification link and marks read. Dismiss (X) button. Listens for `edify:new-notifications` event from the provider.
+
+**`apps/web/src/app/api/notifications/route.ts`**
+GET: returns 6 realistic mock notifications (3 check-ins from team members, 2 messages, 1 system). PATCH: accepts `{ ids: string[] }` and returns confirmation (ready to wire to a real DB).
+
+### Files Modified
+
+**`apps/web/src/app/dashboard/layout.tsx`**
+Wrapped layout in `<NotificationProvider>`. Added `<ToastNotification />` renderer inside the layout.
+
+**`apps/web/src/components/sidebar.tsx`**
+Added `<NotificationBell />` to the header (right side, next to the "AI Teams" badge). Added `unreadCount` badge to the Inbox nav link via `useNotifications()`.
+
+### Language Rules Applied
+- "check-in" not "heartbeat"
+- "Your Director of Development has an update" not "agent notification"
+- "Your team member checked in" throughout mock data
+
+### Design Decisions
+- `NotificationProvider` placed as the outermost wrapper so all child providers (chat, support) can consume it
+- Read/dismissed state kept entirely in localStorage — no server round-trips needed until real auth/persistence exists
+- Toast system uses a CustomEvent bridge rather than prop-drilling through the provider tree
+- `ArchetypeSlug` type is duplicated in `types.ts` (not imported from heartbeats.ts) to keep the notifications module self-contained and avoid cross-app-layer imports in a component directory
+- TypeScript check passes with zero errors
+
+---
+
+## 2026-04-10 — OAuth Connection Flow Frontend
+
+**Task:** Build the UI where users connect external accounts so the AI team can take real actions on their behalf.
+
+### Files Created
+
+**`apps/web/src/app/dashboard/integrations/components/PermissionsInfo.tsx`**
+Per-service permission explanation component. Maps 20+ integration IDs to plain-English capability lists (what the team will be able to do). Includes a privacy note: "Your data stays within your organization." Shown inside OAuthModal and the detail modal. Falls back to generic permissions for any integration not explicitly listed.
+
+**`apps/web/src/app/dashboard/integrations/components/OAuthModal.tsx`**
+Full OAuth flow modal with four states: `idle` (shows PermissionsInfo + Continue button), `pending` (spinner while popup is open), `success` (green checkmark, auto-closes), `error` (message + retry). Opens the OAuth URL in a popup window via `window.open()`. Listens for `postMessage` from the callback page. Falls back to simulated success if popup is blocked. Calls `POST /api/integrations` to get the OAuth URL server-side.
+
+**`apps/web/src/app/dashboard/integrations/components/IntegrationCard.tsx`**
+Standalone card component for a single integration. Handles both oauth and api_key connection types. Routes to OAuthModal for OAuth services; expands detail view for API key services. Shows connected status badge, agent dots, capability bullets, and disconnect affordance.
+
+**`apps/web/src/app/api/integrations/route.ts`**
+Next.js API route: GET returns connected integrations list, POST generates the (mock) OAuth start URL pointing at the callback route, DELETE removes a connection. All operations have mock implementations; documented TODO comments mark where real Supabase calls and token exchange go.
+
+**`apps/web/src/app/api/integrations/callback/route.ts`**
+OAuth callback handler. Returns a minimal HTML page that fires `window.postMessage` back to the opener (OAuthModal) and calls `window.close()`. Handles success, error from provider, and `mock=true` fast-path for development. Includes documented TODO for real code-for-token exchange.
+
+### Files Modified
+
+**`apps/web/src/app/dashboard/integrations/page.tsx`**
+Full rewrite. Integrated OAuthModal for all OAuth-type integrations. Added PermissionsInfo inside the detail modal. Rewrote all descriptions and button labels in plain language (no "API", "OAuth", "authenticate" etc.) -- "Link your Gmail", "Connect your account", "Give your team access". Split connect handling: OAuth services open OAuthModal, API key services open the detail modal with input fields. Added `animate-fade-in` to page root. Disabled Save & Connect button until required fields are filled.
+
+### Language Rules Applied
+- "Link your Gmail" / "Link your [service]" -- not "Connect via OAuth"
+- "Give your team access to..." -- not "Authenticate"
+- "Access key" -- not "API key" in UI labels
+- Permission descriptions: "Read and send emails on your behalf" -- not "email scope granted"
+- Privacy note: plain English, no technical jargon
+
+### Design Decisions
+- OAuthModal is a standalone component so it can be used from both the card grid and the detail modal without duplication
+- postMessage-based callback is the industry-standard pattern for popup OAuth; pop-up close polling is a fallback for blocked popups
+- Callback page is pure HTML/script (no React) since it runs in the popup, not the app shell
+- PermissionsInfo is data-driven: a simple map of integration ID -> permission list, easy to extend
+- TypeScript check passes with zero errors
+
+---
+
+## 2026-04-10 — /simplify Pass: LLM Client, Chat Interface, Org Briefing, OAuth Flow, Notifications
+
+**Task:** Code quality and simplify pass over all newly built code from the batch.
+
+### Issues Fixed
+
+**Forbidden words in user-facing text:**
+- `settings/page.tsx`: Replaced "Anthropic API Key" → "Anthropic Access Key", "API key is encrypted" → "access key is encrypted", "API key configured" → "Access key saved"
+- `settings/page.tsx`: Replaced "Agents operate within guardrails" → "Your team operates within guardrails" (removed forbidden word "Agents")
+- `settings/page.tsx`: Replaced "Low-risk tasks auto-execute" kept; removed "Agents operate" phrasing
+
+**Dead code / unused exports:**
+- `api/briefing/route.ts`: Removed exported `BriefingPayload` interface (was only used in-file; changed to `interface`)
+- `api/briefing/route.ts`: Removed unused `CATEGORY_MAP` constant (was leaking implementation details in the API response; also removed `categoryMap` from the response body)
+- `notifications/types.ts`: Removed duplicate `ArchetypeSlug` type definition; now re-exports from the canonical `@/app/dashboard/inbox/heartbeats`
+
+**Duplicate code:**
+- `briefing/page.tsx` + `Step2Programs.tsx`: Both defined identical `newProgram()` factory function. Exported it from `Step2Programs.tsx`, removed local copy from `briefing/page.tsx`, updated import.
+
+**Unused import:**
+- `briefing/page.tsx`: Removed unused `type Program` import (was only needed as return type of the now-removed `newProgram()`)
+- `NotificationItem.tsx`: Removed redundant `key={id}` prop on a button element inside a component (keys are only meaningful on elements at the mapping call site, not inside the component body; also removed `id` from destructuring since it became unused)
+
+**Missing import:**
+- `ChatMessages.tsx`: Added `import type React from "react"` — needed for `React.ReactNode` return type annotation in `renderMarkdown` and `inlineMarkdown`
+
+**Bug fix:**
+- `BriefingComplete.tsx`: "Talk to your Development Director" link was pointing to `/dashboard/team` (the team list) instead of `/dashboard/team/development_director` (the specific chat page)
+
+**Python deduplication:**
+- `llm/factory.py`: Removed hardcoded duplicate of the default Anthropic model string; now imports `_DEFAULT_MODEL` from `anthropic_client.py` so there's a single source of truth
+
+### Files Modified
+- `services/agents/src/llm/factory.py`
+- `apps/web/src/app/api/briefing/route.ts`
+- `apps/web/src/app/dashboard/briefing/page.tsx`
+- `apps/web/src/app/dashboard/briefing/components/Step2Programs.tsx`
+- `apps/web/src/app/dashboard/briefing/components/BriefingComplete.tsx`
+- `apps/web/src/components/notifications/types.ts`
+- `apps/web/src/components/notifications/NotificationItem.tsx`
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx`
+- `apps/web/src/app/dashboard/settings/page.tsx`
+
+### Not Changed (Clean)
+- All 7 archetype slugs verified correct throughout all files
+- `llm/__init__.py`, `llm/base.py`, `llm/anthropic_client.py`, `llm/openai_compat_client.py` — clean
+- `claude/client.py` shim — clean
+- Chat interface frontend (api.ts, ChatInput, ConversationSidebar, page.tsx) — clean
+- OAuth flow (OAuthModal, PermissionsInfo, integrations route, callback route) — clean
+- Notification components (Provider, Bell, Dropdown, Toast) — clean
+- Dashboard layout, sidebar — clean
+
+### Notes
+- `IntegrationCard.tsx` is dead code (never imported by `integrations/page.tsx` which renders inline). Not deleted per protocol — escalating for decision.
+- `CATEGORY_MAP` is defined identically in both `api/briefing/route.ts` and `api/briefing/upload/route.ts`. Minor duplication — would require a new shared file to fix; left as-is.

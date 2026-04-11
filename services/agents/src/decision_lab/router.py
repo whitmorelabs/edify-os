@@ -7,8 +7,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from src.claude.client import ClaudeClient
 from src.decision_lab.history import ScenarioHistory
+from src.llm import LLMClientFactory
 from src.decision_lab.models import (
     ArchetypeResponse,
     FollowUpRequest,
@@ -31,7 +31,7 @@ def _make_orchestrator(
     """Build an orchestrator and history store scoped to this request's org."""
     db_pool = request.app.state.db_pool  # may be None in dev
 
-    client = ClaudeClient(api_key=anthropic_api_key)
+    client = LLMClientFactory.create(provider="anthropic", api_key=anthropic_api_key)
     memory = MemoryRetriever(db_pool=db_pool, org_id=org_id)
     orchestrator = DecisionLabOrchestrator(
         client=client,

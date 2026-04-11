@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 import re
 
-from src.claude.client import ClaudeClient
 from src.decision_lab.models import ArchetypeResponse, Synthesis
+from src.llm.base import BaseLLMClient
 from src.decision_lab.prompts import SYNTHESIS_PROMPT, extract_text
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def _format_responses(responses: list[ArchetypeResponse]) -> str:
 class SynthesisEngine:
     """Calls the LLM as a neutral facilitator to synthesize all archetype responses."""
 
-    def __init__(self, client: ClaudeClient) -> None:
+    def __init__(self, client: BaseLLMClient) -> None:
         self._client = client
 
     async def synthesize(

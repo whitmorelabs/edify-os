@@ -6,8 +6,8 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from src.claude.client import ClaudeClient
 from src.heartbeat.models import HeartbeatResult
+from src.llm.base import BaseLLMClient
 from src.heartbeat.prompts import ARCHETYPE_SCAN_FOCUS, HEARTBEAT_BASE_PROMPT
 from src.memory.retriever import MemoryRetriever
 
@@ -30,7 +30,7 @@ class HeartbeatExecutor:
 
     Parameters
     ----------
-    client : ClaudeClient
+    client : BaseLLMClient
         Pre-initialised LLM client (carries the org's API key).
     memory : MemoryRetriever
         Memory retriever scoped to the org.
@@ -40,7 +40,7 @@ class HeartbeatExecutor:
 
     def __init__(
         self,
-        client: ClaudeClient,
+        client: BaseLLMClient,
         memory: MemoryRetriever,
         org_id: str,
     ) -> None:

@@ -13,8 +13,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from src.claude.client import ClaudeClient
 from src.decision_lab.models import ArchetypeResponse, ScenarioResult
+from src.llm.base import BaseLLMClient
 from src.decision_lab.prompts import DECISION_LAB_SYSTEM_PROMPT, FOLLOW_UP_PROMPT, extract_text
 from src.decision_lab.synthesis import SynthesisEngine
 from src.memory.retriever import MemoryRetriever
@@ -84,7 +84,7 @@ class DecisionLabOrchestrator:
 
     def __init__(
         self,
-        client: ClaudeClient,
+        client: BaseLLMClient,
         memory: MemoryRetriever,
         org_id: str,
     ) -> None:
