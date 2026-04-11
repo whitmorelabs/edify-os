@@ -3,106 +3,85 @@
 Handles email triage, calendar management, meeting preparation,
 task management, and general administrative requests for
 nonprofit organisations.
+
+Delegates focused sub-tasks to specialist subagents via
+SubagentDispatcher when the request is a better fit for a subagent
+than inline handling.
 """
 
 from __future__ import annotations
 
-import json
+import logging
 from typing import Any
 
-from src.agents.base import BaseAgent
-from src.claude.client import ClaudeClient
-from src.claude.tools import ALL_TOOLS
-from src.memory.retriever import MemoryRetriever
-from src.prompts.loader import PromptLoader
+from src.agents.primary.base_primary import BasePrimaryAgent
+from src.agents.sub.calendar_agent import CalendarAgentSubagent
+from src.agents.sub.email_triage import EmailTriageSubagent
+from src.agents.sub.meeting_prep import MeetingPrepSubagent
+from src.agents.sub.task_management import TaskManagementSubagent
+
+logger = logging.getLogger(__name__)
 
 
-class ExecutiveAssistant(BaseAgent):
+class ExecutiveAssistant(BasePrimaryAgent):
     role_slug = "executive_assistant"
     display_name = "Executive Assistant"
     model = "claude-sonnet-4-20250514"
     temperature = 0.3
 
-    def __init__(
-        self,
-        client: ClaudeClient,
-        memory: MemoryRetriever,
-    ) -> None:
-        self._client = client
-        self._memory = memory
+    _SUBAGENT_REGISTRY: dict[str, Any] = {
+        "email_triage": EmailTriageSubagent,
+        "calendar_agent": CalendarAgentSubagent,
+        "meeting_prep": MeetingPrepSubagent,
+        "task_management": TaskManagementSubagent,
+    }
 
-    async def execute(
-        self,
-        user_input: str,
-        context: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Handle an EA request end-to-end.
+    _PREAMBLES: dict[str, str] = {
+        "email_triage": (
+            "Inbox triage complete. "
+            "I've sorted by urgency and drafted responses where needed -- "
+            "review before sending:\n\n"
+        ),
+        "calendar_agent": (
+            "Scheduling analysis done. "
+            "Here are the options and my recommendation -- confirm before sending invites:\n\n"
+        ),
+        "meeting_prep": (
+            "Meeting prep materials ready. "
+            "Review the agenda and briefing notes before the call:\n\n"
+        ),
+        "task_management": (
+            "Task list organised and prioritised. "
+            "I've flagged what needs attention today versus what can wait:\n\n"
+        ),
+    }
 
-        Supports:
-        - Email triage and drafting
-        - Calendar scheduling
-        - Meeting preparation (agendas, briefs)
-        - Task management and prioritisation
-        - General administrative queries
+    def _should_delegate(self, user_input: str) -> str | None:
+        """Return a subagent slug if the request should be delegated, else None.
+
+        Rules
+        -----
+        - ``email_triage``    : "email", "inbox", or "triage"
+        - ``calendar_agent``  : "schedule", "calendar", or "meeting time"
+        - ``meeting_prep``    : "agenda", "briefing", or "prep"
+        - ``task_management`` : "action items", "tasks", "track", or "remind"
         """
-        template = PromptLoader.load(self.role_slug, category="primary")
-        system_prompt = PromptLoader.hydrate(template, {
-            "org_name": context.get("org_name", "the organisation"),
-            "org_mission": context.get("org_mission", ""),
-            "active_goals": context.get("active_goals", ""),
-        })
+        lower = user_input.lower()
 
-        # Retrieve relevant memories
-        memories = await self._memory.retrieve(query=user_input, limit=5)
-        if memories:
-            memory_block = "\n\n## Relevant Org Memory\n"
-            for m in memories:
-                memory_block += f"- {m['title']}: {m['content'][:150]}\n"
-            system_prompt += memory_block
+        if any(sig in lower for sig in ("email", "inbox", "triage")):
+            logger.debug("Delegating to email_triage based on keyword match.")
+            return "email_triage"
 
-        messages = [{"role": "user", "content": user_input}]
+        if any(sig in lower for sig in ("schedule", "calendar", "meeting time")):
+            logger.debug("Delegating to calendar_agent based on keyword match.")
+            return "calendar_agent"
 
-        async def tool_executor(name: str, input_data: dict[str, Any]) -> str:
-            if name == "retrieve_memory":
-                results = await self._memory.retrieve(
-                    query=input_data["query"],
-                    limit=input_data.get("limit", 5),
-                )
-                return json.dumps(results, indent=2) if results else "No relevant memories found."
-            elif name == "save_finding":
-                row_id = await self._memory.save(
-                    title=input_data["title"],
-                    content=input_data["content"],
-                    category=input_data["category"],
-                    tags=input_data.get("tags"),
-                )
-                return f"Saved (id: {row_id})." if row_id else "Saved (no DB)."
-            elif name == "generate_document":
-                return (
-                    f"Document generation acknowledged: {input_data['document_type']} - "
-                    f"{input_data['title']}. Please produce the content inline."
-                )
-            elif name == "search_web":
-                return f"[Web search placeholder] Query: {input_data['query']}"
-            return f"Unknown tool: {name}"
+        if any(sig in lower for sig in ("agenda", "briefing", "prep")):
+            logger.debug("Delegating to meeting_prep based on keyword match.")
+            return "meeting_prep"
 
-        response = await self._client.complete(
-            system=system_prompt,
-            messages=messages,
-            tools=ALL_TOOLS,
-            tool_executor=tool_executor,
-            model=self.model,
-            max_tokens=4096,
-            temperature=self.temperature,
-        )
+        if any(sig in lower for sig in ("action items", "tasks", "track", "remind")):
+            logger.debug("Delegating to task_management based on keyword match.")
+            return "task_management"
 
-        text_parts = []
-        for block in response.get("content", []):
-            if block.get("type") == "text":
-                text_parts.append(block["text"])
-
-        return {
-            "response": "\n".join(text_parts),
-            "structured_data": {},
-            "agent": self.role_slug,
-        }
+        return None

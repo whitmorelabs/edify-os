@@ -2,6 +2,10 @@
 
 Each tool is defined as a dict matching Anthropic's tool schema so it can
 be passed directly in the ``tools`` parameter of a Messages API call.
+
+External integration tools (search_external_grants, post_to_social,
+list_calendar_events, create_calendar_event, search_emails, draft_email)
+are wired to the integration classes in services/agents/src/integrations/.
 """
 
 from __future__ import annotations
@@ -136,10 +140,223 @@ GENERATE_DOCUMENT = {
 }
 
 
+# ---------------------------------------------------------------------------
+# External integration tools
+# ---------------------------------------------------------------------------
+
+SEARCH_EXTERNAL_GRANTS = {
+    "name": "search_external_grants",
+    "description": (
+        "Search connected grant databases for funding opportunities matching the "
+        "given criteria. Requires the grant_databases OAuth integration to be active."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "keywords": {
+                "type": "string",
+                "description": "Keywords or focus areas to search for (e.g. 'youth arts education').",
+            },
+            "amount_range": {
+                "type": "object",
+                "description": "Optional funding amount range filter.",
+                "properties": {
+                    "min": {"type": "number", "description": "Minimum grant amount in USD."},
+                    "max": {"type": "number", "description": "Maximum grant amount in USD."},
+                },
+            },
+            "deadline_before": {
+                "type": "string",
+                "description": "ISO 8601 date string. Only return grants with deadlines before this date.",
+            },
+            "location": {
+                "type": "string",
+                "description": "Geographic restriction (e.g. 'California', 'New York City').",
+            },
+        },
+        "required": ["keywords"],
+    },
+}
+
+POST_TO_SOCIAL = {
+    "name": "post_to_social",
+    "description": (
+        "Publish or schedule a post to a connected social media platform. "
+        "Requires the corresponding social OAuth integration to be active."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "platform": {
+                "type": "string",
+                "enum": ["facebook", "instagram", "linkedin", "x"],
+                "description": "Target social media platform.",
+            },
+            "content": {
+                "type": "string",
+                "description": "Text content of the post.",
+            },
+            "schedule_time": {
+                "type": "string",
+                "description": (
+                    "Optional ISO 8601 datetime to schedule the post. "
+                    "If omitted the post is published immediately."
+                ),
+            },
+        },
+        "required": ["platform", "content"],
+    },
+}
+
+LIST_CALENDAR_EVENTS = {
+    "name": "list_calendar_events",
+    "description": (
+        "Retrieve upcoming events from the organisation's Google Calendar. "
+        "Requires the google_calendar OAuth integration to be active."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "date_range": {
+                "type": "object",
+                "description": "Time window to fetch events for.",
+                "properties": {
+                    "start": {
+                        "type": "string",
+                        "description": "ISO 8601 start datetime (inclusive).",
+                    },
+                    "end": {
+                        "type": "string",
+                        "description": "ISO 8601 end datetime (exclusive).",
+                    },
+                },
+            },
+            "calendar_id": {
+                "type": "string",
+                "description": "Google Calendar ID (default: 'primary').",
+                "default": "primary",
+            },
+        },
+        "required": [],
+    },
+}
+
+CREATE_CALENDAR_EVENT = {
+    "name": "create_calendar_event",
+    "description": (
+        "Create a new event in the organisation's Google Calendar. "
+        "Requires the google_calendar OAuth integration to be active."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "title": {
+                "type": "string",
+                "description": "Event title / summary.",
+            },
+            "start": {
+                "type": "object",
+                "description": "Event start time in Google Calendar format.",
+                "properties": {
+                    "dateTime": {
+                        "type": "string",
+                        "description": "ISO 8601 datetime with timezone offset.",
+                    },
+                    "timeZone": {"type": "string", "description": "IANA timezone name."},
+                },
+                "required": ["dateTime"],
+            },
+            "end": {
+                "type": "object",
+                "description": "Event end time in Google Calendar format.",
+                "properties": {
+                    "dateTime": {
+                        "type": "string",
+                        "description": "ISO 8601 datetime with timezone offset.",
+                    },
+                    "timeZone": {"type": "string", "description": "IANA timezone name."},
+                },
+                "required": ["dateTime"],
+            },
+            "attendees": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of attendee email addresses.",
+            },
+            "description": {
+                "type": "string",
+                "description": "Optional event description / agenda.",
+            },
+        },
+        "required": ["title", "start", "end"],
+    },
+}
+
+SEARCH_EMAILS = {
+    "name": "search_emails",
+    "description": (
+        "Search the organisation's Gmail inbox using a Gmail query string. "
+        "Requires the gmail OAuth integration to be active."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": (
+                    "Gmail search query (same syntax as the Gmail search bar, "
+                    "e.g. 'from:donor@example.com subject:grant after:2024/01/01')."
+                ),
+            },
+            "max_results": {
+                "type": "integer",
+                "description": "Maximum number of messages to return (default 10).",
+                "default": 10,
+            },
+        },
+        "required": ["query"],
+    },
+}
+
+DRAFT_EMAIL = {
+    "name": "draft_email",
+    "description": (
+        "Compose and send an email via the organisation's Gmail account. "
+        "Requires the gmail OAuth integration to be active. "
+        "The email is sent immediately -- confirm intent before calling."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "to": {
+                "type": "string",
+                "description": "Recipient email address.",
+            },
+            "subject": {
+                "type": "string",
+                "description": "Email subject line.",
+            },
+            "body": {
+                "type": "string",
+                "description": "Plain-text email body.",
+            },
+        },
+        "required": ["to", "subject", "body"],
+    },
+}
+
+
 # Convenience list of all available tools
 ALL_TOOLS: list[dict] = [
     RETRIEVE_MEMORY,
     SAVE_FINDING,
     SEARCH_WEB,
     GENERATE_DOCUMENT,
+    # External integrations
+    SEARCH_EXTERNAL_GRANTS,
+    POST_TO_SOCIAL,
+    LIST_CALENDAR_EVENTS,
+    CREATE_CALENDAR_EVENT,
+    SEARCH_EMAILS,
+    DRAFT_EMAIL,
 ]
