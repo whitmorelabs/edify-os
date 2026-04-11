@@ -1,109 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowRight,
   Star,
-  Menu,
-  X,
   TrendingUp,
   Globe,
   FolderOpen,
   BarChart3,
-  Sparkles,
 } from "lucide-react";
-
-/* ── Image Placeholder ───────────────────────────────────────── */
-function Placeholder({
-  className = "",
-  aspectClass = "",
-  label,
-}: {
-  className?: string;
-  aspectClass?: string;
-  label?: string;
-}) {
-  return (
-    <div
-      className={`bg-[#e5e5e5] rounded-xl flex items-center justify-center ${aspectClass} ${className}`}
-    >
-      {label && (
-        <span className="text-[#999] text-sm select-none">{label}</span>
-      )}
-    </div>
-  );
-}
-
-/* ── Navigation ───────────────────────────────────────────────── */
-function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const links = [
-    { label: "About us", href: "#about" },
-    { label: "Features", href: "#features" },
-    { label: "Blogs", href: "#blogs" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Integrations", href: "#integrations" },
-    { label: "Contact us", href: "#contact" },
-  ];
-
-  return (
-    <header className="bg-[#1a2b32] py-5 sticky top-0 z-[1000] shadow-[0_2px_10px_rgba(0,0,0,0.1)]">
-      <div className="spial-container">
-        <div className="flex justify-between items-center">
-          {/* Logo */}
-          <div className="text-2xl font-bold text-white flex items-center gap-2.5">
-            <Placeholder className="h-8 w-8 !rounded-md" />
-            SPIAL
-          </div>
-
-          {/* Desktop nav */}
-          <nav
-            className={`${
-              mobileOpen
-                ? "flex flex-col absolute top-[60px] left-0 right-0 bg-[#1a2b32] p-5 gap-4 md:static md:flex-row md:p-0 md:gap-[30px] md:ml-10 md:flex-1 md:items-center"
-                : "hidden md:flex"
-            } md:flex md:gap-[30px] md:items-center md:flex-1 md:ml-10`}
-          >
-            {links.map((l) => (
-              <a
-                key={l.label}
-                href={l.href}
-                className="text-white text-sm no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                onClick={() => setMobileOpen(false)}
-              >
-                {l.label}
-              </a>
-            ))}
-          </nav>
-
-          {/* CTA button */}
-          <button className="spial-btn hidden md:inline-flex">
-            Get Started
-          </button>
-
-          {/* Hamburger */}
-          <button
-            className="flex md:hidden text-white"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-}
+import SpialNavbar from "@/components/spial-navbar";
+import SpialFooter from "@/components/spial-footer";
+import SectionLabel from "@/components/section-label";
+import Placeholder from "@/components/placeholder";
 
 /* ── Hero ─────────────────────────────────────────────────────── */
 function Hero() {
   return (
-    <section className="bg-[#1a2b32] py-20 md:py-20 relative overflow-hidden">
+    <section className="bg-[#1a2b32] py-20 relative overflow-hidden">
       <div className="spial-container relative z-[1]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           {/* Text */}
@@ -149,7 +63,7 @@ function Hero() {
 /* ── Amazing Features Section ─────────────────────────────────── */
 function AmazingFeatures() {
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]" id="features">
+    <section className="py-20 bg-[#f7f6f5]" id="features">
       <div className="spial-container">
         <SectionLabel text="Features" />
         <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
@@ -188,24 +102,6 @@ function AmazingFeatures() {
   );
 }
 
-/* ── Section Label ────────────────────────────────────────────── */
-function SectionLabel({
-  text,
-  centered = false,
-}: {
-  text: string;
-  centered?: boolean;
-}) {
-  return (
-    <div
-      className={`flex items-center gap-2.5 text-sm font-semibold text-[#d2b4fe] mb-4 uppercase ${centered ? "justify-center" : ""}`}
-    >
-      <Sparkles className="w-4 h-4" />
-      {text}
-    </div>
-  );
-}
-
 /* ── Innovation Section ───────────────────────────────────────── */
 function InnovationSection() {
   const features = [
@@ -216,7 +112,7 @@ function InnovationSection() {
   ];
 
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+    <section className="py-20 bg-[#f7f6f5]">
       <div className="spial-container">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
           <Placeholder
@@ -242,7 +138,7 @@ function InnovationSection() {
               {features.map((f, i) => (
                 <li
                   key={i}
-                  className="flex gap-4 mb-4 text-base before:content-['✓'] before:text-[#d2b4fe] before:font-bold before:text-lg before:shrink-0"
+                  className="flex gap-4 mb-4 text-base before:content-['\2713'] before:text-[#d2b4fe] before:font-bold before:text-lg before:shrink-0"
                 >
                   {f}
                 </li>
@@ -273,7 +169,7 @@ function VisionSection() {
   ];
 
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+    <section className="py-20 bg-[#f7f6f5]">
       <div className="spial-container">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
           <div>
@@ -331,7 +227,7 @@ function StatsSection() {
   ];
 
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+    <section className="py-20 bg-[#f7f6f5]">
       <div className="spial-container">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mt-10 text-center">
           {stats.map((s, i) => (
@@ -352,7 +248,7 @@ function StatsSection() {
 /* ── Logos Section ─────────────────────────────────────────────── */
 function LogosSection() {
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+    <section className="py-20 bg-[#f7f6f5]">
       <div className="spial-container">
         <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-10 text-center">
           Trusted by industry leaders
@@ -408,9 +304,11 @@ function TestimonialsSection() {
   ];
 
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+    <section className="py-20 bg-[#f7f6f5]">
       <div className="spial-container">
-        <SectionLabel text="Testimonials" centered />
+        <div className="flex justify-center">
+          <SectionLabel text="Testimonials" />
+        </div>
         <div className="text-center mb-[50px]">
           <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4">
             Clients Review
@@ -516,7 +414,7 @@ function FeaturesDeepDive() {
   ];
 
   return (
-    <section className="py-20 md:py-20 bg-[#392e3b] text-white">
+    <section className="py-20 bg-[#392e3b] text-white">
       <div className="spial-container">
         <h2 className="text-[28px] md:text-[34px] font-medium text-white mb-10 text-center">
           Powerful Features for Every Need
@@ -589,7 +487,7 @@ function BlogSection() {
   ];
 
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]" id="blogs">
+    <section className="py-20 bg-[#f7f6f5]" id="blogs">
       <div className="spial-container">
         <SectionLabel text="Our Blogs" />
         <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
@@ -599,7 +497,7 @@ function BlogSection() {
           {blogs.map((b, i) => (
             <div
               key={i}
-              className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] cursor-pointer"
+              className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)]"
             >
               <div className="w-full h-[220px] bg-[#e5e5e5]" />
               <div className="p-[25px]">
@@ -655,7 +553,7 @@ function FAQSection() {
   };
 
   return (
-    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+    <section className="py-20 bg-[#f7f6f5]">
       <div className="spial-container">
         <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-[50px] text-center">
           Frequently Asked Questions
@@ -710,229 +608,11 @@ function CTASection() {
   );
 }
 
-/* ── Footer ───────────────────────────────────────────────────── */
-function Footer() {
-  return (
-    <footer className="bg-[#1a2b32] text-white py-[60px] pb-5 text-sm">
-      <div className="spial-container">
-        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-10 mb-10">
-          {/* Brand */}
-          <div>
-            <h4 className="text-sm font-semibold mb-5 uppercase">Spial</h4>
-            <p className="leading-[1.6] text-white/70">
-              Innovative SaaS solutions empowering businesses to thrive in the
-              digital age. From custom platforms to seamless integrations, we
-              transform your vision into reality.
-            </p>
-          </div>
-
-          {/* Product */}
-          <div>
-            <h4 className="text-sm font-semibold mb-5 uppercase">Product</h4>
-            <ul className="list-none">
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Features
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Pricing
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Security
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Integrations
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="text-sm font-semibold mb-5 uppercase">Company</h4>
-            <ul className="list-none">
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  About Us
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Blog
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Careers
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Utilities */}
-          <div>
-            <h4 className="text-sm font-semibold mb-5 uppercase">Utilities</h4>
-            <ul className="list-none">
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Resources
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Documentation
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  API Docs
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Support
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Get in Touch */}
-          <div>
-            <h4 className="text-sm font-semibold mb-5 uppercase">
-              Get in Touch
-            </h4>
-            <ul className="list-none">
-              <li className="mb-3">
-                <a
-                  href="mailto:hello@spial.com"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  hello@spial.com
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="tel:+1234567890"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  +1 (234) 567-890
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Schedule Demo
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Footer bottom */}
-        <div className="border-t border-white/10 pt-[30px] flex flex-col md:flex-row justify-between items-center flex-wrap gap-5">
-          <div className="text-center md:text-left">
-            &copy; 2025 Spial. Designed by Nixar. Powered by Webflow.
-          </div>
-          <div className="flex gap-5">
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              Twitter
-            </a>
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              LinkedIn
-            </a>
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              Facebook
-            </a>
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              Instagram
-            </a>
-          </div>
-          <div className="flex gap-5">
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              Privacy Policy
-            </a>
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              Terms &amp; Conditions
-            </a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 /* ── Page ──────────────────────────────────────────────────────── */
 export default function LandingPage() {
   return (
     <div className="spial-page">
-      <Navbar />
+      <SpialNavbar />
       <Hero />
       <AmazingFeatures />
       <InnovationSection />
@@ -944,7 +624,7 @@ export default function LandingPage() {
       <BlogSection />
       <FAQSection />
       <CTASection />
-      <Footer />
+      <SpialFooter />
     </div>
   );
 }
