@@ -595,7 +595,7 @@ function FAQSection() {
 function CTASection() {
   return (
     <section className="pt-[10px] pb-[100px] bg-[#f7f6f5]">
-      <div className="spial-container flex flex-col items-center justify-center text-center">
+      <div className="spial-container flex flex-col items-center text-center">
         <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] leading-[1.3] mb-24">
           Join today &amp; empower your team to achieve extraordinary goals
           together
