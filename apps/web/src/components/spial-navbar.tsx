@@ -29,9 +29,25 @@ export default function SpialNavbar() {
               SPIAL
             </Link>
 
-            {/* Hamburger / Close toggle */}
+            {/* Desktop inline nav links (xl and above) */}
+            <nav className="hidden xl:flex items-center gap-8">
+              {links.map((l) => (
+                <Link
+                  key={l.label}
+                  href={l.href}
+                  className="text-white text-sm font-normal no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  {l.label}
+                </Link>
+              ))}
+              <Link href="/signup" className="spial-btn no-underline">
+                Get Started
+              </Link>
+            </nav>
+
+            {/* Hamburger / Close toggle (below xl) */}
             <button
-              className="flex text-white cursor-pointer"
+              className="flex xl:hidden text-white cursor-pointer"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -45,12 +61,20 @@ export default function SpialNavbar() {
         </div>
       </header>
 
-      {/* Full-screen overlay menu */}
+      {/* Backdrop overlay (click to close) */}
       <div
-        className={`fixed inset-0 z-[999] bg-[#1a2b32] flex flex-col transition-all duration-300 ease-in-out ${
+        className={`fixed inset-0 z-[998] bg-black/50 transition-opacity duration-300 xl:hidden ${
           mobileOpen
             ? "opacity-100 visible"
             : "opacity-0 invisible pointer-events-none"
+        }`}
+        onClick={() => setMobileOpen(false)}
+      />
+
+      {/* Half-screen side panel (slides in from right) */}
+      <div
+        className={`fixed top-0 right-0 h-full w-1/2 z-[999] bg-[#1a2b32] flex flex-col shadow-[-4px_0_20px_rgba(0,0,0,0.3)] border-l border-white/10 transition-transform duration-300 ease-in-out xl:hidden ${
+          mobileOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Spacer for the sticky header */}
