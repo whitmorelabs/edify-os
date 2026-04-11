@@ -14,7 +14,7 @@
   --color-brand-900: #3b0f7a;
   --color-brand-950: #1e0a3e;
 
-  /* Dark surface (Onflow-inspired navy) */
+  /* Dark surface (for dashboard / dark pages) */
   --color-dark: #0c0a1d;
   --color-dark-card: #16132d;
   --color-dark-border: #2a2550;
@@ -196,13 +196,18 @@
   .section-padding {
     @apply py-24 lg:py-32;
   }
+
+  /* Auth layout hero gradient */
+  .hero-gradient {
+    background: linear-gradient(135deg, var(--color-brand-700) 0%, var(--color-brand-500) 50%, var(--color-brand-600) 100%);
+  }
 }
 
-/* Decorative glow */
+/* Decorative glow — subtle on light backgrounds */
 .glow-purple {
-  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
 }
 
 .glow-purple-intense {
-  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.25) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.12) 0%, transparent 60%);
 }
