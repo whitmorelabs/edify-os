@@ -31,7 +31,7 @@ export default function SpialNavbar() {
 
             {/* Hamburger / Close toggle */}
             <button
-              className="flex text-white bg-transparent border-none cursor-pointer"
+              className="flex text-white cursor-pointer"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -72,12 +72,13 @@ export default function SpialNavbar() {
 
         {/* Get Started button at bottom */}
         <div className="px-6 pb-10">
-          <button
-            className="w-full py-3 rounded-full border border-white bg-transparent text-white text-base font-medium cursor-pointer transition-colors duration-300 hover:bg-white/10"
+          <Link
+            href="/signup"
+            className="block w-full py-3 rounded-full border border-white text-white text-base font-medium text-center no-underline transition-colors duration-300 hover:bg-white/10"
             onClick={() => setMobileOpen(false)}
           >
             Get Started
-          </button>
+          </Link>
         </div>
       </div>
     </>
