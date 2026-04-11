@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { signInWithEmail } from "@/lib/supabase/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -14,10 +18,22 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    // TODO: Supabase auth integration
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 500);
+
+    if (!isSupabaseConfigured()) {
+      // Dev/mock mode — skip auth and go straight to dashboard
+      router.push("/dashboard");
+      return;
+    }
+
+    const { error: authError } = await signInWithEmail(email, password);
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    router.push("/dashboard");
   };
 
   return (

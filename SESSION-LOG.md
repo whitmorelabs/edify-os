@@ -1366,3 +1366,184 @@ Added `Shield` icon import and "Admin" nav link pointing to `/dashboard/admin`, 
 - Duplication: none found -- icons/colors for archetypes are defined once per file without cross-file duplication that could be consolidated (each context uses its own local map, which is appropriate for page-level components).
 - Import paths: all `@/lib/utils`, `@/lib/agent-colors`, component relative paths are correct.
 - sidebar.tsx: new Admin nav link is clean -- `Shield` icon imported and used, placed correctly in navLinks array.
+
+---
+
+## Session: Supabase Client Utilities for Next.js Frontend
+
+**Date:** 2026-04-10
+
+### What was built
+
+9 files created or updated to wire up full Supabase auth integration for the Next.js frontend. Everything degrades gracefully when Supabase env vars are absent (dev/mock mode stays fully functional).
+
+### Files created
+
+1. **`apps/web/src/lib/supabase/client.ts`** (rewritten)
+   - Exports `createClient()` — returns a `createBrowserClient` instance or `null` when env vars are missing.
+   - Exports `isSupabaseConfigured()` helper for conditional branches in pages/hooks.
+
+2. **`apps/web/src/lib/supabase/server.ts`** (rewritten)
+   - Exports `createServerSupabaseClient()` — async, reads cookies via Next.js `cookies()`, returns `null` when not configured.
+   - Reads `SUPABASE_URL` / `SUPABASE_ANON_KEY` (server-only) with fallback to `NEXT_PUBLIC_` vars.
+
+3. **`apps/web/src/lib/supabase/middleware.ts`** (new)
+   - Exports `updateSession(request)` — refreshes the session cookie on every request.
+   - Returns `{ response, session }`. When Supabase is not configured, passes through with `session: null`.
+
+4. **`apps/web/src/middleware.ts`** (new)
+   - Next.js edge middleware calling `updateSession`.
+   - Protects `/dashboard/*` — redirects unauthenticated users to `/login?redirectTo=<path>`.
+   - Redirects authenticated users away from `/login` and `/signup` to `/dashboard`.
+   - Skips auth enforcement when Supabase is not configured.
+
+5. **`apps/web/src/lib/supabase/auth.ts`** (new)
+   - `signInWithEmail(email, password)` — email/password sign in.
+   - `signUp(email, password, orgName)` — creates account, passes `org_name` in user metadata.
+   - `signOut()` — clears session.
+   - `getSession()` — returns current session.
+   - `resetPassword(email)` — sends password reset email with redirect back to `/login`.
+   - All functions return `{ data: null, error }` when Supabase is not configured.
+
+6. **`apps/web/src/lib/supabase/hooks.ts`** (new)
+   - `useUser()` — current user + loading/error. Subscribes to `onAuthStateChange`.
+   - `useOrg()` — fetches user's org via `members -> orgs` join with RLS.
+   - `useMembers()` — fetches all org members (RLS scoped).
+   - `Org` and `Member` TypeScript interfaces matching the DB schema.
+   - All hooks return null/empty immediately when Supabase is not configured.
+
+7. **`apps/web/src/components/AuthProvider.tsx`** (new)
+   - `'use client'` context provider wrapping the entire app.
+   - Provides `{ user, session, org, loading }` via `useAuth()`.
+   - Listens to `onAuthStateChange` for real-time session updates.
+   - Fetches org on login; clears on logout.
+
+8. **`apps/web/src/app/layout.tsx`** (updated)
+   - Wraps `{children}` with `<AuthProvider>` as the outermost provider.
+
+9. **`apps/web/.env.local.example`** (new)
+   - Documents `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AGENT_SERVICE_URL`.
+
+### Files enhanced (existing auth pages)
+
+- **`apps/web/src/app/(auth)/login/page.tsx`** — Calls `signInWithEmail()` on submit. Falls back to direct redirect in dev mode. Uses `useRouter` for navigation.
+- **`apps/web/src/app/(auth)/signup/page.tsx`** — Calls `signUp()` on submit. Falls back to direct redirect in dev mode.
+
+### Design decisions
+
+- `createClient()` returns `null` (not throws) when unconfigured. All callers check for null and bail gracefully. This keeps mock/demo mode fully functional without env vars.
+- Server-side client reads non-public env vars first (`SUPABASE_URL`) with fallback to `NEXT_PUBLIC_SUPABASE_URL`. This lets the API and web app share the same Supabase project with appropriate key scoping.
+- Org creation during sign-up is deferred to a server-side route (metadata only passed via `signUp`). The service role key stays server-only.
+- Middleware matcher excludes static assets, images, and favicon to avoid unnecessary Supabase calls on every asset fetch.
+
+---
+
+## 2026-04-10 — Document Upload Parsing Pipeline
+
+**Task:** Build the backend service that extracts text from uploaded documents and stores them as memory entries.
+
+### Files Created
+
+**`services/agents/src/documents/__init__.py`**
+Empty package init.
+
+**`services/agents/src/documents/models.py`**
+Pydantic v2 models: `UploadRequest` (category, title, org_id, anthropic_api_key, generate_summary), `UploadResult` (memory_entry_ids, chunks_created, summary_generated), `DocumentStatus` (status Literal, chunks_created, error). All fields documented with descriptions.
+
+**`services/agents/src/documents/parser.py`**
+`DocumentParser` class with `parse(file_path, file_type) -> str`. Supports:
+- PDF via PyMuPDF (fitz) -- page-by-page extraction with `[Page N]` headers
+- DOCX via python-docx -- paragraph-level extraction
+- TXT/MD -- direct read with utf-8 → utf-8-sig → latin-1 fallback chain
+- CSV -- converts to key: value readable lines using headers as column names
+- XLS/XLSX via openpyxl -- per-sheet extraction with header mapping
+
+Text is cleaned (whitespace normalised, 3+ blank lines collapsed) and truncated to 100,000 characters with a warning log.
+
+**`services/agents/src/documents/chunker.py`**
+`TextChunker` class with `chunk(text, chunk_size=1000, overlap=100) -> list[str]`. Splitting strategy in priority order:
+1. Paragraph boundaries (double newline split)
+2. Sentence boundaries (`.`, `!`, `?` followed by whitespace)
+3. Hard character split as last resort
+
+Greedy bin-packing assembles segments into chunks, with overlap text prepended to each new chunk to preserve cross-boundary context.
+
+**`services/agents/src/documents/ingester.py`**
+`DocumentIngester` class with two public methods:
+- `async ingest(file_path, file_type, category, title) -> list[str]` -- parse, chunk, store. Multi-chunk titles get "(part N/total)" suffix.
+- `async ingest_with_summary(file_path, file_type, category, title, client) -> list[str]` -- same plus LLM summary using first 8000 chars. Summary stored with tags ["uploaded_document", file_type, "document_summary"].
+
+In-memory fallback (`_IN_MEMORY_STORE` dict) activated when `MemoryRetriever.save()` returns None (no DB pool in dev mode). Uses uuid4 for fallback IDs.
+
+**`services/agents/src/documents/router.py`**
+FastAPI router mounted at `/api/v1/documents`:
+- `POST /upload` -- multipart file + form fields (category, title, org_id, anthropic_api_key, generate_summary). Validates extension, enforces 10 MB limit, writes to tempfile for parser, deletes tempfile in finally block. Category mapping handles frontend slugs (e.g. strategic_plan → mission) and validates against known DB slugs, defaulting to "general".
+- `GET /status/{job_id}` -- returns `DocumentStatus` from `_JOB_STORE`. Exists to support future async ingestion; all current uploads are synchronous.
+- `DELETE /{memory_entry_id}` -- deletes from Postgres or in-memory fallback. Returns 204. Raises 404 if not found.
+
+### Files Modified
+
+**`services/agents/src/main.py`**
+Added `from src.documents.router import router as documents_router` import and `app.include_router(documents_router, prefix="/api/v1", tags=["documents"])` mount.
+
+**`services/agents/pyproject.toml`**
+Added document parsing dependencies: PyMuPDF>=1.24.0, python-docx>=1.1.0, openpyxl>=3.1.0, python-multipart>=0.0.9 (required for FastAPI multipart uploads).
+
+### Design Decisions
+- Temp file pattern used so parsers can use file-path APIs (PyMuPDF, openpyxl require paths, not bytes)
+- In-memory fallback mirrors the pattern in MemoryRetriever -- no DB required for dev
+- Category resolution handles both frontend slug formats (strategic_plan) and direct DB slugs (mission)
+- `financials`, `volunteers`, `events` categories now correctly mapped (migration 00008 adds these; frontend route.ts was falling back to general)
+- Summary uses first 8000 chars to keep prompt cost predictable
+
+---
+
+## Session: /simplify — Document Parsing + Supabase Client
+**Date:** 2026-04-10
+
+### Files reviewed
+**Backend:** `documents/__init__.py`, `models.py`, `parser.py`, `chunker.py`, `ingester.py`, `router.py`
+**Frontend:** `lib/supabase/client.ts`, `server.ts`, `middleware.ts`, `hooks.ts`, `auth.ts`, `components/AuthProvider.tsx`, `middleware.ts`, `app/layout.tsx`, `(auth)/login/page.tsx`, `(auth)/signup/page.tsx`
+
+### Fixes applied
+
+**`documents/models.py`**
+- Introduced `CategorySlug = Literal[...]` type alias covering all 12 valid DB slugs from migration 00008
+- Changed `category` field from plain `str` to `CategorySlug` — Pydantic now rejects invalid slugs at request parse time
+- Fixed `anthropic_api_key` field: was incorrectly marked required (`...`) with `min_length=1`; changed to optional with `""` default, matching the router's form field default
+
+**`documents/chunker.py`**
+- Fixed import order: `logging` moved before `re` (stdlib alphabetical convention)
+
+**`documents/ingester.py`**
+- Moved `import uuid` from inside `_save_entry` function body to module-level — deferred imports are a code smell and hurt readability
+
+**`documents/router.py`**
+- Removed unused `import uuid` (uuid is used in ingester.py, not router.py)
+
+**`apps/web/src/middleware.ts`**
+- Removed dead `isPublic` variable and the `void isPublic` suppression workaround
+- Replaced with `AUTH_PATHS` constant used directly in the session redirect check
+- Simplifies the logic and removes a misleading comment about "implicit" usage
+
+**`apps/web/src/lib/supabase/server.ts`**
+- Imported `CookieOptions` from `@supabase/ssr` and applied it to the `setAll` parameter type, replacing the overly-loose `Record<string, unknown>` type
+
+**`apps/web/src/components/AuthProvider.tsx`**
+- Added `useRef` import
+- Moved `createClient()` call from component render scope into a `useRef` — prevents a new Supabase client being instantiated on every re-render
+
+### No changes needed
+- `parser.py` — clean
+- `chunker.py` — clean after import fix
+- `client.ts` — clean
+- `middleware.ts` (supabase lib) — clean
+- `hooks.ts` — clean
+- `auth.ts` — clean
+- `layout.tsx` — clean (marketing copy in metadata is intentional)
+- `login/page.tsx` — clean
+- `signup/page.tsx` — clean
+
+### Category slug coverage
+All 12 slugs confirmed present in both `VALID_CATEGORIES` (router.py) and new `CategorySlug` literal (models.py):
+`mission, programs, donors, grants, campaigns, brand_voice, contacts, processes, general, financials, volunteers, events`
