@@ -15,6 +15,7 @@ import {
   Trash2,
   CreditCard,
   ArrowRight,
+  Clock,
 } from "lucide-react";
 
 type AutonomyLevel = "suggestion" | "assisted" | "autonomous";
@@ -68,6 +69,28 @@ export default function SettingsPage() {
         <p className="mt-1 text-slate-500">
           Manage your organization and AI team configuration.
         </p>
+      </div>
+
+      {/* Team Schedule (Heartbeats) */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
+            <Clock className="h-5 w-5 text-brand-500" />
+          </div>
+          <div>
+            <h2 className="heading-3">Your Team&apos;s Schedule</h2>
+            <p className="text-sm text-slate-500">
+              Configure proactive check-ins from each team member.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/settings/heartbeats"
+          className="btn-secondary inline-flex items-center gap-1.5"
+        >
+          Configure Check-ins
+          <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
 
       {/* Billing & Subscription */}
