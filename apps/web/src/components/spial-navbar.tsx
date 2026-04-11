@@ -71,17 +71,17 @@ export default function SpialNavbar() {
         onClick={() => setMobileOpen(false)}
       />
 
-      {/* Drop-down panel from top, covers 50% of viewport height */}
+      {/* Drop-down panel from top */}
       <div
-        className={`fixed top-0 left-0 w-full h-[50vh] z-[999] bg-[#1a2b32] flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-b border-white/10 transition-transform duration-300 ease-in-out xl:hidden ${
+        className={`fixed top-0 left-0 w-full z-[999] bg-[#1a2b32] flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-b border-white/10 transition-transform duration-300 ease-in-out xl:hidden ${
           mobileOpen ? "translate-y-0" : "-translate-y-full"
         }`}
       >
         {/* Spacer for the sticky header */}
         <div className="pt-[72px]" />
 
-        {/* Nav links — centered vertically in available space */}
-        <nav className="flex-1 flex flex-col items-center justify-center gap-2 px-6">
+        {/* Nav links */}
+        <nav className="flex flex-col items-center gap-2 px-6 py-8">
           {links.map((l) => (
             <Link
               key={l.label}
@@ -94,11 +94,11 @@ export default function SpialNavbar() {
           ))}
         </nav>
 
-        {/* Get Started button at bottom */}
-        <div className="px-6 pb-6">
+        {/* Get Started button */}
+        <div className="px-6 pb-8">
           <Link
             href="/signup"
-            className="block w-full py-3 rounded-full border border-white text-white text-base font-medium text-center no-underline transition-colors duration-300 hover:bg-white/10"
+            className="block w-full py-3 rounded-full border border-white/30 text-white text-base font-medium text-center no-underline transition-colors duration-300 hover:bg-white/10"
             onClick={() => setMobileOpen(false)}
           >
             Get Started
