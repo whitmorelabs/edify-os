@@ -71,10 +71,10 @@ export default function SpialNavbar() {
         onClick={() => setMobileOpen(false)}
       />
 
-      {/* Half-screen side panel (slides in from right) */}
+      {/* Drop-down panel from top, covers 50% of viewport height */}
       <div
-        className={`fixed top-0 right-0 h-full w-1/2 z-[999] bg-[#1a2b32] flex flex-col shadow-[-4px_0_20px_rgba(0,0,0,0.3)] border-l border-white/10 transition-transform duration-300 ease-in-out xl:hidden ${
-          mobileOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 left-0 w-full h-[50vh] z-[999] bg-[#1a2b32] flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-b border-white/10 transition-transform duration-300 ease-in-out xl:hidden ${
+          mobileOpen ? "translate-y-0" : "-translate-y-full"
         }`}
       >
         {/* Spacer for the sticky header */}
@@ -95,7 +95,7 @@ export default function SpialNavbar() {
         </nav>
 
         {/* Get Started button at bottom */}
-        <div className="px-6 pb-10">
+        <div className="px-6 pb-6">
           <Link
             href="/signup"
             className="block w-full py-3 rounded-full border border-white text-white text-base font-medium text-center no-underline transition-colors duration-300 hover:bg-white/10"
