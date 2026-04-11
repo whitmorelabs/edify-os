@@ -554,11 +554,11 @@ function FAQSection() {
 
   return (
     <section className="py-20 bg-[#f7f6f5]">
-      <div className="spial-container">
-        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-[50px] text-center">
+      <div className="spial-container text-center">
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-[50px]">
           Frequently Asked Questions
         </h2>
-        <div className="max-w-[700px] mx-auto mt-[50px]">
+        <div className="max-w-[700px] mx-auto mt-[50px] text-left">
           {faqs.map((f, i) => (
             <div key={i} className="border-b border-[#ddd] mb-5">
               <div
@@ -594,7 +594,7 @@ function FAQSection() {
 /* ── CTA Section ──────────────────────────────────────────────── */
 function CTASection() {
   return (
-    <section className="text-center py-[60px] bg-[#f7f6f5]">
+    <section className="text-center py-[100px] bg-[#f7f6f5]">
       <div className="spial-container">
         <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] mx-auto mb-10 leading-[1.3]">
           Join today &amp; empower your team to achieve extraordinary goals
