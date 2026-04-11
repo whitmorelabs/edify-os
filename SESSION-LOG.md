@@ -1279,3 +1279,90 @@ Full rewrite. Integrated OAuthModal for all OAuth-type integrations. Added Permi
 ### Notes
 - `IntegrationCard.tsx` is dead code (never imported by `integrations/page.tsx` which renders inline). Not deleted per protocol — escalating for decision.
 - `CATEGORY_MAP` is defined identically in both `api/briefing/route.ts` and `api/briefing/upload/route.ts`. Minor duplication — would require a new shared file to fix; left as-is.
+
+---
+
+## 2026-04-10 — Admin Dashboard
+
+**Task:** Build the full admin dashboard for org owners/admins to manage members, monitor usage, and configure the AI team.
+
+### Files Created
+
+**`apps/web/src/app/dashboard/admin/layout.tsx`**
+Admin section layout with sub-navigation tabs (Overview, Members, Usage, AI Configuration), breadcrumbs, and a role guard that shows an "Access Restricted" message if the user is not an owner/admin. Role check is mocked as `true` for now.
+
+**`apps/web/src/app/dashboard/admin/page.tsx`**
+Admin landing page with: 4 overview stat cards (conversations this week, tasks completed, active members, connected integrations), and 3 quick-link cards to sub-pages.
+
+**`apps/web/src/app/dashboard/admin/members/page.tsx`**
+Member management page. Fetches members from API, shows role distribution badges, renders MemberTable, handles role changes and removes with optimistic UI, confirmation modal for removals, and toast notifications for all actions.
+
+**`apps/web/src/app/dashboard/admin/members/components/MemberTable.tsx`**
+Reusable member table with avatar initials, role badges (owner=purple, admin=blue, member=gray), responsive column hiding, change-role dropdown (excluding owner), and remove button per row. Empty state included.
+
+**`apps/web/src/app/dashboard/admin/members/components/InviteMemberModal.tsx`**
+Invite modal with email input, role selector dropdown (member/admin with descriptions), success/error states, mocks invite via POST /api/admin/members.
+
+**`apps/web/src/app/dashboard/admin/usage/page.tsx`**
+Usage monitoring page. Time period selector (7/30/90 days), 5 stat cards with trend indicators, per-archetype breakdown with metric toggle (conversations/messages/tasks), pure-CSS bar chart, summary table, and hourly activity chart.
+
+**`apps/web/src/app/dashboard/admin/usage/components/StatCard.tsx`**
+Reusable stat card with icon, large number, and optional change % indicator (green up / red down).
+
+**`apps/web/src/app/dashboard/admin/usage/components/UsageChart.tsx`**
+Pure CSS/Tailwind horizontal bar chart. Props: data array with label, value, color. No external charting libraries. Responsive.
+
+**`apps/web/src/app/dashboard/admin/ai-config/page.tsx`**
+AI Configuration page. Per-archetype rows with enabled/disabled toggle, autonomy level dropdown (Suggest only / Assist / Autonomous), custom instructions textarea. Provider section with provider selector, masked access key input (show/hide), test connection button, and save. All mock/optimistic.
+
+**`apps/web/src/app/api/admin/members/route.ts`**
+GET returns 4 mock members. POST mocks invite. PATCH mocks role update. DELETE mocks removal.
+
+**`apps/web/src/app/api/admin/usage/route.ts`**
+GET returns mock usage stats scaled by the `days` query param (7/30/90). Includes summary, per-archetype breakdown, and hourly distribution.
+
+**`apps/web/src/app/api/admin/ai-config/route.ts`**
+GET returns mock archetype configs and provider config. PATCH mocks save.
+
+### Files Modified
+
+**`apps/web/src/components/sidebar.tsx`**
+Added `Shield` icon import and "Admin" nav link pointing to `/dashboard/admin`, placed between Help Center and Settings.
+
+### Notes
+- All data is mocked. When Supabase integration is wired up, the API routes are the right place to swap in real queries.
+- Role guard in admin layout is currently hardcoded to `isAdmin = true`. Hook into auth session when auth is wired up.
+- Language rules observed throughout: no "agent", "LLM", "model", "token", "API key" -- uses "team member", "AI Configuration", "access key" consistently.
+
+---
+
+## 2026-04-10 — /simplify pass on admin dashboard
+
+### Files reviewed
+- apps/web/src/app/dashboard/admin/layout.tsx
+- apps/web/src/app/dashboard/admin/page.tsx
+- apps/web/src/app/dashboard/admin/members/page.tsx
+- apps/web/src/app/dashboard/admin/members/components/MemberTable.tsx
+- apps/web/src/app/dashboard/admin/members/components/InviteMemberModal.tsx
+- apps/web/src/app/dashboard/admin/usage/page.tsx
+- apps/web/src/app/dashboard/admin/usage/components/StatCard.tsx
+- apps/web/src/app/dashboard/admin/usage/components/UsageChart.tsx
+- apps/web/src/app/dashboard/admin/ai-config/page.tsx
+- apps/web/src/app/api/admin/members/route.ts
+- apps/web/src/app/api/admin/usage/route.ts
+- apps/web/src/app/api/admin/ai-config/route.ts
+- apps/web/src/components/sidebar.tsx
+
+### Fixes applied
+
+1. **Dead code removed** — `members/page.tsx`: `activeCount` was defined but never referenced anywhere in the component. Removed.
+
+2. **Hardcoded date fixed** — `MemberTable.tsx`: `timeAgo()` used `new Date("2025-04-10")` as a fixed "now" anchor. Changed to `new Date()` so relative timestamps stay accurate.
+
+### No issues found in
+- Archetype slugs: all 7 canonical slugs (`development_director`, `marketing_director`, `executive_assistant`, `programs_director`, `finance_director`, `hr_volunteer_coordinator`, `events_director`) match across every file -- no mismatches.
+- Forbidden user-facing words: no "agent", "LLM", "model", "token", "API key", "heartbeat", or "cron" appear in user-facing text. Internal field names like `heartbeatsDelivered` stay in code only; the UI renders "Check-ins delivered". The `AGENT_COLORS`/`AGENT_SLUGS` identifiers are imports, not UI text.
+- Imports: all imports verified used in every file.
+- Duplication: none found -- icons/colors for archetypes are defined once per file without cross-file duplication that could be consolidated (each context uses its own local map, which is appropriate for page-level components).
+- Import paths: all `@/lib/utils`, `@/lib/agent-colors`, component relative paths are correct.
+- sidebar.tsx: new Admin nav link is clean -- `Shield` icon imported and used, placed correctly in navLinks array.
