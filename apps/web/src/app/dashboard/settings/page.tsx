@@ -16,6 +16,7 @@ import {
   CreditCard,
   ArrowRight,
   Clock,
+  FileText,
 } from "lucide-react";
 
 type AutonomyLevel = "suggestion" | "assisted" | "autonomous";
@@ -34,13 +35,13 @@ const autonomyLevels: {
     value: "assisted",
     label: "Assisted Execution",
     description:
-      "Low-risk tasks auto-execute. High-risk actions still need your approval.",
+      "Low-risk tasks run automatically. High-risk actions still need your approval.",
   },
   {
     value: "autonomous",
     label: "Autonomous Operations",
     description:
-      "Agents operate within guardrails. You review summaries instead of individual actions.",
+      "Your team operates within guardrails. You review summaries instead of individual actions.",
   },
 ];
 
@@ -69,6 +70,28 @@ export default function SettingsPage() {
         <p className="mt-1 text-slate-500">
           Manage your organization and AI team configuration.
         </p>
+      </div>
+
+      {/* Organization Briefing */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
+            <FileText className="h-5 w-5 text-brand-500" />
+          </div>
+          <div>
+            <h2 className="heading-3">Organization Briefing</h2>
+            <p className="text-sm text-slate-500">
+              Update your organization&apos;s profile and documents so your team stays current.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/briefing"
+          className="btn-secondary inline-flex items-center gap-1.5"
+        >
+          Update Briefing
+          <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
 
       {/* Team Schedule (Heartbeats) */}
@@ -163,14 +186,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* API Key (BYOK) */}
+      {/* Anthropic Key (BYOK) */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
             <Key className="h-5 w-5 text-amber-600" />
           </div>
           <div>
-            <h2 className="heading-3">Anthropic API Key</h2>
+            <h2 className="heading-3">Anthropic Access Key</h2>
             <p className="text-sm text-slate-500">
               Bring your own key to power your AI team.
             </p>
@@ -183,7 +206,7 @@ export default function SettingsPage() {
             <div className="text-sm text-amber-800">
               <p className="font-medium">Why Bring Your Own Key?</p>
               <p className="mt-1 text-amber-700">
-                Your API key is encrypted at rest and never shared. You control
+                Your access key is encrypted at rest and never shared. You control
                 your AI usage and costs directly through your Anthropic account.
               </p>
             </div>
@@ -196,7 +219,7 @@ export default function SettingsPage() {
               <Check className="h-5 w-5 text-emerald-500" />
               <div>
                 <p className="text-sm font-medium text-emerald-800">
-                  API key configured
+                  Access key saved
                 </p>
                 <p className="text-xs text-emerald-600">
                   sk-ant-...{apiKey.slice(-8) || "xxxx"}

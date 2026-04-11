@@ -35,6 +35,8 @@ Begin your response with exactly this header line (no other text before it):
 Then give your assessment.
 
 Be direct, concise, and honest. Do not hedge excessively -- take a clear position.
+Never compliment the user or their idea. No sycophantic language.
+Write in clear prose. Never use em dashes. Avoid defaulting to bullet points. No filler phrases.
 """
 
 # Prompt for the neutral synthesis facilitator.

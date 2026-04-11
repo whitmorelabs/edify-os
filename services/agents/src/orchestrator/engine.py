@@ -23,7 +23,7 @@ from src.api.models import (
     ExecutionResult,
     ExecutionStatus,
 )
-from src.claude.client import ClaudeClient
+from src.llm import BaseLLMClient, LLMClientFactory
 from src.memory.retriever import MemoryRetriever
 from src.orchestrator.confidence import ConfidenceScorer
 from src.orchestrator.executor import SubagentExecutor, SubtaskResult
@@ -45,9 +45,13 @@ class OrchestrationEngine:
         org_id: str,
         anthropic_api_key: str,
         db_pool: asyncpg.Pool | None,
+        llm_provider: str = "anthropic",
     ) -> None:
         self._org_id = org_id
-        self._client = ClaudeClient(api_key=anthropic_api_key)
+        self._client: BaseLLMClient = LLMClientFactory.create(
+            provider=llm_provider,
+            api_key=anthropic_api_key,
+        )
         self._memory = MemoryRetriever(db_pool=db_pool, org_id=org_id)
         self._planner = PlannerAgent(client=self._client)
         self._executor = SubagentExecutor(

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import {
   Sparkles,
   LayoutDashboard,
@@ -13,10 +14,13 @@ import {
   Settings,
   BookOpen,
   FlaskConical,
+  FileText,
 } from 'lucide-react';
 import { useChatPanel } from './chat-provider';
 import { AGENT_COLORS, AGENT_SLUGS } from '@/lib/agent-colors';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useNotifications } from '@/components/notifications/NotificationProvider';
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -33,6 +37,17 @@ const navLinks = [
 export function Sidebar() {
   const pathname = usePathname();
   const { openChat, activeAgent, isOpen } = useChatPanel();
+  const { unreadCount } = useNotifications();
+  const [briefingComplete, setBriefingComplete] = useState(true); // default true to avoid flash
+
+  useEffect(() => {
+    try {
+      const done = localStorage.getItem('edify_briefing_completed');
+      setBriefingComplete(done === 'true');
+    } catch {
+      setBriefingComplete(true);
+    }
+  }, []);
 
   return (
     <aside className="w-64 shrink-0 h-screen flex flex-col bg-brand-950 overflow-y-auto sidebar-scroll">
@@ -40,9 +55,12 @@ export function Sidebar() {
       <div className="flex items-center gap-2.5 p-5">
         <Sparkles size={22} className="text-brand-300" />
         <span className="text-white font-bold text-lg">Edify OS</span>
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-brand-300 bg-white/10 px-2 py-0.5 rounded-full">
-          AI Teams
-        </span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <NotificationBell />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-300 bg-white/10 px-2 py-0.5 rounded-full">
+            AI Teams
+          </span>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -52,6 +70,7 @@ export function Sidebar() {
             href === '/dashboard'
               ? pathname === '/dashboard'
               : pathname.startsWith(href);
+          const showBadge = href === '/dashboard/inbox' && unreadCount > 0;
 
           return (
             <Link
@@ -65,11 +84,37 @@ export function Sidebar() {
               )}
             >
               <Icon size={18} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {showBadge && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
+
+      {/* Briefing prompt — shown until org briefing is complete */}
+      {!briefingComplete && (
+        <div className="mx-3 mt-3">
+          <Link
+            href="/dashboard/briefing"
+            className={cn(
+              'flex items-center gap-2.5 rounded-lg border border-brand-400/30 bg-brand-900/50 px-3 py-2.5 text-sm font-medium transition',
+              pathname.startsWith('/dashboard/briefing')
+                ? 'bg-white/15 text-white'
+                : 'text-brand-200 hover:bg-white/10',
+            )}
+          >
+            <FileText size={16} className="shrink-0 text-brand-300" />
+            <span className="flex-1 truncate">Brief Your Team</span>
+            <span className="shrink-0 rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              Setup
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* Divider */}
       <div className="border-t border-white/10 mx-3 my-4" />

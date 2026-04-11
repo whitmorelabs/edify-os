@@ -15,7 +15,7 @@ import logging
 from typing import Any
 
 from src.agents.sub.base_subagent import BaseSubagent, SubagentResult
-from src.claude.client import ClaudeClient
+from src.llm.base import BaseLLMClient
 from src.memory.retriever import MemoryRetriever
 
 logger = logging.getLogger(__name__)
@@ -29,8 +29,8 @@ class SubagentDispatcher:
     registry : dict[str, type[BaseSubagent]]
         Maps slug strings to subagent classes.  The dispatcher owns
         instantiation, so classes (not instances) are registered.
-    client : ClaudeClient
-        Shared Anthropic client passed to each subagent.
+    client : BaseLLMClient
+        Shared LLM client passed to each subagent.
     memory : MemoryRetriever
         Shared memory retriever passed to each subagent.
     """
@@ -38,7 +38,7 @@ class SubagentDispatcher:
     def __init__(
         self,
         registry: dict[str, type[BaseSubagent]],
-        client: ClaudeClient,
+        client: BaseLLMClient,
         memory: MemoryRetriever,
     ) -> None:
         self._registry = registry

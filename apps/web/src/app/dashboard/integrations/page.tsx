@@ -37,6 +37,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AGENT_COLORS, type AgentRoleSlug } from '@/lib/agent-colors';
+import { OAuthModal } from './components/OAuthModal';
+import { PermissionsInfo } from './components/PermissionsInfo';
 
 /* ------------------------------------------------------------------ */
 /*  Category config                                                    */
@@ -101,9 +103,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'gmail',
     name: 'Gmail',
     category: 'email',
-    description: 'Send emails, triage inbox, draft responses',
+    description: 'Connect your Gmail so your Executive Assistant can help manage your inbox, draft responses, and keep you from missing important messages.',
     icon: Mail,
-    capabilities: ['Send & receive emails', 'Inbox triage & labeling', 'Draft responses with AI', 'Search mail history'],
+    capabilities: ['Read and send emails on your behalf', 'Inbox triage and labeling', 'Draft responses for your review', 'Search your mail history'],
     agentsUsing: ALL_AGENTS,
     connectionType: 'oauth',
   },
@@ -111,9 +113,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'outlook',
     name: 'Outlook',
     category: 'email',
-    description: 'Microsoft email for sending and managing messages',
+    description: 'Link your Microsoft Outlook so your team can help manage your email and stay on top of communications.',
     icon: Mail,
-    capabilities: ['Send & receive emails', 'Calendar integration', 'Contact management', 'Search messages'],
+    capabilities: ['Read and send emails on your behalf', 'Calendar and contact access', 'Draft and manage emails', 'Search messages'],
     agentsUsing: [ea, dev],
     connectionType: 'oauth',
   },
@@ -123,9 +125,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'google_calendar',
     name: 'Google Calendar',
     category: 'calendar',
-    description: 'Meeting prep, scheduling, availability',
+    description: 'Link your Google Calendar so your Executive Assistant can schedule meetings, prep you for calls, and keep your day organized.',
     icon: Calendar,
-    capabilities: ['View & create events', 'Check availability', 'Meeting prep summaries', 'Schedule management'],
+    capabilities: ['View and create calendar events', 'Check your availability', 'Prepare meeting summaries', 'Manage your schedule'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -133,9 +135,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'outlook_calendar',
     name: 'Outlook Calendar',
     category: 'calendar',
-    description: 'Microsoft calendar for scheduling',
+    description: 'Connect your Microsoft calendar so your assistant can manage your schedule and prepare you for upcoming meetings.',
     icon: Calendar,
-    capabilities: ['View & create events', 'Check availability', 'Meeting scheduling', 'Room booking'],
+    capabilities: ['View and create events', 'Check your availability', 'Schedule meetings', 'Book rooms and resources'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -145,9 +147,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'salesforce',
     name: 'Salesforce',
     category: 'crm',
-    description: 'Donor records, opportunities, fundraising pipeline',
+    description: 'Give your Director of Development access to your donor records so they can track relationships and support your fundraising pipeline.',
     icon: Database,
-    capabilities: ['Manage donor records', 'Track opportunities', 'Fundraising pipeline', 'Generate reports'],
+    capabilities: ['Read and update donor records', 'Track fundraising opportunities', 'Manage your pipeline', 'Run reports on giving history'],
     agentsUsing: [dev],
     connectionType: 'oauth',
   },
@@ -155,9 +157,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'hubspot',
     name: 'HubSpot',
     category: 'crm',
-    description: 'Contact management, deals, marketing automation',
+    description: 'Connect HubSpot so your team can manage contacts, track deals, and automate outreach for donors and supporters.',
     icon: Users,
-    capabilities: ['Contact management', 'Deal tracking', 'Marketing automation', 'Email sequences'],
+    capabilities: ['Read and update contact records', 'Track deals and opportunities', 'Enroll contacts in email sequences', 'View pipeline data'],
     agentsUsing: [dev, marketing],
     connectionType: 'oauth',
   },
@@ -165,34 +167,34 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'bloomerang',
     name: 'Bloomerang',
     category: 'crm',
-    description: 'Nonprofit donor management and retention',
+    description: 'Link Bloomerang so your development team can track donor retention, giving history, and relationship timelines.',
     icon: Heart,
-    capabilities: ['Donor management', 'Retention tracking', 'Interaction timelines', 'Giving history'],
+    capabilities: ['Read donor profiles and giving history', 'Track donor retention', 'View interaction timelines', 'Log new interactions'],
     agentsUsing: [dev],
     connectionType: 'api_key',
-    configFields: [{ name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Enter Bloomerang API key', required: true }],
+    configFields: [{ name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your Bloomerang access key', required: true }],
   },
   {
     id: 'donorperfect',
     name: 'DonorPerfect',
     category: 'crm',
-    description: 'Comprehensive donor management and fundraising',
+    description: 'Connect DonorPerfect to give your team access to donor records, gift tracking, and fundraising reports.',
     icon: Heart,
-    capabilities: ['Donor management', 'Gift tracking', 'Fundraising reports', 'Pledge management'],
+    capabilities: ['Read donor management data', 'Track gifts and pledges', 'View fundraising reports', 'Access giving history'],
     agentsUsing: [dev],
     connectionType: 'api_key',
-    configFields: [{ name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Enter DonorPerfect API key', required: true }],
+    configFields: [{ name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your DonorPerfect access key', required: true }],
   },
   {
     id: 'little_green_light',
     name: 'Little Green Light',
     category: 'crm',
-    description: 'Simple CRM built for small nonprofits',
+    description: 'Link Little Green Light so your team can read donor records and support your cultivation and stewardship work.',
     icon: Leaf,
-    capabilities: ['Donor management', 'Gift tracking', 'Prospect research', 'Reporting'],
+    capabilities: ['Read donor and gift records', 'Track donor relationships', 'View prospect research data', 'Access reporting'],
     agentsUsing: [dev],
     connectionType: 'api_key',
-    configFields: [{ name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Enter LGL API key', required: true }],
+    configFields: [{ name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your LGL access key', required: true }],
   },
 
   /* ---- Marketing ---- */
@@ -200,9 +202,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'mailchimp',
     name: 'Mailchimp',
     category: 'marketing',
-    description: 'Email campaigns, newsletters, audience management',
+    description: 'Connect Mailchimp so your Marketing Director can manage your email campaigns, newsletters, and audience segments.',
     icon: Send,
-    capabilities: ['Email campaigns', 'Audience segmentation', 'Newsletter management', 'A/B testing'],
+    capabilities: ['Create and send campaigns', 'Manage audience segments', 'View campaign performance', 'Run A/B tests'],
     agentsUsing: [marketing],
     connectionType: 'oauth',
   },
@@ -210,9 +212,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'constant_contact',
     name: 'Constant Contact',
     category: 'marketing',
-    description: 'Email marketing and contact management',
+    description: 'Link Constant Contact so your team can manage email marketing and contact lists on your behalf.',
     icon: Send,
-    capabilities: ['Email marketing', 'Contact management', 'Event marketing', 'Social campaigns'],
+    capabilities: ['Create and send email campaigns', 'Manage contact lists', 'View open and click rates', 'Schedule campaigns'],
     agentsUsing: [marketing],
     connectionType: 'oauth',
   },
@@ -222,9 +224,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'facebook',
     name: 'Facebook',
     category: 'social_media',
-    description: 'Manage posts, engagement, ad campaigns',
+    description: 'Link your Facebook Page so your Marketing Director can post content, respond to your community, and track engagement.',
     icon: Globe,
-    capabilities: ['Post management', 'Community engagement', 'Ad campaigns', 'Page insights'],
+    capabilities: ['Post content to your Page', 'View post engagement and comments', 'Read your Page analytics', 'Respond to comments on your behalf'],
     agentsUsing: [marketing],
     connectionType: 'oauth',
   },
@@ -232,9 +234,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'instagram',
     name: 'Instagram',
     category: 'social_media',
-    description: 'Content scheduling, stories, engagement',
+    description: 'Connect Instagram so your team can schedule posts, manage stories, and track your content performance.',
     icon: Camera,
-    capabilities: ['Content scheduling', 'Stories management', 'Engagement tracking', 'Hashtag research'],
+    capabilities: ['Schedule and publish posts', 'Manage stories content', 'Track engagement and reach', 'View your account insights'],
     agentsUsing: [marketing],
     connectionType: 'oauth',
   },
@@ -242,9 +244,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'linkedin',
     name: 'LinkedIn',
     category: 'social_media',
-    description: 'Professional networking, org page management',
+    description: 'Link your LinkedIn organization page so your team can post updates, manage your professional presence, and attract supporters.',
     icon: Briefcase,
-    capabilities: ['Org page management', 'Post scheduling', 'Professional networking', 'Job postings'],
+    capabilities: ['Post updates to your organization page', 'View post engagement', 'Read follower analytics', 'Manage job postings'],
     agentsUsing: [marketing, dev],
     connectionType: 'oauth',
   },
@@ -252,9 +254,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'twitter',
     name: 'Twitter / X',
     category: 'social_media',
-    description: 'Post, engage, monitor conversations',
+    description: 'Connect your Twitter/X account so your Marketing Director can post content and engage with your community.',
     icon: MessageCircle,
-    capabilities: ['Tweet scheduling', 'Engagement tracking', 'Conversation monitoring', 'Trend analysis'],
+    capabilities: ['Post and schedule tweets', 'View mentions and replies', 'Track engagement data', 'Reply to conversations on your behalf'],
     agentsUsing: [marketing],
     connectionType: 'oauth',
   },
@@ -264,9 +266,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'google_drive',
     name: 'Google Drive',
     category: 'documents',
-    description: 'Access docs, sheets, presentations',
+    description: 'Give your team access to Google Drive so they can read documents, reference reports, and create files you share with them.',
     icon: FolderOpen,
-    capabilities: ['File access & search', 'Document editing', 'Spreadsheet data', 'Presentation creation'],
+    capabilities: ['Access files and folders you share', 'Read documents, spreadsheets, and slides', 'Create new documents on your behalf', 'Search across your Drive files'],
     agentsUsing: ALL_AGENTS,
     connectionType: 'oauth',
   },
@@ -274,9 +276,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'dropbox',
     name: 'Dropbox',
     category: 'documents',
-    description: 'File storage and sharing',
+    description: 'Connect Dropbox so your team can access and reference the files that power your work.',
     icon: HardDrive,
-    capabilities: ['File storage', 'File sharing', 'Version history', 'Team folders'],
+    capabilities: ['Access files and folders you share', 'Read files your team works with', 'Upload files on your behalf', 'Share files with collaborators'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -284,9 +286,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'onedrive',
     name: 'OneDrive',
     category: 'documents',
-    description: 'Microsoft cloud storage and collaboration',
+    description: 'Link OneDrive so your team can work with your Microsoft files and documents.',
     icon: Cloud,
-    capabilities: ['Cloud storage', 'File collaboration', 'Office integration', 'Sharing & permissions'],
+    capabilities: ['Access files in your OneDrive', 'Read Word, Excel, and PowerPoint files', 'Create and edit Office documents', 'Manage shared files'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -296,24 +298,24 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'instrumentl',
     name: 'Instrumentl',
     category: 'grants',
-    description: 'AI-powered grant discovery and tracking',
+    description: 'Connect Instrumentl so your Director of Development can find grant opportunities and track deadlines.',
     icon: Search,
-    capabilities: ['Grant discovery', 'Deadline tracking', 'Funder research', 'Application management'],
+    capabilities: ['Discover relevant grant opportunities', 'Track application deadlines', 'Research funder profiles', 'Manage your grant pipeline'],
     agentsUsing: [dev],
     connectionType: 'api_key',
-    configFields: [{ name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Enter Instrumentl API key', required: true }],
+    configFields: [{ name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your Instrumentl access key', required: true }],
   },
   {
     id: 'grantstation',
     name: 'GrantStation',
     category: 'grants',
-    description: 'Grant research database for nonprofits',
+    description: 'Link GrantStation so your team can research funders and find the right grants for your mission.',
     icon: BookOpen,
-    capabilities: ['Grant research', 'Funder profiles', 'Deadline alerts', 'Grant writing resources'],
+    capabilities: ['Search the grants database', 'Read funder profiles', 'Get deadline alerts', 'Access grant writing resources'],
     agentsUsing: [dev],
     connectionType: 'api_key',
     configFields: [
-      { name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Enter GrantStation API key', required: true },
+      { name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your GrantStation access key', required: true },
       { name: 'org_id', label: 'Organization ID', type: 'text', placeholder: 'Your org ID', required: true },
     ],
   },
@@ -321,12 +323,12 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'foundation_directory',
     name: 'Foundation Directory',
     category: 'grants',
-    description: 'Foundation and grant research database',
+    description: 'Connect Foundation Directory Online so your team can research foundations and identify the best funding matches.',
     icon: Library,
-    capabilities: ['Foundation research', 'Grant database', 'Funder analysis', 'Prospect identification'],
+    capabilities: ['Search the foundation database', 'Read funder profiles and interests', 'Analyze giving history', 'Identify funding prospects'],
     agentsUsing: [dev],
     connectionType: 'api_key',
-    configFields: [{ name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Enter FDO API key', required: true }],
+    configFields: [{ name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your FDO access key', required: true }],
   },
 
   /* ---- Project Management ---- */
@@ -334,9 +336,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'asana',
     name: 'Asana',
     category: 'project_management',
-    description: 'Project and task management',
+    description: 'Link Asana so your Executive Assistant can track tasks, update projects, and keep your team aligned.',
     icon: LayoutList,
-    capabilities: ['Task management', 'Project timelines', 'Team workload', 'Status updates'],
+    capabilities: ['View and create tasks', 'Track project timelines', 'Manage team workload', 'Post status updates'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -344,9 +346,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'monday',
     name: 'Monday.com',
     category: 'project_management',
-    description: 'Work OS for project management',
+    description: 'Connect Monday.com so your assistant can manage work items and keep projects on track.',
     icon: Columns3,
-    capabilities: ['Project tracking', 'Team collaboration', 'Workflow automation', 'Dashboards'],
+    capabilities: ['View and update project boards', 'Collaborate on team items', 'Automate workflow steps', 'View dashboards and reports'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -354,14 +356,14 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'trello',
     name: 'Trello',
     category: 'project_management',
-    description: 'Visual boards for organizing work',
+    description: 'Link Trello so your team can manage boards, update cards, and keep work organized.',
     icon: Kanban,
-    capabilities: ['Kanban boards', 'Card management', 'Checklists & due dates', 'Team collaboration'],
+    capabilities: ['View and create cards', 'Manage boards and lists', 'Update checklists and due dates', 'Collaborate with team members'],
     agentsUsing: [ea],
     connectionType: 'api_key',
     configFields: [
-      { name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Trello API key', required: true },
-      { name: 'api_token', label: 'Token', type: 'password', placeholder: 'Trello token', required: true },
+      { name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Your Trello access key', required: true },
+      { name: 'api_token', label: 'Token', type: 'password', placeholder: 'Your Trello token', required: true },
     ],
   },
 
@@ -370,9 +372,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'quickbooks',
     name: 'QuickBooks',
     category: 'finance',
-    description: 'Nonprofit accounting and financial management',
+    description: 'Connect QuickBooks so your team can read financial data and help you understand your organization\'s financial health.',
     icon: Calculator,
-    capabilities: ['Bookkeeping', 'Financial reports', 'Invoice management', 'Expense tracking'],
+    capabilities: ['Read financial reports and balances', 'View income and expense records', 'Access profit & loss statements', 'Review invoices and payment history'],
     agentsUsing: [ea, dev],
     connectionType: 'oauth',
   },
@@ -380,9 +382,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'xero',
     name: 'Xero',
     category: 'finance',
-    description: 'Cloud accounting for nonprofits',
+    description: 'Link Xero so your team can access accounting data and help you stay on top of your finances.',
     icon: Receipt,
-    capabilities: ['Cloud accounting', 'Bank reconciliation', 'Financial reporting', 'Payroll'],
+    capabilities: ['Read accounting reports', 'View bank transaction data', 'Access financial statements', 'Review invoices and bills'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -392,9 +394,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'wordpress',
     name: 'WordPress',
     category: 'website',
-    description: 'Blog and website content management',
+    description: 'Connect your WordPress site so your Marketing Director can publish blog posts and update content on your behalf.',
     icon: Globe,
-    capabilities: ['Blog publishing', 'Page management', 'Media uploads', 'SEO optimization'],
+    capabilities: ['Publish and edit blog posts', 'Manage site pages', 'Upload media files', 'Update site content'],
     agentsUsing: [marketing],
     connectionType: 'api_key',
     configFields: [
@@ -406,12 +408,12 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'squarespace',
     name: 'Squarespace',
     category: 'website',
-    description: 'Website and online presence management',
+    description: 'Link Squarespace so your team can help keep your website content fresh and up to date.',
     icon: Layout,
-    capabilities: ['Website management', 'Content updates', 'Form submissions', 'Analytics'],
+    capabilities: ['Update website content', 'Manage pages and sections', 'Review form submissions', 'View analytics'],
     agentsUsing: [marketing],
     connectionType: 'api_key',
-    configFields: [{ name: 'api_key', label: 'API Key', type: 'password', placeholder: 'Squarespace API key', required: true }],
+    configFields: [{ name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your Squarespace access key', required: true }],
   },
 
   /* ---- Communication ---- */
@@ -419,9 +421,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'slack',
     name: 'Slack',
     category: 'communication',
-    description: 'Team messaging and AI agent notifications',
+    description: 'Connect Slack so your AI team can send updates, alerts, and messages directly to your team channels.',
     icon: Hash,
-    capabilities: ['Channel messaging', 'Agent notifications', 'File sharing', 'Workflow triggers'],
+    capabilities: ['Send messages to channels', 'Post updates and notifications', 'Share files with your team', 'Trigger workflow actions'],
     agentsUsing: ALL_AGENTS,
     connectionType: 'oauth',
   },
@@ -429,9 +431,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'microsoft_teams',
     name: 'Microsoft Teams',
     category: 'communication',
-    description: 'Team communication hub',
+    description: 'Link Teams so your assistant can keep your team informed with updates and important notifications.',
     icon: MessagesSquare,
-    capabilities: ['Team chat', 'Video meetings', 'File collaboration', 'Channel management'],
+    capabilities: ['Send messages in team channels', 'Post updates and alerts', 'Share files and documents', 'Manage channel notifications'],
     agentsUsing: [ea],
     connectionType: 'oauth',
   },
@@ -441,9 +443,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'eventbrite',
     name: 'Eventbrite',
     category: 'events',
-    description: 'Event creation, ticketing, attendee management',
+    description: 'Connect Eventbrite so your team can manage events, track registrations, and communicate with attendees.',
     icon: Ticket,
-    capabilities: ['Event creation', 'Ticket management', 'Attendee tracking', 'Event promotion'],
+    capabilities: ['View events and attendee lists', 'Create and update events', 'Send messages to attendees', 'View ticket sales data'],
     agentsUsing: [marketing, ea],
     connectionType: 'oauth',
   },
@@ -451,12 +453,12 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'givesmart',
     name: 'GiveSmart',
     category: 'events',
-    description: 'Nonprofit events, auctions, peer-to-peer fundraising',
+    description: 'Link GiveSmart so your team can support your fundraising events, auctions, and peer-to-peer campaigns.',
     icon: PartyPopper,
-    capabilities: ['Event management', 'Auction hosting', 'Peer-to-peer fundraising', 'Donor engagement'],
+    capabilities: ['View event and auction data', 'Track peer-to-peer fundraising', 'View donor engagement data', 'Access event reports'],
     agentsUsing: [dev],
     connectionType: 'api_key',
-    configFields: [{ name: 'api_key', label: 'API Key', type: 'password', placeholder: 'GiveSmart API key', required: true }],
+    configFields: [{ name: 'api_key', label: 'Access Key', type: 'password', placeholder: 'Enter your GiveSmart access key', required: true }],
   },
 
   /* ---- Payments ---- */
@@ -464,9 +466,9 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'stripe',
     name: 'Stripe',
     category: 'payments',
-    description: 'Payment processing and donation management',
+    description: 'Connect Stripe so your team can view payment data and help you understand your donation revenue.',
     icon: CreditCard,
-    capabilities: ['Payment processing', 'Donation pages', 'Recurring gifts', 'Financial reporting'],
+    capabilities: ['View payment and donation history', 'Read revenue and transaction reports', 'View donor payment records', 'Access recurring gift data'],
     agentsUsing: [dev],
     connectionType: 'oauth',
   },
@@ -474,16 +476,16 @@ const INTEGRATIONS: IntegrationEntry[] = [
     id: 'paypal',
     name: 'PayPal',
     category: 'payments',
-    description: 'Online payment and donation collection',
+    description: 'Link PayPal so your team can access your payment history and donation records.',
     icon: Wallet,
-    capabilities: ['Online payments', 'Donation buttons', 'Invoicing', 'Transaction history'],
+    capabilities: ['View payment and donation history', 'Read transaction reports', 'View recurring donation data', 'Access invoicing records'],
     agentsUsing: [dev],
     connectionType: 'oauth',
   },
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Helper: count integrations per category                            */
+/*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
 function countByCategory(cat: string) {
@@ -499,6 +501,7 @@ export default function IntegrationsPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [connected, setConnected] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [oauthModalId, setOauthModalId] = useState<string | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, Record<string, string>>>({});
 
   /* ---------- filtering ---------- */
@@ -515,18 +518,31 @@ export default function IntegrationsPage() {
 
   /* ---------- handlers ---------- */
 
-  function handleConnect(id: string) {
+  function handleConnectClick(id: string) {
     const integration = INTEGRATIONS.find((i) => i.id === id);
     if (!integration) return;
 
-    if (integration.connectionType === 'api_key') {
-      const fields = integration.configFields ?? [];
-      const values = configValues[id] ?? {};
-      const allFilled = fields
-        .filter((f) => f.required)
-        .every((f) => (values[f.name] ?? '').trim() !== '');
-      if (!allFilled) return;
+    if (integration.connectionType === 'oauth') {
+      setOauthModalId(id);
+    } else {
+      setExpandedId(id);
     }
+  }
+
+  function handleOAuthSuccess(id: string) {
+    setConnected((prev) => new Set([...prev, id]));
+  }
+
+  function handleApiKeyConnect(id: string) {
+    const integration = INTEGRATIONS.find((i) => i.id === id);
+    if (!integration) return;
+
+    const fields = integration.configFields ?? [];
+    const values = configValues[id] ?? {};
+    const allFilled = fields
+      .filter((f) => f.required)
+      .every((f) => (values[f.name] ?? '').trim() !== '');
+    if (!allFilled) return;
 
     setConnected((prev) => new Set([...prev, id]));
     setExpandedId(null);
@@ -552,21 +568,23 @@ export default function IntegrationsPage() {
     }));
   }
 
-  /* ---------- expanded integration ---------- */
-
   const expandedIntegration = expandedId
     ? INTEGRATIONS.find((i) => i.id === expandedId) ?? null
+    : null;
+
+  const oauthIntegration = oauthModalId
+    ? INTEGRATIONS.find((i) => i.id === oauthModalId) ?? null
     : null;
 
   /* ---------- render ---------- */
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 lg:p-10">
-      {/* ---- Header ---- */}
+    <div className="mx-auto max-w-7xl space-y-8 p-6 lg:p-10 animate-fade-in">
+      {/* Header */}
       <div>
-        <h1 className="heading-1">Integrations</h1>
+        <h1 className="heading-1">Connected Accounts</h1>
         <p className="mt-1 text-slate-500">
-          Connect your tools to give your AI team real-world capabilities.
+          Connect your accounts so your team can work with real data and take real actions on your behalf.
         </p>
         <div className="mt-3 flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
@@ -579,30 +597,23 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      {/* ---- Connected summary ---- */}
+      {/* Connected strip */}
       {connected.size > 0 && (
         <div className="overflow-x-auto">
-          <div className="flex gap-3">
+          <div className="flex gap-3 pb-1">
             {INTEGRATIONS.filter((i) => connected.has(i.id)).map((i) => {
               const cat = CATEGORIES[i.category];
               const Icon = i.icon;
               return (
-                <div
-                  key={i.id}
-                  className="card flex shrink-0 items-center gap-3 px-4 py-3"
-                >
+                <div key={i.id} className="card flex shrink-0 items-center gap-3 px-4 py-3">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                     <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                   </span>
-                  <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${cat?.badgeBg ?? 'bg-slate-50'}`}
-                  >
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${cat?.badgeBg ?? 'bg-slate-50'}`}>
                     <Icon className={`h-4 w-4 ${cat?.badgeText ?? 'text-slate-600'}`} />
                   </span>
-                  <span className="text-sm font-medium text-slate-700">
-                    {i.name}
-                  </span>
+                  <span className="text-sm font-medium text-slate-700">{i.name}</span>
                   <button
                     onClick={() => setExpandedId(i.id)}
                     className="btn-ghost ml-1 px-2 py-1 text-xs"
@@ -616,13 +627,13 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* ---- Search + Category tabs ---- */}
+      {/* Search + Category tabs */}
       <div className="space-y-4">
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search integrations..."
+            placeholder="Search accounts..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input-field pl-10"
@@ -660,12 +671,13 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      {/* ---- Integration grid ---- */}
+      {/* Integration grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((i) => {
           const cat = CATEGORIES[i.category];
           const Icon = i.icon;
           const isConnected = connected.has(i.id);
+
           return (
             <div
               key={i.id}
@@ -676,53 +688,36 @@ export default function IntegrationsPage() {
               {/* Top row */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-slate-50'}`}
-                  >
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-slate-50'}`}>
                     <Icon className={`h-5 w-5 ${cat?.badgeText ?? 'text-slate-600'}`} />
                   </span>
-                  <div>
-                    <span className="font-semibold text-slate-900">{i.name}</span>
-                  </div>
+                  <span className="font-semibold text-slate-900">{i.name}</span>
                 </div>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-slate-50'} ${cat?.badgeText ?? 'text-slate-600'}`}
-                >
+                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-slate-50'} ${cat?.badgeText ?? 'text-slate-600'}`}>
                   {cat?.label ?? i.category}
                 </span>
               </div>
 
               {/* Description */}
-              <p className="mt-3 text-sm text-slate-500">{i.description}</p>
+              <p className="mt-3 text-sm text-slate-500 line-clamp-2">{i.description}</p>
 
               {/* Agent dots */}
               <div className="mt-3 flex items-center gap-2">
                 {i.agentsUsing.map((slug) => {
                   const ac = AGENT_COLORS[slug];
                   return (
-                    <span
-                      key={slug}
-                      className="group relative flex items-center gap-1.5"
-                    >
-                      <span
-                        className={`inline-block h-2.5 w-2.5 rounded-full ${ac.bg}`}
-                        title={ac.label}
-                      />
-                      <span className="text-[11px] text-slate-400">
-                        {ac.label.split(' ')[0]}
-                      </span>
+                    <span key={slug} className="flex items-center gap-1.5">
+                      <span className={`inline-block h-2.5 w-2.5 rounded-full ${ac.bg}`} title={ac.label} />
+                      <span className="text-[11px] text-slate-400">{ac.label.split(' ')[0]}</span>
                     </span>
                   );
                 })}
               </div>
 
-              {/* Capabilities preview */}
+              {/* Capabilities */}
               <div className="mt-3 space-y-1">
                 {i.capabilities.slice(0, 2).map((cap) => (
-                  <div
-                    key={cap}
-                    className="flex items-center gap-1.5 text-xs text-slate-500"
-                  >
+                  <div key={cap} className="flex items-center gap-1.5 text-xs text-slate-500">
                     <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
                     {cap}
                   </div>
@@ -754,10 +749,10 @@ export default function IntegrationsPage() {
                   </>
                 ) : (
                   <button
-                    onClick={() => setExpandedId(i.id)}
+                    onClick={() => handleConnectClick(i.id)}
                     className="btn-primary w-full text-sm"
                   >
-                    Connect
+                    {i.connectionType === 'oauth' ? `Link your ${i.name}` : `Connect ${i.name}`}
                   </button>
                 )}
               </div>
@@ -767,20 +762,20 @@ export default function IntegrationsPage() {
 
         {filtered.length === 0 && (
           <div className="col-span-full py-16 text-center text-slate-400">
-            No integrations match your search.
+            No accounts match your search.
           </div>
         )}
       </div>
 
-      {/* ---- Detail modal ---- */}
+      {/* Detail / API Key modal */}
       {expandedIntegration && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setExpandedId(null);
           }}
         >
-          <div className="card-elevated mx-4 max-h-[80vh] w-full max-w-lg overflow-y-auto">
+          <div className="card-elevated mx-4 max-h-[85vh] w-full max-w-lg overflow-y-auto animate-slide-up">
             {(() => {
               const i = expandedIntegration;
               const cat = CATEGORIES[i.category];
@@ -793,24 +788,17 @@ export default function IntegrationsPage() {
                   {/* Modal header */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <span
-                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-slate-50'}`}
-                      >
+                      <span className={`flex h-12 w-12 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-slate-50'}`}>
                         <Icon className={`h-6 w-6 ${cat?.badgeText ?? 'text-slate-600'}`} />
                       </span>
                       <div>
                         <h2 className="heading-3">{i.name}</h2>
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-slate-50'} ${cat?.badgeText ?? 'text-slate-600'}`}
-                        >
+                        <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-slate-50'} ${cat?.badgeText ?? 'text-slate-600'}`}>
                           {cat?.label ?? i.category}
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setExpandedId(null)}
-                      className="btn-ghost p-1.5"
-                    >
+                    <button onClick={() => setExpandedId(null)} className="btn-ghost p-1.5">
                       <X className="h-5 w-5" />
                     </button>
                   </div>
@@ -819,15 +807,12 @@ export default function IntegrationsPage() {
 
                   {/* Capabilities */}
                   <div className="mt-6">
-                    <h3 className="label text-xs uppercase tracking-wider text-slate-400">
+                    <h3 className="label text-xs uppercase tracking-wider text-slate-400 mb-2">
                       What this enables
                     </h3>
-                    <ul className="mt-2 space-y-2">
+                    <ul className="space-y-2">
                       {i.capabilities.map((cap) => (
-                        <li
-                          key={cap}
-                          className="flex items-center gap-2 text-sm text-slate-600"
-                        >
+                        <li key={cap} className="flex items-center gap-2 text-sm text-slate-600">
                           <CheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
                           {cap}
                         </li>
@@ -837,10 +822,10 @@ export default function IntegrationsPage() {
 
                   {/* Agents */}
                   <div className="mt-6">
-                    <h3 className="label text-xs uppercase tracking-wider text-slate-400">
+                    <h3 className="label text-xs uppercase tracking-wider text-slate-400 mb-2">
                       Used by
                     </h3>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {i.agentsUsing.map((slug) => {
                         const ac = AGENT_COLORS[slug];
                         return (
@@ -856,6 +841,11 @@ export default function IntegrationsPage() {
                     </div>
                   </div>
 
+                  {/* Permissions & privacy notice */}
+                  <div className="mt-6">
+                    <PermissionsInfo integrationId={i.id} serviceName={i.name} />
+                  </div>
+
                   {/* Connection section */}
                   <div className="mt-6 border-t border-slate-100 pt-6">
                     {isConnected ? (
@@ -865,7 +855,10 @@ export default function IntegrationsPage() {
                           Connected
                         </span>
                         <button
-                          onClick={() => handleDisconnect(i.id)}
+                          onClick={() => {
+                            handleDisconnect(i.id);
+                            setExpandedId(null);
+                          }}
                           className="text-sm text-red-500 hover:underline"
                         >
                           Disconnect
@@ -873,10 +866,13 @@ export default function IntegrationsPage() {
                       </div>
                     ) : i.connectionType === 'oauth' ? (
                       <button
-                        onClick={() => handleConnect(i.id)}
+                        onClick={() => {
+                          setExpandedId(null);
+                          setOauthModalId(i.id);
+                        }}
                         className="btn-primary flex w-full items-center justify-center gap-2"
                       >
-                        Connect with {i.name}
+                        Link your {i.name}
                         <ExternalLink className="h-4 w-4" />
                       </button>
                     ) : (
@@ -885,24 +881,25 @@ export default function IntegrationsPage() {
                           <div key={field.name}>
                             <label className="label mb-1 block text-sm">
                               {field.label}
-                              {field.required && (
-                                <span className="text-red-500"> *</span>
-                              )}
+                              {field.required && <span className="text-red-500"> *</span>}
                             </label>
                             <input
                               type={field.type}
                               placeholder={field.placeholder}
                               value={values[field.name] ?? ''}
-                              onChange={(e) =>
-                                setFieldValue(i.id, field.name, e.target.value)
-                              }
+                              onChange={(e) => setFieldValue(i.id, field.name, e.target.value)}
                               className="input-field w-full"
                             />
                           </div>
                         ))}
                         <button
-                          onClick={() => handleConnect(i.id)}
-                          className="btn-primary w-full"
+                          onClick={() => handleApiKeyConnect(i.id)}
+                          disabled={
+                            !(i.configFields ?? [])
+                              .filter((f) => f.required)
+                              .every((f) => (values[f.name] ?? '').trim() !== '')
+                          }
+                          className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Save &amp; Connect
                         </button>
@@ -914,6 +911,19 @@ export default function IntegrationsPage() {
             })()}
           </div>
         </div>
+      )}
+
+      {/* OAuth modal */}
+      {oauthIntegration && (
+        <OAuthModal
+          integrationId={oauthIntegration.id}
+          serviceName={oauthIntegration.name}
+          serviceIcon={oauthIntegration.icon}
+          iconBg={CATEGORIES[oauthIntegration.category]?.badgeBg ?? 'bg-slate-50'}
+          iconText={CATEGORIES[oauthIntegration.category]?.badgeText ?? 'text-slate-600'}
+          onClose={() => setOauthModalId(null)}
+          onSuccess={() => handleOAuthSuccess(oauthIntegration.id)}
+        />
       )}
     </div>
   );

@@ -13,7 +13,7 @@ import logging
 from typing import Any
 
 from src.api.models import SubtaskPlan
-from src.claude.client import ClaudeClient
+from src.llm.base import BaseLLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ Example:
 class PlannerAgent:
     """Decomposes a user request into an ordered list of subtasks."""
 
-    def __init__(self, client: ClaudeClient) -> None:
+    def __init__(self, client: BaseLLMClient) -> None:
         self._client = client
 
     async def plan(

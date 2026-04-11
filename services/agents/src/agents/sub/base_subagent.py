@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from src.claude.client import ClaudeClient
+from src.llm.base import BaseLLMClient
 from src.memory.retriever import MemoryRetriever
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,7 @@ class BaseSubagent(ABC):
 
     def __init__(
         self,
-        client: ClaudeClient,
+        client: BaseLLMClient,
         memory: MemoryRetriever,
     ) -> None:
         self._client = client

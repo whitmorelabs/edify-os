@@ -13,8 +13,8 @@ import re
 from typing import Any
 
 from src.api.models import SubtaskPlan
-from src.claude.client import ClaudeClient
 from src.claude.tools import ALL_TOOLS
+from src.llm.base import BaseLLMClient
 from src.memory.retriever import MemoryRetriever
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class SubagentExecutor:
 
     def __init__(
         self,
-        client: ClaudeClient,
+        client: BaseLLMClient,
         memory: MemoryRetriever,
         org_id: str,
     ) -> None:

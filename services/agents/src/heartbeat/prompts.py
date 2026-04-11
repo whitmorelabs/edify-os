@@ -13,7 +13,9 @@ HEARTBEAT_BASE_PROMPT = (
     "If there IS something to report, respond with: "
     "[TITLE: one-line summary] then 2-3 sentences of context, "
     "then [ACTION: suggested next step]. "
-    "Keep it concise -- this is a status update, not a report.\n\n"
+    "Keep it concise -- this is a status update, not a report. "
+    "Write in clear prose. Never use em dashes. No bullet points unless listing specific items. "
+    "No filler phrases or sycophantic language.\n\n"
     "{scan_focus}"
 )
 

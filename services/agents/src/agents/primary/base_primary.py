@@ -14,8 +14,8 @@ from typing import Any
 
 from src.agents.base import BaseAgent
 from src.agents.sub.dispatcher import SubagentDispatcher
-from src.claude.client import ClaudeClient
 from src.claude.tools import ALL_TOOLS
+from src.llm.base import BaseLLMClient
 from src.memory.retriever import MemoryRetriever
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class BasePrimaryAgent(BaseAgent):
 
     def __init__(
         self,
-        client: ClaudeClient,
+        client: BaseLLMClient,
         memory: MemoryRetriever,
     ) -> None:
         self._client = client
