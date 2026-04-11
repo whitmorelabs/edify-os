@@ -1,407 +1,950 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import {
-  Sparkles,
   ArrowRight,
-  CheckCircle,
-  Shield,
-  Zap,
-  BarChart3,
-  Landmark,
-  Megaphone,
-  CalendarCheck,
-  Quote,
-  ChevronRight,
-  Play,
   Star,
-  Users,
-  Target,
-  Clock,
+  Menu,
+  X,
+  TrendingUp,
+  Globe,
+  FolderOpen,
+  BarChart3,
+  Sparkles,
 } from "lucide-react";
 
-/* ── Agent data ────────────────────────────────────────────────── */
-const agents = [
-  {
-    icon: Landmark,
-    name: "Director of Development",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/30",
-    capabilities: [
-      "Grant research & writing",
-      "Donor outreach emails",
-      "Fundraising pipeline tracking",
-      "CRM management",
-    ],
-  },
-  {
-    icon: Megaphone,
-    name: "Marketing Director",
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/30",
-    capabilities: [
-      "Social media campaigns",
-      "Newsletter creation",
-      "Content strategy",
-      "Engagement analytics",
-    ],
-  },
-  {
-    icon: CalendarCheck,
-    name: "Executive Assistant",
-    color: "text-sky-400",
-    bg: "bg-sky-500/10",
-    border: "border-sky-500/30",
-    capabilities: [
-      "Email triage & drafting",
-      "Meeting preparation",
-      "Schedule management",
-      "Task coordination",
-    ],
-  },
-];
+/* ── Image Placeholder ───────────────────────────────────────── */
+function Placeholder({
+  className = "",
+  aspectClass = "",
+  label,
+}: {
+  className?: string;
+  aspectClass?: string;
+  label?: string;
+}) {
+  return (
+    <div
+      className={`bg-[#e5e5e5] rounded-xl flex items-center justify-center ${aspectClass} ${className}`}
+    >
+      {label && (
+        <span className="text-[#999] text-sm select-none">{label}</span>
+      )}
+    </div>
+  );
+}
 
-/* ── Platform steps ────────────────────────────────────────────── */
-const steps = [
-  {
-    num: "01",
-    title: "Tell us your mission",
-    desc: "Share your organization details, programs, and brand voice. Your AI team learns your unique context and communication style.",
-  },
-  {
-    num: "02",
-    title: "Your team gets to work",
-    desc: "AI agents research grants, draft campaigns, triage emails, and manage tasks — all running 24/7 in the background.",
-  },
-  {
-    num: "03",
-    title: "Review & approve",
-    desc: "Every output lands in your approval queue. You stay in control — approve, edit, or redirect with a single click.",
-  },
-  {
-    num: "04",
-    title: "Scale your impact",
-    desc: "As trust grows, increase autonomy. Your AI team handles more while you focus on strategy, leadership, and community.",
-  },
-];
+/* ── Navigation ───────────────────────────────────────────────── */
+function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const links = [
+    { label: "About us", href: "#about" },
+    { label: "Features", href: "#features" },
+    { label: "Blogs", href: "#blogs" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Integrations", href: "#integrations" },
+    { label: "Contact us", href: "#contact" },
+  ];
 
-/* ── Stats ─────────────────────────────────────────────────────── */
-const stats = [
-  { value: "10x", label: "Capacity multiplier", icon: Zap },
-  { value: "24/7", label: "Always working", icon: Clock },
-  { value: "95%", label: "Approval rate", icon: Target },
-  { value: "500+", label: "Nonprofits served", icon: Users },
-];
+  return (
+    <header className="bg-[#1a2b32] py-5 sticky top-0 z-[1000] shadow-[0_2px_10px_rgba(0,0,0,0.1)]">
+      <div className="spial-container">
+        <div className="flex justify-between items-center">
+          {/* Logo */}
+          <div className="text-2xl font-bold text-white flex items-center gap-2.5">
+            <Placeholder className="h-8 w-8 !rounded-md" />
+            SPIAL
+          </div>
 
-/* ── Testimonials ──────────────────────────────────────────────── */
-const testimonials = [
-  {
-    quote:
-      "Edify OS replaced three part-time roles for us. Our grant pipeline has never been stronger — the AI found opportunities we didn't even know existed.",
-    name: "Sarah Chen",
-    title: "Executive Director, Hope Community Foundation",
-    stars: 5,
-  },
-  {
-    quote:
-      "The marketing director agent wrote our entire spring campaign in one afternoon. Social engagement is up 340% since we started.",
-    name: "Marcus Williams",
-    title: "Board Chair, Urban Youth Alliance",
-    stars: 5,
-  },
-  {
-    quote:
-      "I finally have time to lead instead of drowning in admin. The executive assistant handles my inbox and meeting prep perfectly.",
-    name: "Priya Patel",
-    title: "CEO, Green Futures Collective",
-    stars: 5,
-  },
-];
+          {/* Desktop nav */}
+          <nav
+            className={`${
+              mobileOpen
+                ? "flex flex-col absolute top-[60px] left-0 right-0 bg-[#1a2b32] p-5 gap-4 md:static md:flex-row md:p-0 md:gap-[30px] md:ml-10 md:flex-1 md:items-center"
+                : "hidden md:flex"
+            } md:flex md:gap-[30px] md:items-center md:flex-1 md:ml-10`}
+          >
+            {links.map((l) => (
+              <a
+                key={l.label}
+                href={l.href}
+                className="text-white text-sm no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                onClick={() => setMobileOpen(false)}
+              >
+                {l.label}
+              </a>
+            ))}
+          </nav>
 
-/* ── Features ──────────────────────────────────────────────────── */
-const features = [
-  {
-    icon: Shield,
-    title: "Your data, your control",
-    desc: "Bring your own API key. Your data is encrypted at rest and never used for training. Full privacy by design.",
-  },
-  {
-    icon: Zap,
-    title: "Proactive, not reactive",
-    desc: "The heartbeat system monitors grants, emails, and social media — surfacing opportunities before you even ask.",
-  },
-  {
-    icon: BarChart3,
-    title: "Confidence scoring",
-    desc: "Every output includes a confidence score. High confidence auto-executes. Low confidence asks for your input.",
-  },
-];
+          {/* CTA button */}
+          <button className="spial-btn hidden md:inline-flex">
+            Get Started
+          </button>
 
-/* ═══════════════════════════════════════════════════════════════ */
+          {/* Hamburger */}
+          <button
+            className="flex md:hidden text-white"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+function Hero() {
+  return (
+    <section className="bg-[#1a2b32] py-20 md:py-20 relative overflow-hidden">
+      <div className="spial-container relative z-[1]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+          {/* Text */}
+          <div className="mb-10 md:mb-0">
+            <h1 className="text-white text-[36px] md:text-[52px] font-semibold leading-[1.2] mb-5">
+              Revolutionize your business with next-gen software
+            </h1>
+            <p className="text-white/80 text-lg mb-[30px] leading-[1.7]">
+              We bridge the gap between innovation and execution. From intuitive
+              SaaS platforms to sleek app landing pages, our expertise in digital
+              marketing &amp; development empowers your brand to thrive in the
+              digital age.
+            </p>
+            <button className="spial-btn">
+              Get Started
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <div className="flex gap-2.5 mt-[30px]">
+              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#d2b4fe]" />
+              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#d2b4fe]" />
+              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#d2b4fe]" />
+            </div>
+          </div>
+
+          {/* Visuals */}
+          <div className="relative">
+            <Placeholder
+              className="w-full aspect-[4/3]"
+              label="Hero Image"
+            />
+            <div className="absolute bottom-5 left-5 bg-white/10 backdrop-blur-[10px] rounded-lg p-5 text-white text-sm max-w-[280px]">
+              <strong className="block mb-1">88%</strong>
+              of users are less likely to return to a site after a poor
+              experience
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Amazing Features Section ─────────────────────────────────── */
+function AmazingFeatures() {
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]" id="features">
+      <div className="spial-container">
+        <SectionLabel text="Features" />
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
+          Amazing Features
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-10">
+          <div className="bg-white rounded-xl p-10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <h3 className="text-2xl font-normal mb-4">
+              Cross-Platform Compatibility
+            </h3>
+            <p className="leading-[1.7] text-[#333] mb-4">
+              Enjoy a consistent &amp; optimized experience across all
+              devices—desktop, tablet, or mobile.
+            </p>
+            <Placeholder
+              className="w-full aspect-[16/9] mt-5 !rounded-lg"
+              label="Feature 1"
+            />
+          </div>
+          <div className="bg-white rounded-xl p-10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <h3 className="text-2xl font-normal mb-4">
+              Cloud-Based Infrastructure
+            </h3>
+            <p className="leading-[1.7] text-[#333] mb-4">
+              It&apos;s custom SaaS solutions help optimize operations, and
+              support scalable growth.
+            </p>
+            <Placeholder
+              className="w-full aspect-[16/9] mt-5 !rounded-lg"
+              label="Feature 2"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Section Label ────────────────────────────────────────────── */
+function SectionLabel({
+  text,
+  centered = false,
+}: {
+  text: string;
+  centered?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-2.5 text-sm font-semibold text-[#d2b4fe] mb-4 uppercase ${centered ? "justify-center" : ""}`}
+    >
+      <Sparkles className="w-4 h-4" />
+      {text}
+    </div>
+  );
+}
+
+/* ── Innovation Section ───────────────────────────────────────── */
+function InnovationSection() {
+  const features = [
+    "Custom SaaS platforms designed to grow with your business.",
+    "Leverage analytics to make informed decisions and drive success.",
+    "Streamline processes with innovative, tailored solutions.",
+    "Connect all your tools and systems effortlessly for a unified experience.",
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
+          <Placeholder
+            className="w-full aspect-[4/3]"
+            label="Innovation Image"
+          />
+          <div>
+            <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
+              Empowering businesses through innovation
+            </h2>
+            <p className="leading-[1.7] text-[#333] mb-4">
+              We empower businesses by combining innovative technology with
+              customized solutions that drive efficiency, growth, and success.
+            </p>
+            <a
+              href="#"
+              className="text-[#d2b4fe] no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300 hover:text-[#c9a3f3]"
+            >
+              Explore More
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+            <ul className="list-none mt-[30px]">
+              {features.map((f, i) => (
+                <li
+                  key={i}
+                  className="flex gap-4 mb-4 text-base before:content-['✓'] before:text-[#d2b4fe] before:font-bold before:text-lg before:shrink-0"
+                >
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Vision Section ───────────────────────────────────────────── */
+function VisionSection() {
+  const blocks = [
+    {
+      title: "Empower Businesses",
+      desc: "Deliver tools that drive growth & efficiency.",
+    },
+    {
+      title: "Simplify Processes",
+      desc: "Create user-friendly and intuitive solutions.",
+    },
+    {
+      title: "Support Scalability",
+      desc: "Build solutions that grow with your business.",
+    },
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
+          <div>
+            <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
+              Everything you need to transform your vision into reality
+            </h2>
+            <p className="leading-[1.7] text-[#333] mb-4">
+              From custom SaaS solutions to seamless integrations, we provide
+              the innovative tools and support you need to achieve your business
+              goals.
+            </p>
+            <button className="spial-btn mt-4">Get Started</button>
+          </div>
+          <Placeholder className="w-full aspect-[4/3]" label="Vision Image" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-10">
+          {blocks.map((b, i) => (
+            <div
+              key={i}
+              className="bg-white p-[30px] rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+            >
+              <h3 className="text-xl font-normal mb-3">{b.title}</h3>
+              <p className="text-sm text-[#666]">{b.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Stats Section ────────────────────────────────────────────── */
+function StatsSection() {
+  const stats = [
+    {
+      icon: <TrendingUp className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "$6.5m",
+      label: "e-commerce Market Growth",
+    },
+    {
+      icon: <Globe className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "15+",
+      label: "Worldwide Global Reach",
+    },
+    {
+      icon: <FolderOpen className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "100+",
+      label: "Successful Projects Completed",
+    },
+    {
+      icon: <BarChart3 className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "73%",
+      label: "Social Media Effectiveness",
+    },
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mt-10 text-center">
+          {stats.map((s, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="mb-4">{s.icon}</div>
+              <div className="text-[48px] font-bold text-[#d2b4fe] mb-2.5">
+                {s.value}
+              </div>
+              <div className="text-sm text-[#666]">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Logos Section ─────────────────────────────────────────────── */
+function LogosSection() {
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-10 text-center">
+          Trusted by industry leaders
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-[30px] items-center mt-[50px]">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div
+              key={n}
+              className="flex justify-center items-center min-h-[60px]"
+            >
+              <div className="w-24 h-8 bg-[#e5e5e5] rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Testimonials Section ─────────────────────────────────────── */
+function TestimonialsSection() {
+  const reviews = [
+    {
+      name: "Ronald Richards",
+      location: "California, USA",
+      text: "Spial\u2019s innovative approach transformed our business operations. The seamless integration and intuitive platform made our transition effortless.",
+    },
+    {
+      name: "Brooklyn Simmons",
+      location: "Florida, US",
+      text: "Outstanding solution! Their team understood our needs perfectly and delivered exactly what we needed to scale our business efficiently.",
+    },
+    {
+      name: "Leslie Alexander",
+      location: "Toronto, US",
+      text: "Incredible platform! The analytics features have given us insights we never had before, driving smarter business decisions daily.",
+    },
+    {
+      name: "Savannah Nguyen",
+      location: "Georgia, US",
+      text: "Best investment we made this year! The support team is responsive and the platform keeps improving with regular updates.",
+    },
+    {
+      name: "Kristin Watson",
+      location: "Dallas, US",
+      text: "From day one, Spial has been a game-changer. Their customer-centric approach and technical excellence set them apart from competitors.",
+    },
+    {
+      name: "Ralph Edwards",
+      location: "Texas, US",
+      text: "Perfect solution for enterprises. The scalability and security features give us complete peace of mind running our operations.",
+    },
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <SectionLabel text="Testimonials" centered />
+        <div className="text-center mb-[50px]">
+          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4">
+            Clients Review
+          </h2>
+          <p className="leading-[1.7] text-[#333]">
+            Our clients consistently praise the innovation, reliability, and
+            exceptional customer support that drives their business success.
+          </p>
+          <p className="font-semibold mt-5">
+            Trusted by businesses worldwide to drive growth
+          </p>
+          <div className="flex justify-center mt-[30px]">
+            <div className="w-[60px] h-[60px] rounded-full bg-[#e5e5e5] border-[3px] border-[#f7f6f5]" />
+            <div className="w-[60px] h-[60px] rounded-full bg-[#e5e5e5] border-[3px] border-[#f7f6f5] -ml-4" />
+            <div className="w-[60px] h-[60px] rounded-full bg-[#e5e5e5] border-[3px] border-[#f7f6f5] -ml-4" />
+          </div>
+        </div>
+
+        <div className="mt-[50px]">
+          <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-[30px]">
+            {reviews.map((r, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-xl p-[30px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex gap-4 mb-5">
+                  <div className="w-14 h-14 rounded-full bg-[#e5e5e5] shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-semibold mb-1">{r.name}</div>
+                    <div className="text-sm text-[#999]">{r.location}</div>
+                  </div>
+                </div>
+                <div className="flex gap-1 mb-3">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className="w-4 h-4 fill-[#f5a623] text-[#f5a623]"
+                    />
+                  ))}
+                </div>
+                <div className="text-[15px] text-[#666] leading-[1.6]">
+                  {r.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Features Deep Dive ───────────────────────────────────────── */
+function FeaturesDeepDive() {
+  const [activeTab, setActiveTab] = useState(0);
+
+  const tabs = [
+    {
+      label: "Scalable Architecture",
+      title: "Custom SaaS Platforms",
+      points: [
+        "Build enterprise-grade solutions that scale with your business needs",
+        "Cloud infrastructure designed for performance and reliability",
+        "Auto-scaling capabilities to handle traffic spikes effortlessly",
+      ],
+    },
+    {
+      label: "Real-Time Analytics",
+      title: "Dynamic Data Analysis",
+      points: [
+        "Real-time dashboards that track key performance indicators",
+        "Advanced analytics engine for actionable business insights",
+        "Customizable reports tailored to your specific needs",
+      ],
+    },
+    {
+      label: "Seamless Integration",
+      title: "Unified Connections",
+      points: [
+        "Connect with hundreds of third-party applications and tools",
+        "API-first architecture for custom integrations",
+        "Webhook support for real-time data synchronization",
+      ],
+    },
+    {
+      label: "Advanced Security",
+      title: "Enhanced Protection",
+      points: [
+        "Enterprise-grade encryption for data at rest and in transit",
+        "Multi-factor authentication and role-based access control",
+        "Regular security audits and compliance with industry standards",
+      ],
+    },
+    {
+      label: "Collaborative Tools",
+      title: "Effortless Teamwork",
+      points: [
+        "Real-time collaboration features for distributed teams",
+        "Built-in communication and project management tools",
+        "Version control and audit trails for complete transparency",
+      ],
+    },
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#392e3b] text-white">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[34px] font-medium text-white mb-10 text-center">
+          Powerful Features for Every Need
+        </h2>
+
+        {/* Tab buttons */}
+        <div className="flex flex-col sm:flex-row gap-2.5 mb-10 flex-wrap">
+          {tabs.map((t, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveTab(i)}
+              className={`px-6 py-3 rounded-lg text-sm cursor-pointer transition-all duration-300 border-2 font-[inherit] ${
+                activeTab === i
+                  ? "bg-[#d2b4fe] text-black border-[#d2b4fe]"
+                  : "bg-transparent text-white border-white/20 hover:border-[#d2b4fe]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+          <div>
+            <h3 className="text-[26px] font-normal text-white mb-5">
+              {tabs[activeTab].title}
+            </h3>
+            <ul className="list-none text-white/80">
+              {tabs[activeTab].points.map((p, i) => (
+                <li
+                  key={i}
+                  className="mb-4 flex gap-2.5 before:content-['•'] before:text-[#d2b4fe] before:font-bold"
+                >
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Placeholder
+            className="w-full aspect-[4/3]"
+            label={`Feature Image ${activeTab + 1}`}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Blog Section ─────────────────────────────────────────────── */
+function BlogSection() {
+  const blogs = [
+    {
+      category: "Management",
+      title:
+        "How data-driven strategies boost business growth & visibility",
+      date: "Jan 27, 2025",
+    },
+    {
+      category: "Cloud Solutions",
+      title: "Cloud-based SaaS unlocking flexibility for businesses",
+      date: "Jan 27, 2025",
+    },
+    {
+      category: "Artificial Intelligence",
+      title:
+        "Building a future-ready business with AI-powered SaaS tools",
+      date: "Jan 27, 2025",
+    },
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]" id="blogs">
+      <div className="spial-container">
+        <SectionLabel text="Our Blogs" />
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
+          Articles &amp; Resources
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[30px] mt-[50px]">
+          {blogs.map((b, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] cursor-pointer"
+            >
+              <div className="w-full h-[220px] bg-[#e5e5e5]" />
+              <div className="p-[25px]">
+                <div className="text-xs text-[#d2b4fe] font-semibold uppercase mb-2.5">
+                  {b.category}
+                </div>
+                <h3 className="text-xl font-semibold text-black mb-2.5">
+                  {b.title}
+                </h3>
+                <div className="text-[13px] text-[#999]">{b.date}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FAQ Section ──────────────────────────────────────────────── */
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      q: "How does Spial help businesses grow?",
+      a: "Spial provides comprehensive SaaS solutions that streamline operations, enable data-driven decision making, and integrate all your business tools seamlessly. Our platform is designed to scale with your growth and help you achieve your business objectives efficiently.",
+    },
+    {
+      q: "What industries does Spial serve?",
+      a: "Spial serves a wide range of industries including SaaS companies, e-commerce platforms, financial services, healthcare, technology startups, and enterprise organizations. Our flexible and customizable solutions can be tailored to meet the specific needs of any industry.",
+    },
+    {
+      q: "Can Spial integrate with our existing systems?",
+      a: "Yes, absolutely. Spial offers robust API and webhook support for seamless integration with your existing systems. We support connections with hundreds of popular business applications and can create custom integrations to fit your unique requirements.",
+    },
+    {
+      q: "Is Spial\u2019s platform secure?",
+      a: "Security is our top priority. Spial uses enterprise-grade encryption, multi-factor authentication, role-based access controls, and regular security audits. We comply with industry standards including GDPR, SOC 2, and ISO 27001 to protect your data.",
+    },
+    {
+      q: "Does Spial offer mobile-optimized solutions?",
+      a: "Yes, Spial is fully optimized for mobile devices. Our platform provides a consistent and intuitive experience across desktop, tablet, and mobile devices, allowing your team to work efficiently from anywhere.",
+    },
+    {
+      q: "How can I track my business\u2019s performance using Spial?",
+      a: "Spial provides real-time dashboards and customizable reports that track key performance indicators. Our advanced analytics engine gives you actionable insights, and you can create custom metrics to monitor what matters most to your business.",
+    },
+  ];
+
+  const toggleAccordion = (idx: number) => {
+    setOpenIndex(openIndex === idx ? null : idx);
+  };
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-[50px] text-center">
+          Frequently Asked Questions
+        </h2>
+        <div className="max-w-[700px] mx-auto mt-[50px]">
+          {faqs.map((f, i) => (
+            <div key={i} className="border-b border-[#ddd] mb-5">
+              <div
+                className="flex justify-between items-center py-5 cursor-pointer font-medium text-lg select-none hover:text-[#d2b4fe] transition-colors duration-300"
+                onClick={() => toggleAccordion(i)}
+              >
+                <span>{f.q}</span>
+                <span
+                  className={`text-2xl text-[#d2b4fe] transition-transform duration-300 ${
+                    openIndex === i ? "rotate-45" : ""
+                  }`}
+                >
+                  +
+                </span>
+              </div>
+              <div
+                className={`overflow-hidden transition-all duration-300 text-[#666] leading-[1.6] ${
+                  openIndex === i
+                    ? "max-h-[500px] pb-5"
+                    : "max-h-0 pb-0"
+                }`}
+              >
+                <p>{f.a}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── CTA Section ──────────────────────────────────────────────── */
+function CTASection() {
+  return (
+    <section className="text-center py-[60px] bg-[#f7f6f5]">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] mx-auto mb-10 leading-[1.3]">
+          Join today &amp; empower your team to achieve extraordinary goals
+          together
+        </h2>
+        <button className="spial-btn">
+          Let&apos;s Collaborate Now
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer className="bg-[#1a2b32] text-white py-[60px] pb-5 text-sm">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-10 mb-10">
+          {/* Brand */}
+          <div>
+            <h4 className="text-sm font-semibold mb-5 uppercase">Spial</h4>
+            <p className="leading-[1.6] text-white/70">
+              Innovative SaaS solutions empowering businesses to thrive in the
+              digital age. From custom platforms to seamless integrations, we
+              transform your vision into reality.
+            </p>
+          </div>
+
+          {/* Product */}
+          <div>
+            <h4 className="text-sm font-semibold mb-5 uppercase">Product</h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Features
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Pricing
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Security
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Integrations
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h4 className="text-sm font-semibold mb-5 uppercase">Company</h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  About Us
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Blog
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Careers
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Utilities */}
+          <div>
+            <h4 className="text-sm font-semibold mb-5 uppercase">Utilities</h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Resources
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Documentation
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  API Docs
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Support
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Get in Touch */}
+          <div>
+            <h4 className="text-sm font-semibold mb-5 uppercase">
+              Get in Touch
+            </h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="mailto:hello@spial.com"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  hello@spial.com
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="tel:+1234567890"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  +1 (234) 567-890
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Schedule Demo
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Footer bottom */}
+        <div className="border-t border-white/10 pt-[30px] flex flex-col md:flex-row justify-between items-center flex-wrap gap-5">
+          <div className="text-center md:text-left">
+            &copy; 2025 Spial. Designed by Nixar. Powered by Webflow.
+          </div>
+          <div className="flex gap-5">
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Twitter
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              LinkedIn
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Facebook
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Instagram
+            </a>
+          </div>
+          <div className="flex gap-5">
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Privacy Policy
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Terms &amp; Conditions
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ── Page ──────────────────────────────────────────────────────── */
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-dark text-white overflow-hidden">
-      {/* ── Nav ───────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 border-b border-white/5 bg-dark/80 backdrop-blur-xl">
-        <div className="section-container flex items-center justify-between py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
-              <Sparkles className="h-4.5 w-4.5 text-white" />
-            </div>
-            <span className="text-lg font-bold">Edify OS</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-white/60 hover:text-white transition">Features</a>
-            <a href="#how-it-works" className="text-sm text-white/60 hover:text-white transition">How it Works</a>
-            <a href="#team" className="text-sm text-white/60 hover:text-white transition">AI Team</a>
-            <a href="#testimonials" className="text-sm text-white/60 hover:text-white transition">Testimonials</a>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-sm text-brand-300 hover:text-brand-200 font-medium transition">
-              Demo
-            </Link>
-            <Link href="/login" className="text-sm text-white/60 hover:text-white transition hidden sm:block">
-              Sign In
-            </Link>
-            <Link href="/signup" className="btn-primary text-sm !py-2.5 !px-5">
-              Get Started
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* ── Hero ──────────────────────────────────────────────── */}
-      <section className="relative section-padding overflow-hidden">
-        {/* Glow decoration */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] glow-purple-intense pointer-events-none" />
-
-        <div className="section-container relative">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/10 border border-brand-500/20 px-4 py-2 text-sm font-medium text-brand-300 mb-8">
-              <Sparkles className="h-4 w-4" />
-              AI-Powered Teams for Nonprofits
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
-              Your nonprofit just hired its{" "}
-              <span className="text-brand-400">smartest team</span>
-            </h1>
-
-            <p className="mt-6 text-lg sm:text-xl text-white/50 leading-relaxed max-w-2xl mx-auto">
-              Edify OS gives your organization a full AI leadership team — a
-              Director of Development, Marketing Director, and Executive
-              Assistant — working around the clock.
-            </p>
-
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Link href="/signup" className="btn-primary text-base !px-8 !py-3.5">
-                Start Free
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-              <a href="#how-it-works" className="btn-light text-base">
-                <Play className="h-4 w-4" />
-                See How It Works
-              </a>
-            </div>
-
-            {/* Trust badges */}
-            <div className="mt-16 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-white/30">
-              <span className="flex items-center gap-1.5"><Shield className="h-4 w-4" /> SOC 2 Compliant</span>
-              <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> BYOK Encryption</span>
-              <span className="flex items-center gap-1.5"><Users className="h-4 w-4" /> 500+ Nonprofits</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stats strip ──────────────────────────────────────── */}
-      <section className="border-y border-white/5">
-        <div className="section-container py-16">
-          <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/10 mb-4">
-                  <s.icon className="h-6 w-6 text-brand-400" />
-                </div>
-                <p className="text-3xl sm:text-4xl font-extrabold text-white">{s.value}</p>
-                <p className="mt-1 text-sm text-white/40">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features (3 cards) ───────────────────────────────── */}
-      <section id="features" className="section-padding">
-        <div className="section-container">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">Why Edify OS</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-              Built for nonprofits that need<br className="hidden sm:block" /> to do more with less
-            </h2>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-3">
-            {features.map((f) => (
-              <div key={f.title} className="card-dark p-8 hover:border-brand-500/30 transition-colors">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/10 mb-5">
-                  <f.icon className="h-6 w-6 text-brand-400" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-white/50 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works (numbered steps) ────────────────────── */}
-      <section id="how-it-works" className="section-padding bg-white text-slate-900">
-        <div className="section-container">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-brand-500 uppercase tracking-wider mb-3">How It Works</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-              From signup to a full AI team<br className="hidden sm:block" /> in under 5 minutes
-            </h2>
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-2">
-            {steps.map((s, i) => (
-              <div key={s.num} className="flex gap-6 group">
-                <div className="shrink-0">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-500 text-lg font-extrabold group-hover:bg-brand-500 group-hover:text-white transition-colors">
-                    {s.num}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">{s.title}</h3>
-                  <p className="text-slate-500 leading-relaxed">{s.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Meet your AI Team ────────────────────────────────── */}
-      <section id="team" className="section-padding section-dark relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] glow-purple pointer-events-none" />
-
-        <div className="section-container relative">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-brand-400 uppercase tracking-wider mb-3">Your AI Team</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-              Three leaders. Twelve subagents.<br className="hidden sm:block" /> One unstoppable team.
-            </h2>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-3">
-            {agents.map((a) => (
-              <div key={a.name} className={`card-dark p-8 border ${a.border} hover:border-opacity-60 transition-all`}>
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${a.bg} mb-6`}>
-                  <a.icon className={`h-7 w-7 ${a.color}`} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">{a.name}</h3>
-                <ul className="space-y-2.5">
-                  {a.capabilities.map((cap) => (
-                    <li key={cap} className="flex items-center gap-2.5 text-sm text-white/50">
-                      <CheckCircle className={`h-4 w-4 shrink-0 ${a.color}`} />
-                      {cap}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/signup"
-                  className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold ${a.color} hover:underline`}
-                >
-                  Hire this agent
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ─────────────────────────────────────── */}
-      <section id="testimonials" className="section-padding bg-white text-slate-900">
-        <div className="section-container">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-brand-500 uppercase tracking-wider mb-3">Testimonials</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-              Loved by nonprofit leaders
-            </h2>
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-3">
-            {testimonials.map((t) => (
-              <div key={t.name} className="rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-shadow">
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: t.stars }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-brand-500 text-brand-500" />
-                  ))}
-                </div>
-                <Quote className="h-8 w-8 text-brand-200 mb-3" />
-                <p className="text-slate-600 leading-relaxed mb-6">
-                  {t.quote}
-                </p>
-                <div>
-                  <p className="font-bold text-slate-900">{t.name}</p>
-                  <p className="text-sm text-slate-400">{t.title}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ──────────────────────────────────────────────── */}
-      <section className="section-padding section-dark relative">
-        <div className="absolute inset-0 glow-purple-intense pointer-events-none" />
-
-        <div className="section-container relative text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight max-w-2xl mx-auto">
-            Ready to multiply your{" "}
-            <span className="text-brand-400">nonprofit&apos;s impact</span>?
-          </h2>
-          <p className="mt-4 text-lg text-white/50 max-w-xl mx-auto">
-            Stop drowning in execution. Start leading. Your AI team is ready to work.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link href="/signup" className="btn-primary text-base !px-8 !py-3.5">
-              Get Started Free
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-            <Link href="/dashboard" className="btn-light text-base">
-              Try the Demo
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Footer ───────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 bg-dark">
-        <div className="section-container py-12">
-          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold">Edify OS</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-white/30">
-              <a href="#features" className="hover:text-white/60 transition">Features</a>
-              <a href="#how-it-works" className="hover:text-white/60 transition">How it Works</a>
-              <a href="#team" className="hover:text-white/60 transition">Team</a>
-              <Link href="/login" className="hover:text-white/60 transition">Sign In</Link>
-            </div>
-            <p className="text-sm text-white/20">
-              &copy; 2026 Edify OS
-            </p>
-          </div>
-        </div>
-      </footer>
+    <div className="spial-page">
+      <Navbar />
+      <Hero />
+      <AmazingFeatures />
+      <InnovationSection />
+      <VisionSection />
+      <StatsSection />
+      <LogosSection />
+      <TestimonialsSection />
+      <FeaturesDeepDive />
+      <BlogSection />
+      <FAQSection />
+      <CTASection />
+      <Footer />
     </div>
   );
 }

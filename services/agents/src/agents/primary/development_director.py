@@ -3,106 +3,95 @@
 Handles grant research, donor outreach, fundraising strategy,
 prospect identification, and development communications for
 nonprofit organisations.
+
+Delegates focused sub-tasks to specialist subagents via
+SubagentDispatcher when the request is a better fit for a subagent
+than inline handling.
 """
 
 from __future__ import annotations
 
-import json
+import logging
 from typing import Any
 
-from src.agents.base import BaseAgent
-from src.claude.client import ClaudeClient
-from src.claude.tools import ALL_TOOLS
-from src.memory.retriever import MemoryRetriever
-from src.prompts.loader import PromptLoader
+from src.agents.primary.base_primary import BasePrimaryAgent
+from src.agents.sub.crm_update import CrmUpdateSubagent
+from src.agents.sub.donor_outreach import DonorOutreachSubagent
+from src.agents.sub.grant_research import GrantResearchSubagent
+from src.agents.sub.grant_writing import GrantWritingSubagent
+from src.agents.sub.reporting import ReportingSubagent
+
+logger = logging.getLogger(__name__)
 
 
-class DevelopmentDirector(BaseAgent):
+class DevelopmentDirector(BasePrimaryAgent):
     role_slug = "development_director"
     display_name = "Development Director"
     model = "claude-sonnet-4-20250514"
     temperature = 0.35
 
-    def __init__(
-        self,
-        client: ClaudeClient,
-        memory: MemoryRetriever,
-    ) -> None:
-        self._client = client
-        self._memory = memory
+    _SUBAGENT_REGISTRY: dict[str, Any] = {
+        "grant_research": GrantResearchSubagent,
+        "grant_writing": GrantWritingSubagent,
+        "donor_outreach": DonorOutreachSubagent,
+        "crm_update": CrmUpdateSubagent,
+        "reporting": ReportingSubagent,
+    }
 
-    async def execute(
-        self,
-        user_input: str,
-        context: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Handle a development/fundraising request end-to-end.
+    _PREAMBLES: dict[str, str] = {
+        "grant_research": (
+            "Here's what I found after reviewing our grant landscape. "
+            "I've ranked opportunities by fit and likelihood:\n\n"
+        ),
+        "grant_writing": (
+            "I've drafted the requested grant content below. "
+            "Review for accuracy against funder guidelines and fill in any bracketed placeholders:\n\n"
+        ),
+        "donor_outreach": (
+            "Donor outreach drafted below. "
+            "Personalise each message before sending and confirm contact details are current:\n\n"
+        ),
+        "crm_update": (
+            "CRM review complete. "
+            "Here are the stale records and recommended next actions:\n\n"
+        ),
+        "reporting": (
+            "Fundraising report ready for review. "
+            "Verify all figures against your accounting records before sharing with the board:\n\n"
+        ),
+    }
 
-        Supports:
-        - Grant research and eligibility analysis
-        - Donor outreach email drafting
-        - Fundraising strategy and planning
-        - Prospect identification and profiling
-        - Stewardship communications (thank-you letters, impact reports)
-        - Campaign planning and timeline creation
+    def _should_delegate(self, user_input: str) -> str | None:
+        """Return a subagent slug if the request should be delegated, else None.
+
+        Rules
+        -----
+        - ``grant_writing``  : ("write"/"draft"/"compose"/"prepare") + "grant"
+        - ``grant_research`` : ("research"/"find"/"identify"/"search"/"look for"/"list") + "grant"
+        - ``donor_outreach`` : "donor"/"outreach"/"thank you"/"stewardship"
+        - ``crm_update``     : "crm"/"stale"/"donor record"
+        - ``reporting``      : "report"/"dashboard"/"board summary"/"fundraising report"
         """
-        template = PromptLoader.load(self.role_slug, category="primary")
-        system_prompt = PromptLoader.hydrate(template, {
-            "org_name": context.get("org_name", "the organisation"),
-            "org_mission": context.get("org_mission", ""),
-            "active_goals": context.get("active_goals", ""),
-        })
+        lower = user_input.lower()
 
-        memories = await self._memory.retrieve(query=user_input, limit=5)
-        if memories:
-            memory_block = "\n\n## Relevant Org Memory\n"
-            for m in memories:
-                memory_block += f"- {m['title']}: {m['content'][:150]}\n"
-            system_prompt += memory_block
+        if "grant" in lower:
+            if any(sig in lower for sig in ("write", "draft", "compose", "prepare")):
+                logger.debug("Delegating to grant_writing based on keyword match.")
+                return "grant_writing"
+            if any(sig in lower for sig in ("research", "find", "identify", "search", "look for", "list")):
+                logger.debug("Delegating to grant_research based on keyword match.")
+                return "grant_research"
 
-        messages = [{"role": "user", "content": user_input}]
+        if any(sig in lower for sig in ("donor", "outreach", "thank you", "stewardship")):
+            logger.debug("Delegating to donor_outreach based on keyword match.")
+            return "donor_outreach"
 
-        async def tool_executor(name: str, input_data: dict[str, Any]) -> str:
-            if name == "retrieve_memory":
-                results = await self._memory.retrieve(
-                    query=input_data["query"],
-                    limit=input_data.get("limit", 5),
-                )
-                return json.dumps(results, indent=2) if results else "No relevant memories found."
-            elif name == "save_finding":
-                row_id = await self._memory.save(
-                    title=input_data["title"],
-                    content=input_data["content"],
-                    category=input_data["category"],
-                    tags=input_data.get("tags"),
-                )
-                return f"Saved (id: {row_id})." if row_id else "Saved (no DB)."
-            elif name == "generate_document":
-                return (
-                    f"Document generation acknowledged: {input_data['document_type']} - "
-                    f"{input_data['title']}. Please produce the content inline."
-                )
-            elif name == "search_web":
-                return f"[Web search placeholder] Query: {input_data['query']}"
-            return f"Unknown tool: {name}"
+        if any(sig in lower for sig in ("crm", "stale", "donor record")):
+            logger.debug("Delegating to crm_update based on keyword match.")
+            return "crm_update"
 
-        response = await self._client.complete(
-            system=system_prompt,
-            messages=messages,
-            tools=ALL_TOOLS,
-            tool_executor=tool_executor,
-            model=self.model,
-            max_tokens=4096,
-            temperature=self.temperature,
-        )
+        if any(sig in lower for sig in ("report", "dashboard", "board summary", "fundraising report")):
+            logger.debug("Delegating to reporting based on keyword match.")
+            return "reporting"
 
-        text_parts = []
-        for block in response.get("content", []):
-            if block.get("type") == "text":
-                text_parts.append(block["text"])
-
-        return {
-            "response": "\n".join(text_parts),
-            "structured_data": {},
-            "agent": self.role_slug,
-        }
+        return None

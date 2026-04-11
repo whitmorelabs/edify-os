@@ -2,107 +2,95 @@
 
 Handles social media management, email campaigns, content creation,
 brand messaging, and communications strategy for nonprofit organisations.
+
+Delegates focused sub-tasks to specialist subagents via
+SubagentDispatcher when the request is a better fit for a subagent
+than inline handling.
 """
 
 from __future__ import annotations
 
-import json
+import logging
 from typing import Any
 
-from src.agents.base import BaseAgent
-from src.claude.client import ClaudeClient
-from src.claude.tools import ALL_TOOLS
-from src.memory.retriever import MemoryRetriever
-from src.prompts.loader import PromptLoader
+from src.agents.primary.base_primary import BasePrimaryAgent
+from src.agents.sub.analytics import AnalyticsSubagent
+from src.agents.sub.comms_strategy import CommsStrategySubagent
+from src.agents.sub.content_writing import ContentWritingSubagent
+from src.agents.sub.email_campaign import EmailCampaignSubagent
+from src.agents.sub.social_media import SocialMediaSubagent
+
+logger = logging.getLogger(__name__)
 
 
-class MarketingDirector(BaseAgent):
+class MarketingDirector(BasePrimaryAgent):
     role_slug = "marketing_director"
     display_name = "Marketing Director"
     model = "claude-sonnet-4-20250514"
     temperature = 0.5  # slightly more creative for marketing content
 
-    def __init__(
-        self,
-        client: ClaudeClient,
-        memory: MemoryRetriever,
-    ) -> None:
-        self._client = client
-        self._memory = memory
+    _SUBAGENT_REGISTRY: dict[str, Any] = {
+        "social_media": SocialMediaSubagent,
+        "email_campaign": EmailCampaignSubagent,
+        "content_writing": ContentWritingSubagent,
+        "comms_strategy": CommsStrategySubagent,
+        "analytics": AnalyticsSubagent,
+    }
 
-    async def execute(
-        self,
-        user_input: str,
-        context: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Handle a marketing/communications request end-to-end.
+    _PREAMBLES: dict[str, str] = {
+        "social_media": (
+            "Here's the social media content ready to go. "
+            "Adjust the tone and platform-specific details before scheduling:\n\n"
+        ),
+        "email_campaign": (
+            "Email campaign drafted below. "
+            "Review subject lines and CTAs against your audience segments before sending:\n\n"
+        ),
+        "content_writing": (
+            "Content piece drafted and ready for review. "
+            "Check for accuracy and make sure the voice aligns with your brand guidelines:\n\n"
+        ),
+        "comms_strategy": (
+            "Communications strategy and planning framework below. "
+            "Align this with your team's capacity and upcoming program milestones:\n\n"
+        ),
+        "analytics": (
+            "Analytics review complete. "
+            "I've highlighted what's working and where to focus optimisation efforts:\n\n"
+        ),
+    }
 
-        Supports:
-        - Social media post creation and scheduling recommendations
-        - Email newsletter drafting and campaign planning
-        - Blog post and article content creation
-        - Brand messaging and tone guidance
-        - Event promotion materials
-        - Annual report content
-        - Website copy suggestions
+    def _should_delegate(self, user_input: str) -> str | None:
+        """Return a subagent slug if the request should be delegated, else None.
+
+        Rules
+        -----
+        - ``social_media``   : "social media", "post", "instagram", or "linkedin"
+        - ``email_campaign`` : "email", "newsletter", or "drip"
+        - ``content_writing``: "blog", "press release", or "case study"
+        - ``comms_strategy`` : "content calendar", "messaging", or "communication plan"
+        - ``analytics``      : "analytics", "metrics", "performance", or "campaign report"
         """
-        template = PromptLoader.load(self.role_slug, category="primary")
-        system_prompt = PromptLoader.hydrate(template, {
-            "org_name": context.get("org_name", "the organisation"),
-            "org_mission": context.get("org_mission", ""),
-            "active_goals": context.get("active_goals", ""),
-        })
+        lower = user_input.lower()
 
-        memories = await self._memory.retrieve(query=user_input, limit=5)
-        if memories:
-            memory_block = "\n\n## Relevant Org Memory\n"
-            for m in memories:
-                memory_block += f"- {m['title']}: {m['content'][:150]}\n"
-            system_prompt += memory_block
+        if any(sig in lower for sig in ("social media", "post", "instagram", "linkedin")):
+            logger.debug("Delegating to social_media based on keyword match.")
+            return "social_media"
 
-        messages = [{"role": "user", "content": user_input}]
+        if any(sig in lower for sig in ("email", "newsletter", "drip")):
+            logger.debug("Delegating to email_campaign based on keyword match.")
+            return "email_campaign"
 
-        async def tool_executor(name: str, input_data: dict[str, Any]) -> str:
-            if name == "retrieve_memory":
-                results = await self._memory.retrieve(
-                    query=input_data["query"],
-                    limit=input_data.get("limit", 5),
-                )
-                return json.dumps(results, indent=2) if results else "No relevant memories found."
-            elif name == "save_finding":
-                row_id = await self._memory.save(
-                    title=input_data["title"],
-                    content=input_data["content"],
-                    category=input_data["category"],
-                    tags=input_data.get("tags"),
-                )
-                return f"Saved (id: {row_id})." if row_id else "Saved (no DB)."
-            elif name == "generate_document":
-                return (
-                    f"Document generation acknowledged: {input_data['document_type']} - "
-                    f"{input_data['title']}. Please produce the content inline."
-                )
-            elif name == "search_web":
-                return f"[Web search placeholder] Query: {input_data['query']}"
-            return f"Unknown tool: {name}"
+        if any(sig in lower for sig in ("blog", "press release", "case study")):
+            logger.debug("Delegating to content_writing based on keyword match.")
+            return "content_writing"
 
-        response = await self._client.complete(
-            system=system_prompt,
-            messages=messages,
-            tools=ALL_TOOLS,
-            tool_executor=tool_executor,
-            model=self.model,
-            max_tokens=4096,
-            temperature=self.temperature,
-        )
+        if any(sig in lower for sig in ("content calendar", "messaging", "communication plan")):
+            logger.debug("Delegating to comms_strategy based on keyword match.")
+            return "comms_strategy"
 
-        text_parts = []
-        for block in response.get("content", []):
-            if block.get("type") == "text":
-                text_parts.append(block["text"])
+        if any(sig in lower for sig in ("analytics", "metrics", "performance", "campaign report")):
+            logger.debug("Delegating to analytics based on keyword match.")
+            return "analytics"
 
-        return {
-            "response": "\n".join(text_parts),
-            "structured_data": {},
-            "agent": self.role_slug,
-        }
+        return None
