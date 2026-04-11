@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -9,8 +9,14 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
+  Users,
+  Settings,
 } from "lucide-react";
+import Link from "next/link";
 import { AGENT_COLORS, type AgentRoleSlug } from "@/lib/agent-colors";
+import { getHeartbeatHistory, type HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
+import { HeartbeatUpdate } from "@/app/dashboard/inbox/components/HeartbeatUpdate";
+import { useChatPanel } from "@/components/chat-provider";
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
 
@@ -101,11 +107,25 @@ const urgencyColors = {
 };
 
 type FilterTab = "all" | "pending" | "approved" | "rejected";
+type InboxSection = "approvals" | "team-updates";
 
 export default function InboxPage() {
+  const { openChat } = useChatPanel();
   const [items, setItems] = useState(initialItems);
   const [filter, setFilter] = useState<FilterTab>("pending");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [section, setSection] = useState<InboxSection>("approvals");
+  const [heartbeats, setHeartbeats] = useState<HeartbeatResult[]>([]);
+  const [heartbeatsLoading, setHeartbeatsLoading] = useState(false);
+
+  useEffect(() => {
+    if (section === "team-updates") {
+      setHeartbeatsLoading(true);
+      getHeartbeatHistory()
+        .then((data) => setHeartbeats(data.filter((h) => h.status === "completed" && h.title)))
+        .finally(() => setHeartbeatsLoading(false));
+    }
+  }, [section]);
 
   const updateStatus = (id: string, status: ApprovalStatus) => {
     setItems((prev) =>
@@ -139,14 +159,15 @@ export default function InboxPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="heading-1">Approval Queue</h1>
+          <h1 className="heading-1">Inbox</h1>
           <p className="mt-1 text-slate-500">
-            Review and approve actions from your AI team.
+            Approvals from your team and proactive updates.
           </p>
         </div>
-        {highConfidenceCount > 0 && (
+        {section === "approvals" && highConfidenceCount > 0 && (
           <button
             onClick={bulkApproveHighConfidence}
             className="btn-secondary"
@@ -157,167 +178,246 @@ export default function InboxPage() {
         )}
       </div>
 
-      {/* Filter Tabs */}
+      {/* Section tabs */}
       <div className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-              filter === tab.key
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {tab.label}
-            {tab.count !== undefined && tab.count > 0 && (
-              <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
+        <button
+          onClick={() => setSection("approvals")}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+            section === "approvals"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Approval Queue
+          {pendingCount > 0 && (
+            <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setSection("team-updates")}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
+            section === "team-updates"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          <Users className="h-3.5 w-3.5" />
+          Team Updates
+        </button>
       </div>
 
-      {/* Approval Cards */}
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Filter className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-3 text-sm text-slate-500">
-              No items match this filter.
-            </p>
-          </div>
-        ) : (
-          filtered.map((item) => {
-            const agentConfig = AGENT_COLORS[item.agent];
-            const isExpanded = expandedId === item.id;
-            const confidenceColor =
-              item.confidence >= 0.85
-                ? "bg-emerald-500"
-                : item.confidence >= 0.6
-                ? "bg-amber-500"
-                : "bg-red-500";
-
-            return (
-              <div
-                key={item.id}
-                className={`card border-l-4 ${agentConfig.border} overflow-hidden`}
+      {/* ── Approvals section ── */}
+      {section === "approvals" && (
+        <>
+          {/* Filter Tabs */}
+          <div className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key)}
+                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+                  filter === tab.key
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
               >
-                <div className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${agentConfig.bg}`}
-                      >
-                        <agentConfig.icon className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-slate-900">
-                          {item.title}
-                        </h3>
-                        <p className="mt-0.5 text-sm text-slate-500">
-                          {item.summary}
-                        </p>
-                      </div>
-                    </div>
+                {tab.label}
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
-                    <div className="flex shrink-0 items-center gap-2 ml-4">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          urgencyColors[item.urgency]
-                        }`}
-                      >
-                        {item.urgency}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {item.createdAt}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Confidence Bar */}
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="h-1.5 rounded-full bg-slate-100">
-                        <div
-                          className={`h-1.5 rounded-full ${confidenceColor} transition-all duration-500`}
-                          style={{ width: `${item.confidence * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-xs font-medium text-slate-500">
-                      {Math.round(item.confidence * 100)}% confidence
-                    </span>
-                    <button
-                      onClick={() =>
-                        setExpandedId(isExpanded ? null : item.id)
-                      }
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Expanded Preview */}
-                  {isExpanded && (
-                    <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 whitespace-pre-wrap font-mono">
-                      {item.preview}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  {item.status === "pending" && (
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() => updateStatus(item.id, "approved")}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => updateStatus(item.id, "rejected")}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Reject
-                      </button>
-                      <button className="btn-ghost">
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </button>
-                    </div>
-                  )}
-
-                  {item.status !== "pending" && (
-                    <div className="mt-3">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                          item.status === "approved"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {item.status === "approved" ? (
-                          <CheckCircle className="h-3.5 w-3.5" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5" />
-                        )}
-                        {item.status === "approved" ? "Approved" : "Rejected"}
-                      </span>
-                    </div>
-                  )}
-                </div>
+          {/* Approval Cards */}
+          <div className="space-y-3">
+            {filtered.length === 0 ? (
+              <div className="card p-12 text-center">
+                <Filter className="mx-auto h-8 w-8 text-slate-300" />
+                <p className="mt-3 text-sm text-slate-500">
+                  No items match this filter.
+                </p>
               </div>
-            );
-          })
-        )}
-      </div>
+            ) : (
+              filtered.map((item) => {
+                const agentConfig = AGENT_COLORS[item.agent];
+                const isExpanded = expandedId === item.id;
+                const confidenceColor =
+                  item.confidence >= 0.85
+                    ? "bg-emerald-500"
+                    : item.confidence >= 0.6
+                    ? "bg-amber-500"
+                    : "bg-red-500";
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`card border-l-4 ${agentConfig.border} overflow-hidden`}
+                  >
+                    <div className="p-5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${agentConfig.bg}`}
+                          >
+                            <agentConfig.icon className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-slate-900">
+                              {item.title}
+                            </h3>
+                            <p className="mt-0.5 text-sm text-slate-500">
+                              {item.summary}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2 ml-4">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              urgencyColors[item.urgency]
+                            }`}
+                          >
+                            {item.urgency}
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {item.createdAt}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Confidence Bar */}
+                      <div className="mt-3 flex items-center gap-3">
+                        <div className="flex-1">
+                          <div className="h-1.5 rounded-full bg-slate-100">
+                            <div
+                              className={`h-1.5 rounded-full ${confidenceColor} transition-all duration-500`}
+                              style={{ width: `${item.confidence * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-xs font-medium text-slate-500">
+                          {Math.round(item.confidence * 100)}% confidence
+                        </span>
+                        <button
+                          onClick={() =>
+                            setExpandedId(isExpanded ? null : item.id)
+                          }
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Expanded Preview */}
+                      {isExpanded && (
+                        <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 whitespace-pre-wrap font-mono">
+                          {item.preview}
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      {item.status === "pending" && (
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            onClick={() => updateStatus(item.id, "approved")}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => updateStatus(item.id, "rejected")}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Reject
+                          </button>
+                          <button className="btn-ghost">
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </button>
+                        </div>
+                      )}
+
+                      {item.status !== "pending" && (
+                        <div className="mt-3">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                              item.status === "approved"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-red-50 text-red-700"
+                            }`}
+                          >
+                            {item.status === "approved" ? (
+                              <CheckCircle className="h-3.5 w-3.5" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5" />
+                            )}
+                            {item.status === "approved" ? "Approved" : "Rejected"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Team Updates section ── */}
+      {section === "team-updates" && (
+        <div className="space-y-3">
+          {heartbeatsLoading ? (
+            <>
+              <div className="h-36 bg-slate-100 rounded-xl animate-pulse" />
+              <div className="h-36 bg-slate-100 rounded-xl animate-pulse" />
+              <div className="h-36 bg-slate-100 rounded-xl animate-pulse" />
+            </>
+          ) : heartbeats.length === 0 ? (
+            <div className="card p-12 text-center">
+              <Users className="mx-auto h-8 w-8 text-slate-300" />
+              <p className="mt-3 font-medium text-slate-700">
+                Your team hasn&apos;t checked in yet.
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Configure proactive check-ins in Settings to get regular updates from your team.
+              </p>
+              <Link
+                href="/dashboard/settings/heartbeats"
+                className="btn-secondary mt-4 inline-flex items-center gap-1.5"
+              >
+                <Settings className="h-4 w-4" />
+                Configure Check-ins
+              </Link>
+            </div>
+          ) : (
+            heartbeats.map((result) => (
+              <HeartbeatUpdate
+                key={result.id}
+                result={result}
+                onDiscuss={(archetype) => {
+                  // Map archetype slugs that overlap with AgentRoleSlug
+                  const validAgentSlugs = ["development_director", "marketing_director", "executive_assistant"];
+                  if (validAgentSlugs.includes(archetype)) {
+                    openChat(archetype as AgentRoleSlug);
+                  }
+                }}
+              />
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

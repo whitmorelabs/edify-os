@@ -2,6 +2,55 @@
 
 ---
 
+## 2026-04-10 — Proactive Heartbeat Backend
+
+**Task:** Build the scheduling and execution system for proactive archetype heartbeats.
+
+### Files Created
+
+**`services/agents/src/heartbeat/__init__.py`**
+Empty package init.
+
+**`services/agents/src/heartbeat/models.py`**
+Pydantic v2 models: `HeartbeatConfig`, `HeartbeatResult`, `HeartbeatConfigUpdate`, `OrgHeartbeatSettings`. All fields have sensible defaults (enabled=True, frequency_hours=4, active_start=8, active_end=20, timezone="America/New_York").
+
+**`services/agents/src/heartbeat/prompts.py`**
+`HEARTBEAT_BASE_PROMPT` shared preamble and `ARCHETYPE_SCAN_FOCUS` dict with domain-specific instructions for all 7 archetypes. Prompts instruct Claude to respond with `[NOTHING_NEW]` or `[TITLE:...] ... [ACTION:...]` structured markers.
+
+**`services/agents/src/heartbeat/executor.py`**
+`HeartbeatExecutor` class: takes `ClaudeClient`, `MemoryRetriever`, `org_id`. `run_scan()` method builds system prompt, retrieves up to 10 memory items, calls Claude at max_tokens=500/temperature=0.25, and parses the structured response. Full fallback parsing for missing markers. Returns `HeartbeatResult` with `skipped=True` when `[NOTHING_NEW]` is detected.
+
+**`services/agents/src/heartbeat/notifier.py`**
+`HeartbeatNotifier` class: `deliver()` saves results to `heartbeat_logs` DB table (or in-memory deque of 500 items for dev). `get_history()` fetches results, optionally filtered by archetype. Skipped results are logged but not stored.
+
+**`services/agents/src/heartbeat/config.py`**
+`HeartbeatConfigManager` class: manages per-org, per-archetype configs. `get_org_config()` returns all 7 archetype configs (creates defaults on first access). `update_archetype_config()` applies partial updates. `toggle_all()` enables/disables all in one call. Full in-memory fallback when db_pool is None. Uses `heartbeat_configs` DB table with `(org_id, archetype)` unique key.
+
+**`services/agents/src/heartbeat/scheduler.py`**
+`HeartbeatScheduler` class: asyncio background task (no APScheduler dependency). Wakes every 15 minutes, checks which (org, archetype) pairs are due based on `frequency_hours` + last-run timestamp. Respects `active_start`/`active_end` via `zoneinfo` (Python 3.9+ stdlib). Supports `schedule_org()`, `pause_archetype()`, `resume_archetype()`. Executor and org context are injected via factory callables to keep scheduler free of API-key concerns.
+
+**`services/agents/src/heartbeat/router.py`**
+FastAPI router at `/api/v1/heartbeat` with 5 endpoints:
+- `GET /config?org_id=` -- get all 7 archetype configs
+- `PATCH /config/{archetype}?org_id=` -- update one archetype config
+- `POST /config/toggle-all?org_id=&enabled=` -- enable/disable all
+- `GET /history?org_id=&archetype=&limit=` -- heartbeat result history
+- `POST /trigger/{archetype}?org_id=&anthropic_api_key=` -- manual scan (for testing)
+
+### Files Modified
+
+**`services/agents/src/main.py`**
+Added `from src.heartbeat.router import router as heartbeat_router` and mounted it at `/api/v1`.
+
+### Design Decisions
+- Used asyncio background task instead of APScheduler to avoid adding a new dependency.
+- Scheduler is factory-injected: the router handles per-request executor creation; the scheduler calls passed-in async factories.
+- All DB operations have in-memory fallbacks so the service runs cleanly in dev with no database.
+- `zoneinfo` (stdlib since Python 3.9) handles timezone-aware active window checks.
+- Skipped scans are logged at DEBUG but not stored -- only actionable results go to the inbox.
+
+---
+
 ## 2026-04-10 — User Guide Content (Markdown Files)
 
 **Task:** Create all user guide content files for the Edify OS help center.
@@ -843,3 +892,119 @@ Full read of all user guide and onboarding code, then fixed every issue found.
 - TypeScript: zero errors (`tsc --noEmit` passes clean)
 - Mobile-responsive grid layout (1 col → 2 col for cards, sidebar collapses below lg)
 
+
+---
+
+## 2026-04-10 — Proactive Heartbeat Frontend
+
+**Task:** Build the configuration UI and inbox integration for the heartbeat system.
+
+**Status:** Complete. TypeScript typecheck passed with 0 errors.
+
+### Files Created
+
+1. `apps/web/src/lib/archetype-config.ts`
+   - Central metadata registry for all 7 archetypes (icon, colors, labels, scan descriptions)
+   - `buildSchedulePreview()` utility that generates human-readable schedule text (e.g. "Your Director of Development will check in at 8 AM, 12 PM, 4 PM, and 8 PM")
+
+2. `apps/web/src/app/dashboard/inbox/heartbeats.ts`
+   - TypeScript types: `ArchetypeSlug`, `HeartbeatConfig`, `OrgHeartbeatSettings`, `HeartbeatResult`
+   - API wrapper functions: `getHeartbeatConfig`, `updateArchetypeConfig`, `toggleAllHeartbeats`, `getHeartbeatHistory`, `triggerHeartbeat`
+   - Mock fallback data for dev use when API is unavailable
+
+3. `apps/web/src/app/api/heartbeat/route.ts`
+   - GET: returns full mock config (7 archetypes, default schedule settings)
+   - PATCH: handles enable/disable, timezone, emailDigest, digestTime, per-archetype config
+   - In-memory mock persistence for dev
+
+4. `apps/web/src/app/api/heartbeat/history/route.ts`
+   - GET: returns 7 mock heartbeat results (5 completed, 2 skipped) across archetypes
+   - Supports optional `?archetype=` query filter
+   - Realistic content for all major archetypes
+
+5. `apps/web/src/app/dashboard/settings/heartbeats/components/GlobalSettings.tsx`
+   - Master enable/disable toggle
+   - Timezone dropdown (7 US timezones + UTC)
+   - Email digest toggle with delivery time picker (hidden unless digest is on)
+   - Quiet hours note
+
+6. `apps/web/src/app/dashboard/settings/heartbeats/components/ArchetypeScheduleRow.tsx`
+   - One row per archetype: icon, label, scan description
+   - Enable/disable toggle (grays out row when off)
+   - Frequency dropdown (every 1/2/4/8 hours, once daily)
+   - Start time + end time hour pickers (filters invalid combos)
+   - Live schedule preview text generated from `buildSchedulePreview()`
+
+7. `apps/web/src/app/dashboard/settings/heartbeats/page.tsx`
+   - "Your Team's Schedule" page at `/dashboard/settings/heartbeats`
+   - Loads config from API on mount
+   - GlobalSettings + 7 ArchetypeScheduleRow components
+   - Tracks pending changes per archetype; Save button disabled until changes exist
+   - Shows "Saved" confirmation with checkmark
+
+8. `apps/web/src/app/dashboard/inbox/components/HeartbeatUpdate.tsx`
+   - Card component for rendering a check-in update in the inbox
+   - Header: archetype icon + colored label + relative timestamp
+   - Bold title, body text, suggested action box (with link if URL provided)
+   - "Discuss" button that opens chat panel with that team member
+   - Matches existing inbox border-l-4 card styling
+
+### Files Modified
+
+- `apps/web/src/app/dashboard/settings/page.tsx`
+  - Added "Your Team's Schedule" card with link to `/dashboard/settings/heartbeats`
+  - Uses Clock icon from lucide-react
+
+- `apps/web/src/app/dashboard/inbox/page.tsx`
+  - Renamed page header to "Inbox" (was "Approval Queue")
+  - Added top-level section tabs: "Approval Queue" | "Team Updates"
+  - Team Updates tab fetches heartbeat history via API, renders HeartbeatUpdate cards
+  - Empty state with link to configure check-ins in Settings
+  - Approval Queue section unchanged functionally
+
+### Language decisions
+- Used "check-in" not "heartbeat" in all user-facing copy
+- "Your Team's Schedule" for settings section
+- "Team Updates" for inbox tab
+- "Configure check-ins" for CTAs
+
+### No sidebar changes needed
+- Inbox was already present in the sidebar nav.
+
+---
+
+## 2026-04-10 — /simplify Pass: Heartbeat Code
+
+**Task:** Read all heartbeat backend and frontend files, fix bugs and inconsistencies.
+
+### Bugs Fixed
+
+**Critical: Archetype slug mismatches (frontend vs backend)**
+- Frontend had 4 wrong slugs: `program_director`, `volunteer_coordinator`, `finance_manager`, `hr_director`
+- Backend canonical slugs: `programs_director`, `finance_director`, `hr_volunteer_coordinator`, `events_director`
+- Frontend was also missing `events_director` entirely (had 7 entries but 4 were wrong)
+- Fixed in: `heartbeats.ts` (ArchetypeSlug type + MOCK_CONFIG), `archetype-config.ts` (ARCHETYPE_CONFIG), `api/heartbeat/route.ts` (defaultConfig), `api/heartbeat/history/route.ts` (mock data)
+
+**Mock data slug fix**
+- `hb-005` used `finance_manager` → corrected to `finance_director`
+- `hb-007` used `program_director` → corrected to `programs_director`
+
+**Forbidden words in backend user-facing strings (executor.py)**
+- `"The heartbeat scan encountered an error"` → `"This team member could not complete their check-in"`
+- `"Heartbeat update"` (3 occurrences in fallback title) → `"Update from your team"`
+- `"LLM error: ..."` in `skipped_reason` → `"Scan error: ..."`
+
+**Unused import removed**
+- `import json` in `executor.py` was imported but never used — removed
+
+### No-change decisions
+- Backend `HeartbeatResult` has `token_usage` field not in frontend type — not a runtime bug (JSON ignores extra fields in mock layer), deferred until real API integration
+- Backend uses `created_at`, frontend uses `timestamp` — consistent within the frontend mock layer; will need a mapping layer when real backend is wired
+- `config.py` `model_copy` filter `if v is not None` is correct — `False` passes through, so `enabled=False` works
+
+### Files Changed
+- `apps/web/src/app/dashboard/inbox/heartbeats.ts`
+- `apps/web/src/lib/archetype-config.ts`
+- `apps/web/src/app/api/heartbeat/route.ts`
+- `apps/web/src/app/api/heartbeat/history/route.ts`
+- `services/agents/src/heartbeat/executor.py`
