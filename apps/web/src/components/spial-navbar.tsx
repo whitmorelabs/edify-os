@@ -26,7 +26,7 @@ export default function SpialNavbar() {
               href="/"
               className="text-2xl font-bold text-white flex items-center gap-2.5 no-underline"
             >
-              SPIAL
+              Edify-OS
             </Link>
 
             {/* Desktop inline nav links (xl and above) */}
