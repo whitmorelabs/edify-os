@@ -4,142 +4,141 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowRight,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Star,
   Menu,
   X,
-  Mail,
   TrendingUp,
   Globe,
   FolderOpen,
   BarChart3,
-  Shield,
-  Zap,
-  Users,
-  Link2,
-  Layers,
-  MonitorSmartphone,
-  Cloud,
-  Lightbulb,
-  MessageSquare,
+  Sparkles,
 } from "lucide-react";
+
+/* ── Image Placeholder ───────────────────────────────────────── */
+function Placeholder({
+  className = "",
+  aspectClass = "",
+  label,
+}: {
+  className?: string;
+  aspectClass?: string;
+  label?: string;
+}) {
+  return (
+    <div
+      className={`bg-[#e5e5e5] rounded-xl flex items-center justify-center ${aspectClass} ${className}`}
+    >
+      {label && (
+        <span className="text-[#999] text-sm select-none">{label}</span>
+      )}
+    </div>
+  );
+}
 
 /* ── Navigation ───────────────────────────────────────────────── */
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const links = ["About", "Features", "Blogs", "Pricing"];
+  const links = [
+    { label: "About us", href: "#about" },
+    { label: "Features", href: "#features" },
+    { label: "Blogs", href: "#blogs" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Integrations", href: "#integrations" },
+    { label: "Contact us", href: "#contact" },
+  ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 flex items-center justify-between h-16">
-        {/* Logo */}
-        <Link href="/" className="text-xl font-bold text-gray-900 tracking-tight">
-          SPIAL
-        </Link>
+    <header className="bg-[#1a2b32] py-5 sticky top-0 z-[1000] shadow-[0_2px_10px_rgba(0,0,0,0.1)]">
+      <div className="spial-container">
+        <div className="flex justify-between items-center">
+          {/* Logo */}
+          <div className="text-2xl font-bold text-white flex items-center gap-2.5">
+            <Placeholder className="h-8 w-8 !rounded-md" />
+            SPIAL
+          </div>
 
-        {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
-            <Link key={l} href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-              {l}
-            </Link>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div className="hidden md:block">
-          <Link
-            href="#"
-            className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+          {/* Desktop nav */}
+          <nav
+            className={`${
+              mobileOpen
+                ? "flex flex-col absolute top-[60px] left-0 right-0 bg-[#1a2b32] p-5 gap-4 md:static md:flex-row md:p-0 md:gap-[30px] md:ml-10 md:flex-1 md:items-center"
+                : "hidden md:flex"
+            } md:flex md:gap-[30px] md:items-center md:flex-1 md:ml-10`}
           >
-            Get Started <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+            {links.map((l) => (
+              <a
+                key={l.label}
+                href={l.href}
+                className="text-white text-sm no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                onClick={() => setMobileOpen(false)}
+              >
+                {l.label}
+              </a>
+            ))}
+          </nav>
 
-        {/* Mobile menu button */}
-        <button
-          className="md:hidden text-gray-700"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+          {/* CTA button */}
+          <button className="spial-btn hidden md:inline-flex">
+            Get Started
+          </button>
+
+          {/* Hamburger */}
+          <button
+            className="flex md:hidden text-white"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 space-y-3">
-          {links.map((l) => (
-            <Link key={l} href="#" className="block text-sm text-gray-600 hover:text-gray-900 py-1">
-              {l}
-            </Link>
-          ))}
-          <Link
-            href="#"
-            className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white mt-2"
-          >
-            Get Started <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
-    </nav>
+    </header>
   );
 }
 
 /* ── Hero ─────────────────────────────────────────────────────── */
 function Hero() {
   return (
-    <section className="pt-28 pb-20 lg:pt-36 lg:pb-28 bg-white">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        {/* Text — left-aligned */}
-        <div className="max-w-2xl">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-[1.1]">
-            Revolutionize your business with next-gen software
-          </h1>
-          <p className="mt-6 text-lg text-gray-500 leading-relaxed max-w-xl">
-            We bridge the gap between innovation and execution. From intuitive SaaS platforms to sleek app landing pages, our expertise in digital marketing, &amp; development empowers your brand to thrive in the digital age.
-          </p>
-          <div className="mt-8">
-            <Link
-              href="#"
-              className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
-            >
-              Get Started <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Hero image area with overlaid cards */}
-        <div className="relative mt-16">
-          {/* Main image placeholder */}
-          <div className="w-full aspect-[16/8] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
-            <span className="text-gray-400 text-sm">Hero Image — Team working together</span>
-          </div>
-
-          {/* Overlaid UI cards */}
-          <div className="absolute top-6 right-6 bg-white rounded-xl shadow-lg p-4 w-48 hidden sm:block">
-            <p className="text-xs text-gray-500 mb-1">Proposal Progress</p>
-            <div className="flex items-end gap-1 h-10">
-              {[40, 65, 50, 80, 60, 90, 75].map((h, i) => (
-                <div key={i} className="flex-1 bg-gray-900 rounded-sm" style={{ height: `${h}%` }} />
-              ))}
+    <section className="bg-[#1a2b32] py-20 md:py-20 relative overflow-hidden">
+      <div className="spial-container relative z-[1]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+          {/* Text */}
+          <div className="mb-10 md:mb-0">
+            <h1 className="text-white text-[36px] md:text-[52px] font-semibold leading-[1.2] mb-5">
+              Revolutionize your business with next-gen software
+            </h1>
+            <p className="text-white/80 text-lg mb-[30px] leading-[1.7]">
+              We bridge the gap between innovation and execution. From intuitive
+              SaaS platforms to sleek app landing pages, our expertise in digital
+              marketing &amp; development empowers your brand to thrive in the
+              digital age.
+            </p>
+            <button className="spial-btn">
+              Get Started
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <div className="flex gap-2.5 mt-[30px]">
+              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#d2b4fe]" />
+              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#d2b4fe]" />
+              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#d2b4fe]" />
             </div>
           </div>
 
-          <div className="absolute bottom-8 left-6 bg-white rounded-xl shadow-lg p-4 hidden sm:block">
-            <p className="text-xs text-gray-500 mb-1">Sales Statistic</p>
-            <p className="text-2xl font-bold text-gray-900">$24,740</p>
-            <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> +12.5% this month
-            </p>
-          </div>
-
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-lg p-4 hidden sm:block">
-            <p className="text-xs text-gray-500 mb-1">Active Users</p>
-            <p className="text-xl font-bold text-gray-900">3,842</p>
+          {/* Visuals */}
+          <div className="relative">
+            <Placeholder
+              className="w-full aspect-[4/3]"
+              label="Hero Image"
+            />
+            <div className="absolute bottom-5 left-5 bg-white/10 backdrop-blur-[10px] rounded-lg p-5 text-white text-sm max-w-[280px]">
+              <strong className="block mb-1">88%</strong>
+              of users are less likely to return to a site after a poor
+              experience
+            </div>
           </div>
         </div>
       </div>
@@ -147,9 +146,69 @@ function Hero() {
   );
 }
 
-/* ── Features — "Empowering businesses" ───────────────────────── */
-function FeaturesMain() {
-  const bullets = [
+/* ── Amazing Features Section ─────────────────────────────────── */
+function AmazingFeatures() {
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]" id="features">
+      <div className="spial-container">
+        <SectionLabel text="Features" />
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
+          Amazing Features
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-10">
+          <div className="bg-white rounded-xl p-10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <h3 className="text-2xl font-normal mb-4">
+              Cross-Platform Compatibility
+            </h3>
+            <p className="leading-[1.7] text-[#333] mb-4">
+              Enjoy a consistent &amp; optimized experience across all
+              devices—desktop, tablet, or mobile.
+            </p>
+            <Placeholder
+              className="w-full aspect-[16/9] mt-5 !rounded-lg"
+              label="Feature 1"
+            />
+          </div>
+          <div className="bg-white rounded-xl p-10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <h3 className="text-2xl font-normal mb-4">
+              Cloud-Based Infrastructure
+            </h3>
+            <p className="leading-[1.7] text-[#333] mb-4">
+              It&apos;s custom SaaS solutions help optimize operations, and
+              support scalable growth.
+            </p>
+            <Placeholder
+              className="w-full aspect-[16/9] mt-5 !rounded-lg"
+              label="Feature 2"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Section Label ────────────────────────────────────────────── */
+function SectionLabel({
+  text,
+  centered = false,
+}: {
+  text: string;
+  centered?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-2.5 text-sm font-semibold text-[#d2b4fe] mb-4 uppercase ${centered ? "justify-center" : ""}`}
+    >
+      <Sparkles className="w-4 h-4" />
+      {text}
+    </div>
+  );
+}
+
+/* ── Innovation Section ───────────────────────────────────────── */
+function InnovationSection() {
+  const features = [
     "Custom SaaS platforms designed to grow with your business.",
     "Leverage analytics to make informed decisions and drive success.",
     "Streamline processes with innovative, tailored solutions.",
@@ -157,90 +216,38 @@ function FeaturesMain() {
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        {/* Full-width image placeholder */}
-        <div className="w-full aspect-[16/7] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center mb-16">
-          <span className="text-gray-400 text-sm">Image — People in office</span>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Left: text */}
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
+          <Placeholder
+            className="w-full aspect-[4/3]"
+            label="Innovation Image"
+          />
           <div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 leading-[1.15]">
+            <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
               Empowering businesses through innovation
             </h2>
-            <p className="mt-5 text-gray-500 text-lg leading-relaxed">
-              We empower businesses by combining innovative technology with customized solutions that drive efficiency, growth, and success.
+            <p className="leading-[1.7] text-[#333] mb-4">
+              We empower businesses by combining innovative technology with
+              customized solutions that drive efficiency, growth, and success.
             </p>
-            <div className="mt-8">
-              <Link
-                href="#"
-                className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
-              >
-                Explore More <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Right: arrow bullet list */}
-          <div className="space-y-5 pt-2">
-            {bullets.map((b, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <ArrowRight className="w-5 h-5 text-gray-900 mt-0.5 shrink-0" />
-                <p className="text-gray-600 leading-relaxed">{b}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Cross-Platform Section ───────────────────────────────────── */
-function CrossPlatform() {
-  const checks = [
-    "Responsive web applications",
-    "Native mobile experience",
-    "Desktop integration",
-  ];
-
-  return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left: text */}
-          <div>
-            <span className="inline-block text-xs font-semibold uppercase tracking-widest text-violet-600 bg-violet-50 rounded-full px-4 py-1.5 mb-5">
-              Cross-Platform Compatibility
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 leading-[1.15]">
-              Seamless access across all devices
-            </h2>
-            <p className="mt-5 text-gray-500 text-lg leading-relaxed">
-              Experience uninterrupted access to your tools and data across every device. Our platform adapts to your workflow, whether you&apos;re on desktop, tablet, or mobile.
-            </p>
-            <div className="mt-6 space-y-3">
-              {checks.map((c, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-emerald-600" />
-                  </div>
-                  <span className="text-gray-700">{c}</span>
-                </div>
+            <a
+              href="#"
+              className="text-[#d2b4fe] no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300 hover:text-[#c9a3f3]"
+            >
+              Explore More
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+            <ul className="list-none mt-[30px]">
+              {features.map((f, i) => (
+                <li
+                  key={i}
+                  className="flex gap-4 mb-4 text-base before:content-['✓'] before:text-[#d2b4fe] before:font-bold before:text-lg before:shrink-0"
+                >
+                  {f}
+                </li>
               ))}
-            </div>
-            <div className="mt-8">
-              <Link href="#" className="inline-flex items-center gap-1.5 text-violet-600 font-medium text-sm hover:text-violet-700 transition-colors">
-                Explore more <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Right: image placeholder */}
-          <div className="aspect-[4/3] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
-            <span className="text-gray-400 text-sm">Cross-Platform Image</span>
+            </ul>
           </div>
         </div>
       </div>
@@ -248,370 +255,311 @@ function CrossPlatform() {
   );
 }
 
-/* ── Cloud Infrastructure Section ─────────────────────────────── */
-function CloudInfra() {
-  const checks = [
-    "Auto-scaling architecture",
-    "99.9% uptime guarantee",
-    "Global CDN distribution",
-  ];
-
-  return (
-    <section className="py-20 lg:py-28 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left: image placeholder */}
-          <div className="aspect-[4/3] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center order-2 lg:order-1">
-            <span className="text-gray-400 text-sm">Cloud Infrastructure Image</span>
-          </div>
-
-          {/* Right: text */}
-          <div className="order-1 lg:order-2">
-            <span className="inline-block text-xs font-semibold uppercase tracking-widest text-violet-600 bg-violet-50 rounded-full px-4 py-1.5 mb-5">
-              Cloud-Based Infrastructure
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 leading-[1.15]">
-              Scalable and reliable cloud solutions
-            </h2>
-            <p className="mt-5 text-gray-500 text-lg leading-relaxed">
-              Built on modern cloud architecture that scales with your business. Enjoy enterprise-grade reliability with the flexibility to grow without limits.
-            </p>
-            <div className="mt-6 space-y-3">
-              {checks.map((c, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-emerald-600" />
-                  </div>
-                  <span className="text-gray-700">{c}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-8">
-              <Link href="#" className="inline-flex items-center gap-1.5 text-violet-600 font-medium text-sm hover:text-violet-700 transition-colors">
-                Explore more <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Innovation / Vision Section ──────────────────────────────── */
-function Innovation() {
-  const pillars = [
+/* ── Vision Section ───────────────────────────────────────────── */
+function VisionSection() {
+  const blocks = [
     {
-      icon: Zap,
       title: "Empower Businesses",
       desc: "Deliver tools that drive growth & efficiency.",
     },
     {
-      icon: Lightbulb,
       title: "Simplify Processes",
       desc: "Create user-friendly and intuitive solutions.",
     },
     {
-      icon: Layers,
       title: "Support Scalability",
       desc: "Build solutions that grow with your business.",
     },
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        {/* Full-width image placeholder */}
-        <div className="w-full aspect-[16/7] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center mb-16">
-          <span className="text-gray-400 text-sm">Innovation Image</span>
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
+          <div>
+            <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
+              Everything you need to transform your vision into reality
+            </h2>
+            <p className="leading-[1.7] text-[#333] mb-4">
+              From custom SaaS solutions to seamless integrations, we provide
+              the innovative tools and support you need to achieve your business
+              goals.
+            </p>
+            <button className="spial-btn mt-4">Get Started</button>
+          </div>
+          <Placeholder className="w-full aspect-[4/3]" label="Vision Image" />
         </div>
-
-        <div className="max-w-2xl">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 leading-[1.15]">
-            Everything you need to transform your vision into reality
-          </h2>
-          <p className="mt-5 text-gray-500 text-lg leading-relaxed">
-            Our comprehensive suite of tools and expertise helps you turn ambitious ideas into market-ready products. From concept to launch, we&apos;re with you every step of the way.
-          </p>
-          <div className="mt-8">
-            <Link
-              href="#"
-              className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-10">
+          {blocks.map((b, i) => (
+            <div
+              key={i}
+              className="bg-white p-[30px] rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
             >
-              Get Started <ArrowRight className="w-4 h-4" />
-            </Link>
+              <h3 className="text-xl font-normal mb-3">{b.title}</h3>
+              <p className="text-sm text-[#666]">{b.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Stats Section ────────────────────────────────────────────── */
+function StatsSection() {
+  const stats = [
+    {
+      icon: <TrendingUp className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "$6.5m",
+      label: "e-commerce Market Growth",
+    },
+    {
+      icon: <Globe className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "15+",
+      label: "Worldwide Global Reach",
+    },
+    {
+      icon: <FolderOpen className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "100+",
+      label: "Successful Projects Completed",
+    },
+    {
+      icon: <BarChart3 className="w-12 h-12 text-[#d2b4fe]" />,
+      value: "73%",
+      label: "Social Media Effectiveness",
+    },
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mt-10 text-center">
+          {stats.map((s, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="mb-4">{s.icon}</div>
+              <div className="text-[48px] font-bold text-[#d2b4fe] mb-2.5">
+                {s.value}
+              </div>
+              <div className="text-sm text-[#666]">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Logos Section ─────────────────────────────────────────────── */
+function LogosSection() {
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-10 text-center">
+          Trusted by industry leaders
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-[30px] items-center mt-[50px]">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div
+              key={n}
+              className="flex justify-center items-center min-h-[60px]"
+            >
+              <div className="w-24 h-8 bg-[#e5e5e5] rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Testimonials Section ─────────────────────────────────────── */
+function TestimonialsSection() {
+  const reviews = [
+    {
+      name: "Ronald Richards",
+      location: "California, USA",
+      text: "Spial\u2019s innovative approach transformed our business operations. The seamless integration and intuitive platform made our transition effortless.",
+    },
+    {
+      name: "Brooklyn Simmons",
+      location: "Florida, US",
+      text: "Outstanding solution! Their team understood our needs perfectly and delivered exactly what we needed to scale our business efficiently.",
+    },
+    {
+      name: "Leslie Alexander",
+      location: "Toronto, US",
+      text: "Incredible platform! The analytics features have given us insights we never had before, driving smarter business decisions daily.",
+    },
+    {
+      name: "Savannah Nguyen",
+      location: "Georgia, US",
+      text: "Best investment we made this year! The support team is responsive and the platform keeps improving with regular updates.",
+    },
+    {
+      name: "Kristin Watson",
+      location: "Dallas, US",
+      text: "From day one, Spial has been a game-changer. Their customer-centric approach and technical excellence set them apart from competitors.",
+    },
+    {
+      name: "Ralph Edwards",
+      location: "Texas, US",
+      text: "Perfect solution for enterprises. The scalability and security features give us complete peace of mind running our operations.",
+    },
+  ];
+
+  return (
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <SectionLabel text="Testimonials" centered />
+        <div className="text-center mb-[50px]">
+          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4">
+            Clients Review
+          </h2>
+          <p className="leading-[1.7] text-[#333]">
+            Our clients consistently praise the innovation, reliability, and
+            exceptional customer support that drives their business success.
+          </p>
+          <p className="font-semibold mt-5">
+            Trusted by businesses worldwide to drive growth
+          </p>
+          <div className="flex justify-center mt-[30px]">
+            <div className="w-[60px] h-[60px] rounded-full bg-[#e5e5e5] border-[3px] border-[#f7f6f5]" />
+            <div className="w-[60px] h-[60px] rounded-full bg-[#e5e5e5] border-[3px] border-[#f7f6f5] -ml-4" />
+            <div className="w-[60px] h-[60px] rounded-full bg-[#e5e5e5] border-[3px] border-[#f7f6f5] -ml-4" />
           </div>
         </div>
 
-        {/* Three-column pillars */}
-        <div className="grid md:grid-cols-3 gap-8 mt-16">
-          {pillars.map((p, i) => (
-            <div key={i} className="text-center">
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-5">
-                <p.icon className="w-6 h-6 text-gray-900" />
+        <div className="mt-[50px]">
+          <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-[30px]">
+            {reviews.map((r, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-xl p-[30px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex gap-4 mb-5">
+                  <div className="w-14 h-14 rounded-full bg-[#e5e5e5] shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-semibold mb-1">{r.name}</div>
+                    <div className="text-sm text-[#999]">{r.location}</div>
+                  </div>
+                </div>
+                <div className="flex gap-1 mb-3">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className="w-4 h-4 fill-[#f5a623] text-[#f5a623]"
+                    />
+                  ))}
+                </div>
+                <div className="text-[15px] text-[#666] leading-[1.6]">
+                  {r.text}
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">{p.title}</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">{p.desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-/* ── Statistics Section ───────────────────────────────────────── */
-function Statistics() {
-  const stats = [
-    { icon: BarChart3, value: "$6.5m", label: "e-commerce Market Growth", color: "bg-emerald-500" },
-    { icon: Globe, value: "15+", label: "Worldwide Global Reach", color: "bg-blue-500" },
-    { icon: FolderOpen, value: "100+", label: "Projects", color: "bg-amber-500" },
-    { icon: TrendingUp, value: "73%", label: "Social Effectiveness", color: "bg-violet-500" },
+/* ── Features Deep Dive ───────────────────────────────────────── */
+function FeaturesDeepDive() {
+  const [activeTab, setActiveTab] = useState(0);
+
+  const tabs = [
+    {
+      label: "Scalable Architecture",
+      title: "Custom SaaS Platforms",
+      points: [
+        "Build enterprise-grade solutions that scale with your business needs",
+        "Cloud infrastructure designed for performance and reliability",
+        "Auto-scaling capabilities to handle traffic spikes effortlessly",
+      ],
+    },
+    {
+      label: "Real-Time Analytics",
+      title: "Dynamic Data Analysis",
+      points: [
+        "Real-time dashboards that track key performance indicators",
+        "Advanced analytics engine for actionable business insights",
+        "Customizable reports tailored to your specific needs",
+      ],
+    },
+    {
+      label: "Seamless Integration",
+      title: "Unified Connections",
+      points: [
+        "Connect with hundreds of third-party applications and tools",
+        "API-first architecture for custom integrations",
+        "Webhook support for real-time data synchronization",
+      ],
+    },
+    {
+      label: "Advanced Security",
+      title: "Enhanced Protection",
+      points: [
+        "Enterprise-grade encryption for data at rest and in transit",
+        "Multi-factor authentication and role-based access control",
+        "Regular security audits and compliance with industry standards",
+      ],
+    },
+    {
+      label: "Collaborative Tools",
+      title: "Effortless Teamwork",
+      points: [
+        "Real-time collaboration features for distributed teams",
+        "Built-in communication and project management tools",
+        "Version control and audit trails for complete transparency",
+      ],
+    },
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-[#1a1a2e]">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((s, i) => (
-            <div key={i} className="bg-[#22223a] rounded-2xl p-8 text-center">
-              <div className={`mx-auto w-12 h-12 rounded-full ${s.color} bg-opacity-20 flex items-center justify-center mb-5`}>
-                <s.icon className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-3xl sm:text-4xl font-extrabold text-white mb-2">{s.value}</p>
-              <p className="text-gray-400 text-sm">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+    <section className="py-20 md:py-20 bg-[#392e3b] text-white">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[34px] font-medium text-white mb-10 text-center">
+          Powerful Features for Every Need
+        </h2>
 
-/* ── Logo Carousel ────────────────────────────────────────────── */
-function LogoCarousel() {
-  return (
-    <section className="py-16 lg:py-20 bg-white">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-        <p className="text-sm text-gray-400 uppercase tracking-widest mb-10">
-          Trusted by leading companies
-        </p>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-8 items-center">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-gray-400 text-xs font-medium">Logo {i + 1}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Testimonials ─────────────────────────────────────────────── */
-function Testimonials() {
-  const testimonials = [
-    {
-      name: "Sarah Mitchell",
-      location: "New York, USA",
-      text: "Spial transformed our business operations. The platform is incredibly intuitive and the results speak for themselves. Our productivity increased by 40% in just three months.",
-      rating: 5,
-    },
-    {
-      name: "James Rodriguez",
-      location: "London, UK",
-      text: "The cross-platform capabilities are game-changing. Our team can now work seamlessly whether they're in the office or on the go. Truly outstanding service.",
-      rating: 5,
-    },
-    {
-      name: "Emily Chen",
-      location: "Singapore",
-      text: "Outstanding support and a product that actually delivers on its promises. The cloud infrastructure has been rock-solid and the scaling is effortless.",
-      rating: 5,
-    },
-  ];
-
-  const [active, setActive] = useState(0);
-
-  return (
-    <section className="py-20 lg:py-28 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
-            What our clients say about us
-          </h2>
-          <p className="mt-4 text-gray-500 text-lg max-w-2xl mx-auto">
-            Hear from the businesses we&apos;ve helped transform with our innovative solutions.
-          </p>
-        </div>
-
-        {/* Client thumbnails */}
-        <div className="flex justify-center gap-4 mb-10">
-          {testimonials.map((t, i) => (
+        {/* Tab buttons */}
+        <div className="flex flex-col sm:flex-row gap-2.5 mb-10 flex-wrap">
+          {tabs.map((t, i) => (
             <button
               key={i}
-              onClick={() => setActive(i)}
-              className={`w-12 h-12 rounded-full bg-gray-200 border-2 transition-all flex items-center justify-center text-xs font-bold text-gray-500 ${
-                active === i ? "border-gray-900 ring-2 ring-gray-900/20" : "border-transparent"
+              onClick={() => setActiveTab(i)}
+              className={`px-6 py-3 rounded-lg text-sm cursor-pointer transition-all duration-300 border-2 font-[inherit] ${
+                activeTab === i
+                  ? "bg-[#d2b4fe] text-black border-[#d2b4fe]"
+                  : "bg-transparent text-white border-white/20 hover:border-[#d2b4fe]"
               }`}
             >
-              {t.name.charAt(0)}
+              {t.label}
             </button>
           ))}
         </div>
 
-        {/* Testimonial card */}
-        <div className="max-w-2xl mx-auto bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
-          <div className="flex justify-center gap-1 mb-4">
-            {Array.from({ length: testimonials[active].rating }).map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
-            ))}
+        {/* Tab content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+          <div>
+            <h3 className="text-[26px] font-normal text-white mb-5">
+              {tabs[activeTab].title}
+            </h3>
+            <ul className="list-none text-white/80">
+              {tabs[activeTab].points.map((p, i) => (
+                <li
+                  key={i}
+                  className="mb-4 flex gap-2.5 before:content-['•'] before:text-[#d2b4fe] before:font-bold"
+                >
+                  {p}
+                </li>
+              ))}
+            </ul>
           </div>
-          <p className="text-gray-600 leading-relaxed text-lg italic mb-6">
-            &ldquo;{testimonials[active].text}&rdquo;
-          </p>
-          <p className="font-semibold text-gray-900">{testimonials[active].name}</p>
-          <p className="text-sm text-gray-400">{testimonials[active].location}</p>
-        </div>
-
-        {/* Navigation arrows */}
-        <div className="flex justify-center gap-3 mt-8">
-          <button
-            onClick={() => setActive((p) => (p === 0 ? testimonials.length - 1 : p - 1))}
-            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
-            aria-label="Previous testimonial"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setActive((p) => (p === testimonials.length - 1 ? 0 : p + 1))}
-            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
-            aria-label="Next testimonial"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Detailed Features ────────────────────────────────────────── */
-const detailedFeatures = [
-  {
-    icon: MonitorSmartphone,
-    title: "Custom SaaS Platforms",
-    desc: "Tailored software-as-a-service platforms built to match your unique business needs and workflows.",
-    question: "How does Custom SaaS Platforms work?",
-    benefits: [
-      "Fully customizable dashboards and interfaces",
-      "Role-based access control and permissions",
-      "Automated workflows and integrations",
-    ],
-  },
-  {
-    icon: BarChart3,
-    title: "Dynamic Data Analysis",
-    desc: "Real-time analytics and reporting tools that turn your data into actionable business insights.",
-    question: "How does Dynamic Data Analysis work?",
-    benefits: [
-      "Real-time data visualization and dashboards",
-      "Predictive analytics and trend forecasting",
-      "Automated report generation and scheduling",
-    ],
-  },
-  {
-    icon: Link2,
-    title: "Unified Connections",
-    desc: "Seamlessly integrate all your tools, platforms, and data sources into a single unified experience.",
-    question: "How does Unified Connections work?",
-    benefits: [
-      "Connect 100+ popular business tools",
-      "Bi-directional data sync across platforms",
-      "Custom API integrations and webhooks",
-    ],
-  },
-  {
-    icon: Shield,
-    title: "Enhanced Protection",
-    desc: "Enterprise-grade security measures to protect your data, users, and business operations.",
-    question: "How does Enhanced Protection work?",
-    benefits: [
-      "End-to-end encryption for all data",
-      "Multi-factor authentication and SSO",
-      "Compliance with GDPR, SOC2, and HIPAA",
-    ],
-  },
-  {
-    icon: Users,
-    title: "Effortless Teamwork",
-    desc: "Collaboration tools that bring your team together, no matter where they are in the world.",
-    question: "How does Effortless Teamwork work?",
-    benefits: [
-      "Real-time collaboration on documents",
-      "Built-in video conferencing and chat",
-      "Shared workspaces and project boards",
-    ],
-  },
-];
-
-function DetailedFeatures() {
-  const [expanded, setExpanded] = useState<number | null>(null);
-
-  return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
-            Powerful features for modern businesses
-          </h2>
-          <p className="mt-4 text-gray-500 text-lg max-w-2xl mx-auto">
-            Everything you need to build, scale, and manage your digital products.
-          </p>
-        </div>
-
-        {/* Feature cards grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {detailedFeatures.map((f, i) => (
-            <div key={i} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center mb-4">
-                <f.icon className="w-5 h-5 text-gray-900" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">{f.title}</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Expandable details */}
-        <div className="max-w-3xl mx-auto space-y-3">
-          {detailedFeatures.map((f, i) => (
-            <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setExpanded(expanded === i ? null : i)}
-                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <span className="font-medium text-gray-900">{f.question}</span>
-                <ChevronDown
-                  className={`w-5 h-5 text-gray-400 transition-transform ${
-                    expanded === i ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-              {expanded === i && (
-                <div className="px-6 pb-5 space-y-2">
-                  {f.benefits.map((b, j) => (
-                    <div key={j} className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 text-emerald-600" />
-                      </div>
-                      <span className="text-gray-600 text-sm">{b}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          <Placeholder
+            className="w-full aspect-[4/3]"
+            label={`Feature Image ${activeTab + 1}`}
+          />
         </div>
       </div>
     </section>
@@ -620,55 +568,50 @@ function DetailedFeatures() {
 
 /* ── Blog Section ─────────────────────────────────────────────── */
 function BlogSection() {
-  const posts = [
+  const blogs = [
     {
-      category: "Technology",
-      title: "The Future of SaaS: Trends to Watch in 2025",
-      date: "March 15, 2025",
+      category: "Management",
+      title:
+        "How data-driven strategies boost business growth & visibility",
+      date: "Jan 27, 2025",
     },
     {
-      category: "Business",
-      title: "How AI is Transforming Small Business Operations",
-      date: "March 10, 2025",
+      category: "Cloud Solutions",
+      title: "Cloud-based SaaS unlocking flexibility for businesses",
+      date: "Jan 27, 2025",
     },
     {
-      category: "Design",
-      title: "Building User-Centric Products That Scale",
-      date: "March 5, 2025",
+      category: "Artificial Intelligence",
+      title:
+        "Building a future-ready business with AI-powered SaaS tools",
+      date: "Jan 27, 2025",
     },
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
-            Our Recent Blogs
-          </h2>
-          <p className="mt-4 text-gray-500 text-lg">
-            Insights, tips, and trends from our team of experts.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {posts.map((p, i) => (
-            <Link key={i} href="#" className="group">
-              <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
-                {/* Image placeholder */}
-                <div className="aspect-[16/10] bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400 text-sm">Blog Image</span>
+    <section className="py-20 md:py-20 bg-[#f7f6f5]" id="blogs">
+      <div className="spial-container">
+        <SectionLabel text="Our Blogs" />
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
+          Articles &amp; Resources
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[30px] mt-[50px]">
+          {blogs.map((b, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] cursor-pointer"
+            >
+              <div className="w-full h-[220px] bg-[#e5e5e5]" />
+              <div className="p-[25px]">
+                <div className="text-xs text-[#d2b4fe] font-semibold uppercase mb-2.5">
+                  {b.category}
                 </div>
-                <div className="p-6">
-                  <span className="inline-block text-xs font-semibold uppercase tracking-wider text-violet-600 bg-violet-50 rounded-full px-3 py-1 mb-3">
-                    {p.category}
-                  </span>
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-violet-600 transition-colors mb-2">
-                    {p.title}
-                  </h3>
-                  <p className="text-sm text-gray-400">{p.date}</p>
-                </div>
+                <h3 className="text-xl font-semibold text-black mb-2.5">
+                  {b.title}
+                </h3>
+                <div className="text-[13px] text-[#999]">{b.date}</div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
@@ -677,80 +620,91 @@ function BlogSection() {
 }
 
 /* ── FAQ Section ──────────────────────────────────────────────── */
-function FAQ() {
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   const faqs = [
-    { q: "What services does Spial offer?", a: "Spial provides comprehensive digital solutions including custom SaaS platforms, data analytics, cross-platform applications, cloud infrastructure, and enterprise security solutions." },
-    { q: "How long does a typical project take?", a: "Project timelines vary based on scope and complexity. A typical SaaS platform takes 3-6 months, while simpler solutions can be delivered in 4-8 weeks." },
-    { q: "Do you offer ongoing support?", a: "Yes, we provide 24/7 support and maintenance for all our solutions. Our dedicated support team ensures your platform runs smoothly at all times." },
-    { q: "Can I customize the platform?", a: "Absolutely. Every solution we build is fully customizable. We work closely with you to ensure the platform matches your exact business requirements." },
-    { q: "What is your pricing model?", a: "We offer flexible pricing based on project scope and requirements. Contact us for a detailed quote tailored to your specific needs." },
-    { q: "How do you ensure data security?", a: "We implement enterprise-grade security measures including end-to-end encryption, multi-factor authentication, and compliance with major security standards." },
+    {
+      q: "How does Spial help businesses grow?",
+      a: "Spial provides comprehensive SaaS solutions that streamline operations, enable data-driven decision making, and integrate all your business tools seamlessly. Our platform is designed to scale with your growth and help you achieve your business objectives efficiently.",
+    },
+    {
+      q: "What industries does Spial serve?",
+      a: "Spial serves a wide range of industries including SaaS companies, e-commerce platforms, financial services, healthcare, technology startups, and enterprise organizations. Our flexible and customizable solutions can be tailored to meet the specific needs of any industry.",
+    },
+    {
+      q: "Can Spial integrate with our existing systems?",
+      a: "Yes, absolutely. Spial offers robust API and webhook support for seamless integration with your existing systems. We support connections with hundreds of popular business applications and can create custom integrations to fit your unique requirements.",
+    },
+    {
+      q: "Is Spial\u2019s platform secure?",
+      a: "Security is our top priority. Spial uses enterprise-grade encryption, multi-factor authentication, role-based access controls, and regular security audits. We comply with industry standards including GDPR, SOC 2, and ISO 27001 to protect your data.",
+    },
+    {
+      q: "Does Spial offer mobile-optimized solutions?",
+      a: "Yes, Spial is fully optimized for mobile devices. Our platform provides a consistent and intuitive experience across desktop, tablet, and mobile devices, allowing your team to work efficiently from anywhere.",
+    },
+    {
+      q: "How can I track my business\u2019s performance using Spial?",
+      a: "Spial provides real-time dashboards and customizable reports that track key performance indicators. Our advanced analytics engine gives you actionable insights, and you can create custom metrics to monitor what matters most to your business.",
+    },
   ];
 
-  const [open, setOpen] = useState<number | null>(null);
+  const toggleAccordion = (idx: number) => {
+    setOpenIndex(openIndex === idx ? null : idx);
+  };
 
   return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Left: image placeholder */}
-          <div className="aspect-[4/3] bg-gray-100 rounded-2xl border border-gray-200 flex items-center justify-center">
-            <span className="text-gray-400 text-sm">FAQ Image</span>
-          </div>
-
-          {/* Right: accordion */}
-          <div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 mb-8">
-              Frequently asked questions
-            </h2>
-            <div className="space-y-3">
-              {faqs.map((f, i) => (
-                <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setOpen(open === i ? null : i)}
-                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="font-medium text-gray-900 pr-4">{f.q}</span>
-                    <ChevronDown
-                      className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${
-                        open === i ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                  {open === i && (
-                    <div className="px-5 pb-4">
-                      <p className="text-gray-500 text-sm leading-relaxed">{f.a}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+    <section className="py-20 md:py-20 bg-[#f7f6f5]">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-[50px] text-center">
+          Frequently Asked Questions
+        </h2>
+        <div className="max-w-[700px] mx-auto mt-[50px]">
+          {faqs.map((f, i) => (
+            <div key={i} className="border-b border-[#ddd] mb-5">
+              <div
+                className="flex justify-between items-center py-5 cursor-pointer font-medium text-lg select-none hover:text-[#d2b4fe] transition-colors duration-300"
+                onClick={() => toggleAccordion(i)}
+              >
+                <span>{f.q}</span>
+                <span
+                  className={`text-2xl text-[#d2b4fe] transition-transform duration-300 ${
+                    openIndex === i ? "rotate-45" : ""
+                  }`}
+                >
+                  +
+                </span>
+              </div>
+              <div
+                className={`overflow-hidden transition-all duration-300 text-[#666] leading-[1.6] ${
+                  openIndex === i
+                    ? "max-h-[500px] pb-5"
+                    : "max-h-0 pb-0"
+                }`}
+              >
+                <p>{f.a}</p>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-/* ── CTA Closing Section ──────────────────────────────────────── */
-function CtaClosing() {
+/* ── CTA Section ──────────────────────────────────────────────── */
+function CTASection() {
   return (
-    <section className="py-20 lg:py-28 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 leading-[1.15] max-w-3xl mx-auto">
-          Ready to transform your business? Let&apos;s build something great together.
+    <section className="text-center py-[60px] bg-[#f7f6f5]">
+      <div className="spial-container">
+        <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] mx-auto mb-10 leading-[1.3]">
+          Join today &amp; empower your team to achieve extraordinary goals
+          together
         </h2>
-        <p className="mt-6 text-gray-500 text-lg max-w-2xl mx-auto">
-          Partner with us to create innovative solutions that drive growth and set you apart from the competition.
-        </p>
-        <div className="mt-10">
-          <Link
-            href="#"
-            className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-8 py-4 text-base font-medium text-white hover:bg-gray-800 transition-colors"
-          >
-            Let&apos;s Collaborate Now <ArrowRight className="w-5 h-5" />
-          </Link>
-        </div>
+        <button className="spial-btn">
+          Let&apos;s Collaborate Now
+        </button>
       </div>
     </section>
   );
@@ -759,89 +713,214 @@ function CtaClosing() {
 /* ── Footer ───────────────────────────────────────────────────── */
 function Footer() {
   return (
-    <footer className="bg-gray-100 pt-16 pb-8">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-14">
+    <footer className="bg-[#1a2b32] text-white py-[60px] pb-5 text-sm">
+      <div className="spial-container">
+        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-10 mb-10">
           {/* Brand */}
-          <div className="lg:col-span-2">
-            <Link href="/" className="text-xl font-bold text-gray-900 tracking-tight">
-              SPIAL
-            </Link>
-            <p className="mt-3 text-sm text-gray-500 leading-relaxed max-w-xs">
-              Empowering businesses with next-generation software solutions. From SaaS platforms to digital marketing, we help your brand thrive.
+          <div>
+            <h4 className="text-sm font-semibold mb-5 uppercase">Spial</h4>
+            <p className="leading-[1.6] text-white/70">
+              Innovative SaaS solutions empowering businesses to thrive in the
+              digital age. From custom platforms to seamless integrations, we
+              transform your vision into reality.
             </p>
-            {/* Contact */}
-            <div className="mt-6 flex items-center gap-2 text-sm text-gray-500">
-              <Mail className="w-4 h-4" />
-              <span>hello@spial.io</span>
-            </div>
-            {/* Social icons */}
-            <div className="mt-4 flex gap-3">
-              {["X", "In", "Fb", "Ig"].map((s) => (
-                <Link
-                  key={s}
-                  href="#"
-                  className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500 hover:bg-gray-300 transition-colors"
-                >
-                  {s}
-                </Link>
-              ))}
-            </div>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-4 text-sm">Product</h4>
-            <ul className="space-y-2.5">
-              {["About", "Features", "Blogs", "Pricing"].map((l) => (
-                <li key={l}>
-                  <Link href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                    {l}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="text-sm font-semibold mb-5 uppercase">Product</h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Features
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Pricing
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Security
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Integrations
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-4 text-sm">Company</h4>
-            <ul className="space-y-2.5">
-              {["FAQ", "Reviews", "Integrations"].map((l) => (
-                <li key={l}>
-                  <Link href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                    {l}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="text-sm font-semibold mb-5 uppercase">Company</h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  About Us
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Blog
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Careers
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Utilities */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-4 text-sm">Utilities</h4>
-            <ul className="space-y-2.5">
-              {["Licensing", "Changelog"].map((l) => (
-                <li key={l}>
-                  <Link href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                    {l}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="text-sm font-semibold mb-5 uppercase">Utilities</h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Resources
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Documentation
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  API Docs
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Support
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Get in Touch */}
+          <div>
+            <h4 className="text-sm font-semibold mb-5 uppercase">
+              Get in Touch
+            </h4>
+            <ul className="list-none">
+              <li className="mb-3">
+                <a
+                  href="mailto:hello@spial.com"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  hello@spial.com
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="tel:+1234567890"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  +1 (234) 567-890
+                </a>
+              </li>
+              <li className="mb-3">
+                <a
+                  href="#"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                >
+                  Schedule Demo
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-gray-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-400">&copy; 2025 Spial. All rights reserved.</p>
-          <div className="flex gap-6">
-            <Link href="#" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+        {/* Footer bottom */}
+        <div className="border-t border-white/10 pt-[30px] flex flex-col md:flex-row justify-between items-center flex-wrap gap-5">
+          <div className="text-center md:text-left">
+            &copy; 2025 Spial. Designed by Nixar. Powered by Webflow.
+          </div>
+          <div className="flex gap-5">
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Twitter
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              LinkedIn
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Facebook
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
+              Instagram
+            </a>
+          </div>
+          <div className="flex gap-5">
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
               Privacy Policy
-            </Link>
-            <Link href="#" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+            </a>
+            <a
+              href="#"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+            >
               Terms &amp; Conditions
-            </Link>
+            </a>
           </div>
         </div>
       </div>
@@ -849,24 +928,23 @@ function Footer() {
   );
 }
 
-/* ── Page Assembly ────────────────────────────────────────────── */
-export default function Home() {
+/* ── Page ──────────────────────────────────────────────────────── */
+export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <div className="spial-page">
       <Navbar />
       <Hero />
-      <FeaturesMain />
-      <CrossPlatform />
-      <CloudInfra />
-      <Innovation />
-      <Statistics />
-      <LogoCarousel />
-      <Testimonials />
-      <DetailedFeatures />
+      <AmazingFeatures />
+      <InnovationSection />
+      <VisionSection />
+      <StatsSection />
+      <LogosSection />
+      <TestimonialsSection />
+      <FeaturesDeepDive />
       <BlogSection />
-      <FAQ />
-      <CtaClosing />
+      <FAQSection />
+      <CTASection />
       <Footer />
-    </main>
+    </div>
   );
 }

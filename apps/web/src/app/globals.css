@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -210,4 +211,77 @@
 
 .glow-purple-intense {
   background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.12) 0%, transparent 60%);
+}
+
+/* ── Spial Landing Page Styles ─────────────────────────────────── */
+
+/* Scope all Spial page styles so they don't affect dashboard/auth pages */
+.spial-page {
+  font-family: "Instrument Sans", sans-serif;
+  background-color: #f7f6f5;
+  color: #333;
+  font-size: 16px;
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+.spial-page *,
+.spial-page *::before,
+.spial-page *::after {
+  box-sizing: border-box;
+}
+
+.spial-page html {
+  scroll-behavior: smooth;
+}
+
+/* Container */
+.spial-container {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Spial button */
+.spial-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #d2b4fe;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 22px;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.spial-btn:hover {
+  background-color: #c9a3f3;
+  transform: translateY(-2px);
+}
+
+/* Override heading defaults inside Spial page */
+.spial-page h1,
+.spial-page h2,
+.spial-page h3,
+.spial-page h4,
+.spial-page h5,
+.spial-page h6 {
+  margin: 0;
+}
+
+.spial-page p {
+  margin: 0;
+  margin-bottom: 15px;
+  line-height: 1.7;
+}
+
+.spial-page ul {
+  margin: 0;
+  padding: 0;
 }
