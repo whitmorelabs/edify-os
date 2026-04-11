@@ -596,10 +596,11 @@ function CTASection() {
   return (
     <section className="pt-[10px] pb-[100px] bg-[#f7f6f5]">
       <div className="spial-container flex flex-col items-center text-center">
-        <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] leading-[1.3] mb-24">
+        <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] leading-[1.3]">
           Join today &amp; empower your team to achieve extraordinary goals
           together
         </h2>
+        <div style={{ height: "80px" }} />
         <button className="spial-btn">
           Let&apos;s Collaborate Now
         </button>
