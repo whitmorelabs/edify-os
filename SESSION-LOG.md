@@ -2,6 +2,66 @@
 
 ---
 
+## 2026-04-10 — User Guide Content (Markdown Files)
+
+**Task:** Create all user guide content files for the Edify OS help center.
+
+### Files Created
+
+**`content/guide/getting-started.md`**
+Platform overview for new users. Covers the "you just hired a team" framing, a one-line summary of each of the 7 specialists, a 3-step getting started flow, and a first-week expectations section.
+
+**`content/guide/meet-your-team/development-director.md`**
+Development Director profile. Covers fundraising, grants, donor stewardship, and CRM. Includes 10 copy-paste prompts and tips for working with them.
+
+**`content/guide/meet-your-team/marketing-director.md`**
+Marketing & Comms Director profile. Covers social media, email campaigns, content writing, brand voice, and analytics. Includes 10 prompts.
+
+**`content/guide/meet-your-team/executive-assistant.md`**
+Executive Assistant profile. Covers email triage, scheduling, meeting prep, task tracking. Includes 10 prompts.
+
+**`content/guide/meet-your-team/programs-director.md`**
+Programs Director profile. Covers logic models, outcome tracking, grant reporting, needs assessments, funder compliance. Includes 10 prompts.
+
+**`content/guide/meet-your-team/finance-director.md`**
+Finance Director profile. Covers budgets, cash flow, grant financial reports, audit prep. Includes "always verify with a CPA" guardrails and 10 prompts.
+
+**`content/guide/meet-your-team/hr-volunteer-coordinator.md`**
+HR & Volunteer Coordinator profile. Covers hiring, onboarding, policies, volunteer programs, training. Includes legal review guardrails and 10 prompts.
+
+**`content/guide/meet-your-team/events-director.md`**
+Events Director profile. Covers event planning, run-of-show, sponsorships, post-event ROI. Includes 10 prompts.
+
+**`content/guide/working-with-your-team.md`**
+How to get the best results. Covers clear instructions, reviewing outputs, requesting revisions, common mistakes, and how org memory works. (Note: this file was pre-populated by the project linter; content was retained as-is.)
+
+**`content/guide/organization-setup.md`**
+Org configuration guide. Covers profile setup, memory, account connections (email/calendar/social via OAuth explained simply), and team member activation. (Note: this file was pre-populated by the project linter; content was retained as-is.)
+
+**`content/guide/faq.md`**
+12 FAQs covering privacy, accuracy, financial limitations, legal/medical advice guardrails, pricing, and support. (Note: this file was pre-populated by the project linter; content was retained as-is.)
+
+**`content/guide/troubleshooting.md`**
+6 common issues with step-by-step fixes: unresponsive team member, mismatched output, OAuth connection failures, wrong financial numbers, resetting a conversation, and plan changes.
+
+**`content/guide/live-chat-support.md`**
+How to use the support chat. Covers chat button location, what the support assistant handles, human escalation triggers, chat history, and alternate contact options.
+
+**`content/onboarding/first-interaction-prompts.json`**
+JSON file with 5 first-interaction prompts per archetype (35 total, 7 keys). Validated via Node.js -- JSON parses cleanly.
+
+### Language rules applied
+- Never said "agent," "LLM," "model," "token," or "API" in user-facing content
+- All team members framed as specialists on a hired team
+- Reading level targeted at grade 8 -- short paragraphs, bullet lists, plain language
+- Every article includes a "Try this now" callout
+- Friendly, coworker tone throughout -- not a manual
+
+### Status
+Complete. 14 files created (or confirmed pre-created by linter). All content follows PRD language rules and style guidance.
+
+---
+
 ## 2026-04-10 — Subagent Infrastructure Layer
 
 **Task:** Build the foundation for primary agents to delegate tasks to specialized subagents.
@@ -428,3 +488,249 @@ All 9 primary-agent files (`base_primary.py` + 7 agents + `__init__.py`) pass `a
 
 ### Status
 Complete. 1 file content change. All tests pass syntax check.
+
+---
+
+## 2026-04-10 — Live Chat Support Widget + Contextual Help System
+
+**Task:** Build the in-app live chat widget and contextual help components for the Next.js frontend.
+
+### Files created
+
+**`apps/web/src/components/support/ChatProvider.tsx`**
+- React context provider for the support chat widget (independent of the existing `ChatPanelProvider` which handles agent-specific chats).
+- Manages open/closed state, message history, and loading state.
+- Sends messages via POST to `/api/support/chat` with full conversation history.
+- Persists chat history in `localStorage` per session (key: `edify_support_chat_history`).
+- Exposes `openChat()`, `closeChat()`, `sendMessage()` via `useSupportChat()` hook.
+- Error-safe: bad API responses produce a friendly fallback message.
+
+**`apps/web/src/components/support/ChatWidget.tsx`**
+- Floating button (bottom-right, Intercom-style) that expands into a 400px-wide, 500px-tall chat panel.
+- Header: "Need help? Ask your support assistant" in brand-500 purple.
+- Message bubbles: user on right (brand-500), assistant on left (white card).
+- Animated open/close (scale + opacity transition), minimize-to-bar mode, close button.
+- Auto-scroll, auto-resize textarea, Enter-to-send (Shift+Enter for newline).
+- Shows `TypingIndicator` while awaiting API response.
+- Mobile-responsive (full width on small screens).
+- Uses `TypingIndicator` from existing component library.
+- Reuses `.input-field`, `.brand-500` design tokens from globals.css.
+
+**`apps/web/src/components/support/ProactiveHelper.tsx`**
+- Tracks user idle time (default: 60 seconds) and shows a tooltip near the chat button.
+- Also watches for repeated `invalid` form events (default threshold: 3) to detect struggling users.
+- Tooltip: "Stuck? Your support assistant can help." with a "Get help now" button that opens the chat.
+- Dismissable — uses `sessionStorage` to prevent reshowing on same page visit.
+- Hides automatically if user opens chat manually.
+
+**`apps/web/src/app/api/support/chat/route.ts`**
+- Next.js App Router POST handler at `/api/support/chat`.
+- Accepts `{ message: string, history: Array<{role, content}> }`.
+- Attempts to forward to agent service (`AGENT_SERVICE_URL/api/agents/executive_assistant/chat`).
+- Graceful fallback: returns varied placeholder responses when agent service is unavailable.
+- 15-second timeout on upstream call via `AbortSignal.timeout`.
+
+**`apps/web/src/components/help/Tooltip.tsx`** (`HelpTooltip`)
+- Wraps any UI element; shows help text on first hover/focus only.
+- Tracks seen state in `localStorage` (key: `edify_seen_tooltips`) — won't re-show once dismissed.
+- Props: `id`, `content`, `children`, `position` (top/bottom/left/right), `alwaysShow` (debug flag).
+- Clean dark tooltip with `animate-fade-in` transition.
+
+**`apps/web/src/components/help/EmptyState.tsx`**
+- Reusable empty state: icon + title + description + optional CTA button.
+- Props: `icon` (LucideIcon), `title`, `description`, `actionLabel`, `onAction`, `className`.
+- Uses `.btn-primary` and `brand-50` palette from globals.css.
+
+**`apps/web/src/components/help/AnnouncementBanner.tsx`**
+- Dismissable top-of-dashboard banner for feature announcements.
+- Props: `id` (localStorage key), `title`, `description`, `ctaLabel`, `ctaHref`, `className`.
+- Remembers dismissals in `localStorage` (key: `edify_dismissed_banners`).
+- Subtle `brand-50` background, not aggressive.
+- Sparkles icon, X dismiss button.
+
+### Files updated
+
+**`apps/web/src/app/dashboard/layout.tsx`**
+- Wrapped layout with `SupportChatProvider`.
+- Added `<ChatWidget />` and `<ProactiveHelper />` as siblings to `<ChatPanel />` so they appear on all dashboard pages.
+
+### Design decisions
+
+- `SupportChatProvider` is a separate context from `ChatPanelProvider` — the existing panel is for talking to specific agent team members, while the new widget is for platform support. Mixing them would require breaking the existing agent-selection flow.
+- Never says "AI" or "agent" in user-facing strings — uses "support assistant" throughout.
+- API route tries the real agent service first (Executive Assistant archetype handles support) and falls back gracefully. Shape is correct so wiring the real service later requires only confirming the URL/endpoint.
+- ProactiveHelper uses the native `invalid` event (bubbled from form inputs) to detect failed form actions — no custom event system needed.
+- localStorage keys are all prefixed `edify_` to avoid namespace collisions.
+
+### Status
+Complete. 7 new files, 1 file updated. TypeScript check passes clean (`npx tsc --noEmit` with no errors).
+
+---
+
+## 2026-04-10 — Help Center & Onboarding Frontend Pages
+
+**Task:** Build Next.js pages and components for the user guide help center and in-app onboarding flow (PRD-user-guide.md).
+
+### Content Files Created
+
+All markdown content for the help center lives in `content/guide/`:
+
+- `meet-your-team/executive-assistant.md` — Who they are, strengths, when to use them, 10 example prompts, tips
+- `meet-your-team/programs-director.md` — Program design, outcomes, logic models, compliance
+- `meet-your-team/finance-director.md` — Budgets, cash flow, grant financials, audit prep
+- `meet-your-team/hr-volunteer-coordinator.md` — Hiring, volunteers, policies, training
+- `meet-your-team/events-director.md` — Event planning, run of show, sponsorships
+- `working-with-your-team.md` — How to give good instructions, review outputs, request revisions
+- `organization-setup.md` — Org profile, Memory, integrations, team activation
+- `faq.md` — Privacy, accuracy, pricing, limitations, common questions
+- `troubleshooting.md` — 7 common issues with specific fixes
+
+(development-director.md and marketing-director.md already existed.)
+
+### Library Files Created
+
+**`apps/web/src/lib/markdown.ts`**
+- Zero-dependency markdown-to-HTML renderer. Handles headings (h1-h4 with ID anchors), bold, italic, inline code, blockquotes, ordered/unordered lists, horizontal rules, links.
+- `extractHeadings()` returns heading metadata for ToC generation.
+
+**`apps/web/src/lib/guide-content.ts`**
+- Server-side utility for reading markdown content files from `content/guide/`.
+- `readGuideFile(relativePath)` — reads and returns a markdown file.
+- `getAllGuideArticles()` — returns all guide articles with slugs and titles for search indexing.
+- `getAdjacentArticles(slug)` — returns prev/next article for navigation.
+- `ARTICLE_ORDER` — canonical article sequence for consistent prev/next navigation.
+
+### Pages and Components Created
+
+**1. `apps/web/src/app/dashboard/guide/layout.tsx`**
+- Wraps all guide pages with a collapsible sidebar navigation.
+- Sidebar shows all top-level articles; "Meet Your Team" expands to show 7 sub-links when active.
+- Auto-breadcrumbs from the URL path.
+- Live Chat link at sidebar bottom.
+
+**2. `apps/web/src/app/dashboard/guide/page.tsx`**
+- Help Center landing. Hero with search bar (submits to /dashboard/guide/search).
+- 6 category cards with icons, descriptions, and links.
+- "Meet Your Team" card shows all 7 sub-article links inline.
+- Live Chat CTA at bottom.
+
+**3. `apps/web/src/app/dashboard/guide/[slug]/page.tsx`** + `ArticleFeedback.tsx`
+- Dynamic server component that renders any top-level guide article from markdown.
+- Auto-generated Table of Contents sidebar (h2+ headings, sticky, xl screens).
+- Prev/Next navigation at bottom.
+- "Was this helpful?" feedback widget (client component). Yes/No state, textarea for negative feedback.
+
+**4. `apps/web/src/app/dashboard/guide/meet-your-team/page.tsx`**
+- Index page showing all 7 team members as interactive cards.
+- Each card shows archetype-colored icon, role tagline, and description.
+- "Not sure who to ask?" tip at bottom.
+
+**5. `apps/web/src/app/dashboard/guide/meet-your-team/[slug]/page.tsx`**
+- Dynamic server component for individual archetype guide articles.
+- Archetype-specific color accent badge at top (each of the 7 has a distinct color: emerald, amber, sky, violet, teal, rose, orange).
+- Same ToC sidebar and feedback widget as the general article renderer.
+- Team member prev/next navigation cycling through the 7 archetypes.
+
+**6. `apps/web/src/app/dashboard/guide/search/page.tsx`** + `SearchBox.tsx`
+- Server-side full-text search across all guide content (no client-side JS bundle weight).
+- Title matches ranked above content matches.
+- Results show article title, 200-char snippet centered on the matching term, and path.
+- Client `SearchBox` component handles submit and router navigation.
+
+**7. `apps/web/src/app/dashboard/guide/live-chat/page.tsx`**
+- Support message form (email + message textarea).
+- After submit: confirmation state with "back to help center" link.
+- Quick links to 4 key help center articles for self-service.
+
+**8. Onboarding Flow — `apps/web/src/app/dashboard/onboarding/`**
+
+`page.tsx` — State machine: welcome → pick → chat → done. Persists completed slugs to localStorage (`edify_onboarding_completed`).
+
+`components/WelcomeScreen.tsx` — Big visual intro. 7 archetype icons displayed as a grid. Three value-prop cards ("They know your mission", "They specialize", "You stay in charge"). CTA to begin.
+
+`components/ArchetypePicker.tsx` — 7 archetype cards in a 2-col grid. Each shows icon, role name, tagline, description. Completed ones marked with a green "Done" badge. Exports `ARCHETYPES` array used across components.
+
+`components/GuidedConversation.tsx` — Preview chat interface. 5 role-specific suggested prompts per archetype. User can click a prompt or type their own. Simulated assistant response. After first interaction: celebration banner with "You just worked with your [Role]!" and a Continue button.
+
+`components/ProgressTracker.tsx` — Sidebar component. Shows "X of 7 team members" with a progress bar and percentage. Per-row status for each archetype with checkmark/circle. Clicking a row navigates directly to that conversation. "Try now" label on uncompleted members.
+
+### Files Updated
+
+**`apps/web/src/components/sidebar.tsx`**
+- Added `BookOpen` icon import.
+- Added `{ href: '/dashboard/guide', label: 'Help Center', icon: BookOpen }` to `navLinks` between Integrations and Settings.
+
+### Language Compliance
+All user-facing strings follow the PRD language guidelines: no "agent", "LLM", "API", "model". Uses "specialist", "team member", "AI hire", "your Development Director", etc. throughout.
+
+### Design Decisions
+
+- **No new dependencies.** Built a simple markdown renderer rather than adding MDX/react-markdown (saves bundle weight; the content is simple enough that a 100-line renderer handles it cleanly).
+- **Server-side search.** Search runs as a Next.js server component reading markdown at request time. No client-side bundle for the search index. Fast enough for this content volume.
+- **`guide-content.ts` reads from `../../content/guide` relative to `process.cwd()`** — this works because Next.js runs from `apps/web/` and the content directory is at the monorepo root.
+- **Onboarding uses localStorage** (not server state) to track which archetypes have been explored -- keeps it zero-infrastructure as specified in the PRD.
+- **Simulated conversation in onboarding** — the GuidedConversation component shows a preview response rather than calling a real backend. When the live chat backend is wired in, swapping the simulated response for a real API call is a one-function change.
+- **Meet Your Team sub-pages have independent slug/prev/next logic** separate from the main ARTICLE_ORDER. This lets the team member pages cycle through all 7 archetypes without being tangled with the broader article ordering.
+
+### Status
+Complete. 14 new frontend files, 7 new content files, 2 new library files, 1 sidebar update. `npx tsc --noEmit` passes clean with zero errors.
+
+---
+
+## 2026-04-10 — /simplify Pass: User Guide Code Review
+
+### What Was Done
+
+Full read of all user guide and onboarding code, then fixed every issue found.
+
+### Issues Fixed
+
+**1. ArticleFeedback.tsx -- fragile import path removed**
+- Moved `ArticleFeedback.tsx` from `guide/[slug]/` to shared `guide/` directory.
+- Updated import in `guide/[slug]/page.tsx` to `../ArticleFeedback`.
+- Updated import in `guide/meet-your-team/[slug]/page.tsx` from `../../[slug]/ArticleFeedback` (traversing through a dynamic route segment -- fragile) to `../../ArticleFeedback`.
+- Deleted the original file from the `[slug]` directory.
+
+**2. Duplicate TEAM_SLUG_ORDER removed**
+- `meet-your-team/[slug]/page.tsx` had a hardcoded `TEAM_SLUG_ORDER` array that duplicated the meet-your-team entries in `guide-content.ts`'s `ARTICLE_ORDER`.
+- Now derives dynamically from `ARTICLE_ORDER` via filter + map -- single source of truth.
+
+**3. Dead code: `unreadCount` in ChatWidget.tsx**
+- `const unreadCount = 0` was declared and referenced in a conditional that could never be true (always 0). Removed the variable and the dead JSX block.
+
+**4. Dead state: `setFailedActions` in ProactiveHelper.tsx**
+- `[, setFailedActions] = useState(0)` was called only to trigger re-renders after incrementing `failedActionsRef`. But the render is already triggered by `show()` which calls `setVisible(true)`. The state was never read, making it pure dead code. Removed.
+
+**5. Bug: HelpTooltip would never display**
+- `visible && !hasBeenSeen` -- after `showTooltip` ran, it set both `visible=true` and `hasBeenSeen=true` in the same call, so the render condition was always false. The tooltip opened and immediately closed.
+- Fixed: render condition is now just `visible`.
+
+**6. Bug: handleConversationComplete stale closure**
+- `completedSlugs` was read after calling `markComplete(slug)`, but `markComplete` updates state asynchronously -- so `completedSlugs` still reflected the old count. The `>= total` check used stale data and could skip the `done` step.
+- Fixed: compute `newCount` from the pre-update `completedSlugs.length` + 1 (if not already done), which is accurate without needing the state update to flush.
+
+**7. Forbidden words in faq.md**
+- "Is my Anthropic API key secure?" and "What is the Anthropic API key for?" exposed "API" and "Anthropic" to users.
+- Rewritten as "Is my access key secure?" and "What is the access key for?" with matching body text.
+
+**8. Broken internal link in live-chat-support.md**
+- `[Troubleshooting](troubleshooting.md)` was a relative markdown path that would not resolve in the rendered help center.
+- Changed to `/dashboard/guide/troubleshooting`.
+
+**9. Marketing Director naming inconsistency**
+- Content file `marketing-director.md` called this role "Your Marketing & Comms Director" but all UI (layout, pages, ArchetypePicker, getting-started.md) used "Marketing Director".
+- Renamed in `marketing-director.md` and `getting-started.md` to match.
+
+### Files Changed
+- `apps/web/src/app/dashboard/guide/ArticleFeedback.tsx` -- created (moved from [slug]/)
+- `apps/web/src/app/dashboard/guide/[slug]/ArticleFeedback.tsx` -- deleted
+- `apps/web/src/app/dashboard/guide/[slug]/page.tsx` -- updated import
+- `apps/web/src/app/dashboard/guide/meet-your-team/[slug]/page.tsx` -- updated import + removed duplicate TEAM_SLUG_ORDER
+- `apps/web/src/components/support/ChatWidget.tsx` -- removed dead unreadCount
+- `apps/web/src/components/support/ProactiveHelper.tsx` -- removed dead state
+- `apps/web/src/components/help/Tooltip.tsx` -- fixed tooltip visibility bug
+- `apps/web/src/app/dashboard/onboarding/page.tsx` -- fixed stale closure in handleConversationComplete
+- `content/guide/faq.md` -- removed forbidden words (API key references)
+- `content/guide/live-chat-support.md` -- fixed broken internal link
+- `content/guide/meet-your-team/marketing-director.md` -- consistent naming
+- `content/guide/getting-started.md` -- consistent naming

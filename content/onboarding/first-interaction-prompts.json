@@ -1,0 +1,51 @@
+{
+  "development_director": [
+    "What grants should we be looking at for a youth mentoring program in [your city/state]?",
+    "Draft a thank-you letter for a $5,000 donation from a first-time donor.",
+    "Help me write a letter of inquiry for a community foundation grant. Our mission is [one sentence].",
+    "We haven't heard from a major donor in over a year. Write a re-engagement email.",
+    "Summarize our fundraising progress for the board. Here's our year-to-date data: [paste numbers]."
+  ],
+  "marketing_director": [
+    "Write three social media posts announcing our new program. One for LinkedIn, one for Instagram, one for Facebook.",
+    "Draft a subject line and opening paragraph for our April email newsletter. Theme: volunteer appreciation.",
+    "Write a press release announcing our partnership with [organization name].",
+    "Build a 30-day content calendar for Instagram. Our focus areas are [list 2-3 topics].",
+    "Rewrite this paragraph so it sounds warmer and less corporate: [paste text]."
+  ],
+  "executive_assistant": [
+    "Build an agenda for a 60-minute board meeting. Topics: financials, program update, new hire approval.",
+    "Here are my top priorities this week: [list 5 things]. Help me plan Monday morning.",
+    "I have a call with a major funder in two hours. Help me prep with key talking points.",
+    "Triage these emails and tell me which need a same-day response: [paste subject lines].",
+    "Here are my meeting notes from today. Pull out all the action items with owners and deadlines: [paste notes]."
+  ],
+  "programs_director": [
+    "Help me build a logic model for our after-school tutoring program. Here's how it works: [describe].",
+    "What outcomes should we be tracking for a workforce development program serving adults aged 25-45?",
+    "Design a simple participant satisfaction survey for our family support program.",
+    "Write the program narrative section of our grant report. Our key outcomes this quarter: [paste data].",
+    "We're launching a new program and need a needs assessment framework. Where do we start?"
+  ],
+  "finance_director": [
+    "Build a budget template for a 12-month youth mentoring program. Staff: 2 FTEs. Budget: $80,000.",
+    "Help me forecast our cash flow for the next 90 days. Current balance: [X]. Upcoming expenses: [paste list].",
+    "Write the financial narrative for our Q1 grant report. Budget: [X]. Spent: [Y]. Here's why we're under: [explain].",
+    "Create an audit preparation checklist for a small nonprofit getting its first external audit.",
+    "Explain our current financial position to our board in plain language. Here's our P&L: [paste]."
+  ],
+  "hr_volunteer_coordinator": [
+    "Write a job description for a part-time Program Coordinator. Salary range: $38,000-$42,000.",
+    "Design a one-week onboarding plan for a new full-time staff member starting next Monday.",
+    "Draft a volunteer recruitment post for our Saturday food pantry. We need 10 volunteers per shift.",
+    "Write a remote work policy for our 6-person staff. We work Tuesday-Thursday in office.",
+    "Create a volunteer appreciation email for our annual recognition week."
+  ],
+  "events_director": [
+    "Help me plan a spring fundraising gala for 120 guests. Revenue goal: $40,000. Date: [date].",
+    "Build a run of show for a 3-hour awards dinner starting at 6pm. Key moments: cocktails, dinner, awards, close.",
+    "Design a three-tier sponsorship package for our annual 5K. Revenue goal: $15,000.",
+    "We just finished our fall gala. Help me calculate the ROI. Revenue: [X]. Expenses: [Y].",
+    "Build a 90-day event planning timeline for our community celebration on [date]."
+  ]
+}
