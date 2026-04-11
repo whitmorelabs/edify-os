@@ -62,6 +62,49 @@ Complete. 14 files created (or confirmed pre-created by linter). All content fol
 
 ---
 
+## 2026-04-10 — Decision Lab /simplify Pass
+
+**Task:** Review all Decision Lab code (backend + frontend) for duplication, bugs, inconsistencies, and clean it up.
+
+### Issues Found and Fixed
+
+**Critical bug — archetype slug mismatches (would break filtering end-to-end):**
+- `TeamSelector.tsx` had slug `executive_director` — backend uses `executive_assistant`. Fixed.
+- `TeamSelector.tsx` had slug `hr_coordinator` — backend uses `hr_volunteer_coordinator`. Fixed.
+- `route.ts` mock data used the same wrong slugs. Fixed to match backend canonical list.
+
+**Data contract mismatch — follow-up API body:**
+- `api.ts` was sending `{ archetype, question }` but the backend `FollowUpRequest` model expects `archetype_slug`. Fixed to send `{ archetype_slug, question }`.
+
+**Duplication — `_extract_text` static method:**
+- Identical implementation existed in both `orchestrator.py` and `synthesis.py`. Extracted to a module-level `extract_text()` function in `prompts.py` (neutral file both already imported). Both files updated to call the shared version.
+
+**Abstraction leak — private attribute access in router:**
+- `router.py` called `orchestrator._client.close()` directly. Added a public `close()` method to `DecisionLabOrchestrator` that delegates to the client. Router updated to call `orchestrator.close()`.
+
+**Dead abstraction — trivial wrapper functions in `history.py`:**
+- `_result_to_dict()` and `_dict_to_result()` were one-liner wrappers around `.model_dump()` and `.model_validate()`. Removed both functions and inlined the calls at their four use sites.
+
+**Unused prop — `role_slug` on `ArchetypeCard`:**
+- Declared in the props interface and passed from `page.tsx` but never used inside the component. Removed from interface and removed from the call site in `page.tsx`.
+
+**Unused props — `roleSlug` and `scenarioId` on `FollowUp`:**
+- Both declared in the `FollowUpProps` interface but never used inside the component. Removed from interface. Removed from the `<FollowUp>` usage in `page.tsx`.
+
+**Dead import — `Any` in `synthesis.py`:**
+- After removing the `_extract_text` static method (its only user of `Any`), the `from typing import Any` import was dead. Removed.
+
+### No Changes Made To
+- `sidebar.tsx` — Decision Lab entry is correct, no issues.
+- `ScenarioInput.tsx`, `SynthesisPanel.tsx`, `ScenarioHistory.tsx` — clean, no issues.
+- `models.py`, `prompts.py` (except adding `extract_text`), `router.py` error handling — all correct.
+- Backend/frontend type shapes for `ScenarioResult` and `Synthesis` — consistent across layers.
+
+### Status
+Complete. 9 fixes across 9 files. No features added.
+
+---
+
 ## 2026-04-10 — Subagent Infrastructure Layer
 
 **Task:** Build the foundation for primary agents to delegate tasks to specialized subagents.
@@ -734,3 +777,69 @@ Full read of all user guide and onboarding code, then fixed every issue found.
 - `content/guide/live-chat-support.md` -- fixed broken internal link
 - `content/guide/meet-your-team/marketing-director.md` -- consistent naming
 - `content/guide/getting-started.md` -- consistent naming
+
+---
+
+## 2026-04-10 — Decision Lab Backend
+
+**Task:** Build the Decision Lab backend service -- runs a decision scenario through all 7 AI archetypes in parallel and synthesizes the results.
+
+### Files Created
+
+- `services/agents/src/decision_lab/__init__.py` -- empty package init
+- `services/agents/src/decision_lab/models.py` -- Pydantic v2 models: ScenarioRequest, ArchetypeResponse, Synthesis, ScenarioResult, FollowUpRequest
+- `services/agents/src/decision_lab/prompts.py` -- three prompt templates: DECISION_LAB_SYSTEM_PROMPT, SYNTHESIS_PROMPT, FOLLOW_UP_PROMPT
+- `services/agents/src/decision_lab/orchestrator.py` -- DecisionLabOrchestrator: dispatches to all archetypes via asyncio.gather(), parses [STANCE: X] [CONFIDENCE: Y] headers, supports follow-up queries on individual archetypes
+- `services/agents/src/decision_lab/synthesis.py` -- SynthesisEngine: calls LLM as neutral facilitator, parses structured output into Synthesis model (consensus, disagreements, top_risks, recommended_action)
+- `services/agents/src/decision_lab/history.py` -- ScenarioHistory: saves/retrieves ScenarioResult to Postgres when pool available, falls back to in-memory dict for dev
+- `services/agents/src/decision_lab/router.py` -- FastAPI router: POST /run, GET /history, GET /{scenario_id}, POST /{scenario_id}/follow-up
+
+### Files Modified
+
+- `services/agents/src/main.py` -- registered decision_lab_router at /api/v1 prefix
+
+### Design Decisions
+
+- Each archetype is queried in parallel with asyncio.gather(); max_tokens=500 per archetype, 1000 for synthesis
+- Archetype responses prefixed with [STANCE: X] [CONFIDENCE: Y] on first line for reliable parsing; fallback to "caution"/"low" on parse failure
+- Synthesis prompt uses explicit section headers (## CONSENSUS, ## DISAGREEMENTS, ## TOP RISKS, ## RECOMMENDED ACTION) and a regex parser with list-item fallback
+- History uses a module-level dict as in-memory fallback so no DB is required for local dev
+- DB schema expected: decision_lab_scenarios table with (scenario_id, org_id, scenario_text, result_json, created_at); graceful fallback to memory on DB failure
+- ClaudeClient.close() called in finally blocks on all API routes to prevent connection leaks
+
+### Endpoints
+
+- POST /api/v1/decision-lab/run -- takes ScenarioRequest (scenario_text, org_id, anthropic_api_key, optional selected_archetypes), returns ScenarioResult
+- GET /api/v1/decision-lab/history?org_id=X -- returns list of recent scenarios
+- GET /api/v1/decision-lab/{scenario_id}?org_id=X -- returns full ScenarioResult
+- POST /api/v1/decision-lab/{scenario_id}/follow-up?org_id=X -- drills into one archetype, returns ArchetypeResponse
+
+---
+
+## 2026-04-10 — Decision Lab Frontend
+
+**Task:** Build the Decision Lab frontend — where users describe a scenario and get instant feedback from their full AI team.
+
+### Files Created
+
+- `apps/web/src/app/dashboard/decision-lab/page.tsx` — Main page with header, input, example prompts, results grid, synthesis, and follow-up wiring
+- `apps/web/src/app/dashboard/decision-lab/api.ts` — Client-side API wrapper (`runScenario`, `getHistory`, `getScenario`, `askFollowUp`)
+- `apps/web/src/app/dashboard/decision-lab/components/ScenarioInput.tsx` — Large textarea with animated loading state and Cmd+Enter shortcut
+- `apps/web/src/app/dashboard/decision-lab/components/TeamSelector.tsx` — 7 toggle pills (one per archetype), all selected by default, click to deselect
+- `apps/web/src/app/dashboard/decision-lab/components/ArchetypeCard.tsx` — Per-team-member card with stance badge (Support/Caution/Oppose), confidence indicator, and follow-up button
+- `apps/web/src/app/dashboard/decision-lab/components/SynthesisPanel.tsx` — Four-section summary: consensus, disagreements, top risks, recommended action
+- `apps/web/src/app/dashboard/decision-lab/components/FollowUp.tsx` — Slide-over panel for asking follow-up questions to individual team members
+- `apps/web/src/app/dashboard/decision-lab/components/ScenarioHistory.tsx` — Collapsible sidebar list of past scenarios with empty state
+- `apps/web/src/app/api/decision-lab/route.ts` — Next.js API route with full mock data (7 archetypes, varied stances, synthesis); proxies to backend if available
+
+### Files Modified
+
+- `apps/web/src/components/sidebar.tsx` — Added "Decision Lab" nav link with `FlaskConical` icon, placed after Team
+
+### Architecture Notes
+
+- All language follows the "no LLM/agent/token" rule: "team member", "specialist", "your team", "Run it by the team"
+- Mock data is fully realistic (7 archetypes with distinct voices, mixed stances, real synthesis)
+- TypeScript: zero errors (`tsc --noEmit` passes clean)
+- Mobile-responsive grid layout (1 col → 2 col for cards, sidebar collapses below lg)
+

@@ -12,6 +12,7 @@ import {
   Plug,
   Settings,
   BookOpen,
+  FlaskConical,
 } from 'lucide-react';
 import { useChatPanel } from './chat-provider';
 import { AGENT_COLORS, AGENT_SLUGS } from '@/lib/agent-colors';
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils';
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/team', label: 'Team', icon: Users },
+  { href: '/dashboard/decision-lab', label: 'Decision Lab', icon: FlaskConical },
   { href: '/dashboard/inbox', label: 'Inbox', icon: Inbox },
   { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/dashboard/memory', label: 'Memory', icon: Brain },
