@@ -1,4 +1,4 @@
-# SESSION LOG — Edify OS
+# SESSION LOG -- Edify OS
 
 ---
 
