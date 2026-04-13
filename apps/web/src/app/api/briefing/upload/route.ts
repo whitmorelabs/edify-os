@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-static';
+
 // Maps document category -> memory_entries category (one or more)
 // Valid memory_entries categories: mission, programs, donors, grants,
 // campaigns, brand_voice, contacts, processes, general

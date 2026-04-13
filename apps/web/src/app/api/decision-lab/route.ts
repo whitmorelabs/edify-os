@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-static';
+
 // -------------------------------------------------------------------
 // Types
 // -------------------------------------------------------------------
@@ -44,15 +46,6 @@ function buildMockResult(scenarioText: string): ScenarioResult {
         response_text:
           "Before moving forward, we need to align this with our strategic plan and ensure the board is informed. The timing matters — our team is already stretched, and we should pressure-test our capacity before committing. That said, if the opportunity is genuinely time-sensitive, a phased approach could reduce risk.",
         confidence: 'Medium',
-      },
-      {
-        role_slug: 'finance_director',
-        display_name: 'Finance Director',
-        icon: 'DollarSign',
-        stance: 'Caution',
-        response_text:
-          "Financially, we need 3-6 months of runway before taking on any new obligation. Current reserves are below our policy threshold. I'd want a detailed pro forma, including worst-case and best-case cash flow projections, before recommending approval. The opportunity cost of diverting staff time is also real and should be quantified.",
-        confidence: 'High',
       },
       {
         role_slug: 'development_director',

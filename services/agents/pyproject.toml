@@ -12,6 +12,11 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "asyncpg>=0.30.0",
     "numpy>=1.26.0",
+    # Document parsing
+    "PyMuPDF>=1.24.0",       # PDF extraction (import fitz)
+    "python-docx>=1.1.0",    # DOCX extraction
+    "openpyxl>=3.1.0",       # XLSX/XLS extraction
+    "python-multipart>=0.0.9",  # FastAPI multipart/form-data uploads
 ]
 
 [project.optional-dependencies]

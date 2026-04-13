@@ -1,4 +1,4 @@
-import type { KnownBlock } from "@slack/bolt";
+import type { KnownBlock } from "@slack/types";
 import { markdownToMrkdwn } from "../../utils/formatting";
 
 export interface AgentResponseParams {

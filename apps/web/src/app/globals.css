@@ -112,16 +112,16 @@
 /* Reusable component classes */
 @layer components {
   .card {
-    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
   }
 
   .card-elevated {
-    @apply bg-white rounded-xl border border-slate-200 shadow-md;
+    @apply bg-white rounded-xl border border-gray-200 shadow-md;
   }
 
   .card-interactive {
-    @apply bg-white rounded-xl border border-slate-200 shadow-sm
-      hover:shadow-lg hover:border-brand-200 transition-all duration-200 cursor-pointer;
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm
+      hover:shadow-lg hover:border-[#8B5CF6]/40 transition-all duration-200 cursor-pointer;
   }
 
   .card-dark {
@@ -170,19 +170,19 @@
   }
 
   .heading-display {
-    @apply text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl;
+    @apply text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl;
   }
 
   .heading-1 {
-    @apply text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl;
+    @apply text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl;
   }
 
   .heading-2 {
-    @apply text-xl font-semibold text-slate-900;
+    @apply text-xl font-semibold text-gray-900;
   }
 
   .heading-3 {
-    @apply text-base font-semibold text-slate-900;
+    @apply text-base font-semibold text-gray-900;
   }
 
   /* Section layouts */
@@ -238,8 +238,12 @@
 /* Container */
 .spial-container {
   max-width: 940px;
-  margin: 0 auto;
-  padding: 0 20px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 20px;
+  padding-right: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Spial button */
@@ -247,8 +251,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #d2b4fe;
-  color: #000;
+  background-color: #7C3AED;
+  color: #fff;
   border: none;
   border-radius: 8px;
   padding: 14px 22px;
@@ -261,7 +265,7 @@
 }
 
 .spial-btn:hover {
-  background-color: #c9a3f3;
+  background-color: #8B5CF6;
   transform: translateY(-2px);
 }
 
@@ -276,7 +280,7 @@
 }
 
 .spial-page p {
-  margin: 0;
+  margin-top: 0;
   margin-bottom: 15px;
   line-height: 1.7;
 }

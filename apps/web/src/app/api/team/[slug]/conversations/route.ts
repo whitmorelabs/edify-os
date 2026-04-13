@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 
+export function generateStaticParams() {
+  const validSlugs: ArchetypeSlug[] = [
+    "development_director",
+    "marketing_director",
+    "executive_assistant",
+    "programs_director",
+    "hr_volunteer_coordinator",
+    "events_director",
+  ];
+  return validSlugs.map((slug) => ({ slug }));
+}
+
 // In-memory store for mock conversations (per process lifetime)
 // In production this will be replaced by a real DB call
 const conversationStore: Record<string, ConversationRecord[]> = {};
@@ -31,10 +43,6 @@ function getDefaultConversations(slug: ArchetypeSlug): ConversationRecord[] {
     programs_director: [
       "Q1 outcome data review",
       "Summer program expansion",
-    ],
-    finance_director: [
-      "March budget variance",
-      "Cash flow through Q3",
     ],
     hr_volunteer_coordinator: [
       "Volunteer coordinator hiring",
@@ -70,7 +78,6 @@ export async function GET(
     "marketing_director",
     "executive_assistant",
     "programs_director",
-    "finance_director",
     "hr_volunteer_coordinator",
     "events_director",
   ];

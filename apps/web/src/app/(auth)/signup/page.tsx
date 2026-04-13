@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building, Mail, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { Building, Mail, Lock, ArrowRight } from "lucide-react";
 import { signUp } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -21,7 +21,6 @@ export default function SignupPage() {
     setLoading(true);
 
     if (!isSupabaseConfigured()) {
-      // Dev/mock mode — skip auth and go straight to onboarding
       router.push("/onboarding");
       return;
     }
@@ -34,69 +33,65 @@ export default function SignupPage() {
       return;
     }
 
-    // Supabase will send a confirmation email if enabled.
-    // For local dev (email confirmation off), the session is active immediately.
     router.push("/onboarding");
   };
 
   return (
-    <div className="animate-fade-in">
-      {/* Mobile Logo */}
-      <div className="mb-8 flex items-center gap-2 lg:hidden">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
-          <Sparkles className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-lg font-bold text-slate-900">Edify OS</span>
-      </div>
-
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight text-white mb-1">
         Hire your AI team
       </h1>
-      <p className="mt-2 text-sm text-slate-500">
+      <p className="text-sm text-white/50 mb-8">
         Set up your organization in under 2 minutes.
       </p>
 
       {error && (
-        <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+        <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="label mb-1.5 block">Organization Name</label>
+          <label className="block text-xs font-medium uppercase tracking-wider text-white/50 mb-1.5">
+            Organization Name
+          </label>
           <div className="relative">
-            <Building className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Building className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <input
               type="text"
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
               placeholder="Hope Community Foundation"
               required
-              className="input-field pl-10"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label className="label mb-1.5 block">Work Email</label>
+          <label className="block text-xs font-medium uppercase tracking-wider text-white/50 mb-1.5">
+            Work Email
+          </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@nonprofit.org"
               required
-              className="input-field pl-10"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label className="label mb-1.5 block">Password</label>
+          <label className="block text-xs font-medium uppercase tracking-wider text-white/50 mb-1.5">
+            Password
+          </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <input
               type="password"
               value={password}
@@ -104,7 +99,7 @@ export default function SignupPage() {
               placeholder="Min 8 characters"
               required
               minLength={8}
-              className="input-field pl-10"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
             />
           </div>
         </div>
@@ -112,37 +107,36 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="btn-primary w-full disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#7C3AED] px-6 py-3 text-sm font-semibold text-white hover:bg-[#8B5CF6] active:bg-[#6D28D9] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 focus:ring-offset-2 focus:ring-offset-[#243b44] transition-all duration-200 disabled:opacity-50"
         >
           {loading ? "Creating your team..." : "Create Account"}
           <ArrowRight className="h-4 w-4" />
         </button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-slate-400">
-        By creating an account, you agree to our Terms of Service and Privacy
-        Policy.
+      <p className="mt-6 text-center text-xs text-white/30">
+        By creating an account, you agree to our Terms of Service and Privacy Policy.
       </p>
 
       <div className="mt-4 flex items-center gap-4">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs text-slate-400">or</span>
-        <div className="h-px flex-1 bg-slate-200" />
+        <div className="h-px flex-1 bg-white/10" />
+        <span className="text-xs text-white/30">or</span>
+        <div className="h-px flex-1 bg-white/10" />
       </div>
 
       <Link
         href="/dashboard"
-        className="btn-ghost mt-4 w-full text-brand-500 hover:bg-brand-50"
+        className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#8B5CF6] hover:bg-white/5 transition-all duration-150"
       >
         Skip to Demo Dashboard
         <ArrowRight className="h-4 w-4" />
       </Link>
 
-      <p className="mt-4 text-center text-sm text-slate-500">
+      <p className="mt-4 text-center text-sm text-white/40">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-semibold text-brand-500 hover:text-brand-600"
+          className="font-semibold text-[#8B5CF6] hover:text-[#a78bfa]"
         >
           Sign in
         </Link>

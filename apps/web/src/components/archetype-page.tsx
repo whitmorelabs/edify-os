@@ -37,7 +37,7 @@ export default function ArchetypePage({
       <section className="bg-[#1a2b32] py-20 md:py-24 relative overflow-hidden">
         <div className="spial-container relative z-[1]">
           <div className="flex flex-col items-center text-center">
-            <HeroIcon className="w-16 h-16 text-[#d2b4fe] mb-6" />
+            <HeroIcon className="w-16 h-16 text-[#8B5CF6] mb-6" />
             <h1 className="text-white text-[36px] md:text-[52px] font-semibold leading-[1.2] mb-5">
               {archetype.name}
             </h1>
@@ -58,7 +58,7 @@ export default function ArchetypePage({
       {/* Responsibilities */}
       <section className="py-20 bg-[#f7f6f5]">
         <div className="spial-container">
-          <SectionLabel text="Responsibilities" />
+          <SectionLabel text="Responsibilities" align="left" />
           <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
             What {archetype.name} Does
           </h2>
@@ -68,7 +68,7 @@ export default function ArchetypePage({
                 {archetype.responsibilities.map((r, i) => (
                   <li
                     key={i}
-                    className="flex gap-4 mb-4 text-base before:content-['\2713'] before:text-[#d2b4fe] before:font-bold before:text-lg before:shrink-0"
+                    className="flex gap-4 mb-4 text-base before:content-['\2713'] before:text-[#8B5CF6] before:font-bold before:text-lg before:shrink-0"
                   >
                     {r}
                   </li>
@@ -76,7 +76,7 @@ export default function ArchetypePage({
               </ul>
               <Link
                 href="#"
-                className="text-[#d2b4fe] no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300 hover:text-[#c9a3f3]"
+                className="text-[#8B5CF6] no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300 hover:text-[#7C3AED]"
               >
                 Explore More
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -90,7 +90,7 @@ export default function ArchetypePage({
       {/* Subagents */}
       <section className="py-20 bg-[#f7f6f5]">
         <div className="spial-container">
-          <SectionLabel text="Subagents" />
+          <SectionLabel text="Subagents" align="left" />
           <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-10">
             The Team Behind the {archetype.name}
           </h2>
@@ -120,7 +120,7 @@ export default function ArchetypePage({
                 key={i}
                 className="bg-white/10 backdrop-blur-[10px] rounded-xl p-[30px] border border-white/10"
               >
-                <h3 className="text-lg font-semibold text-[#d2b4fe] mb-2 font-mono">
+                <h3 className="text-lg font-semibold text-[#8B5CF6] mb-2 font-mono">
                   {t.name}
                 </h3>
                 <p className="text-white/60 text-sm mb-3 font-mono">
@@ -136,7 +136,7 @@ export default function ArchetypePage({
       {/* Use Cases */}
       <section className="py-20 bg-[#f7f6f5]">
         <div className="spial-container">
-          <SectionLabel text="Use Cases" />
+          <SectionLabel text="Use Cases" align="left" />
           <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
             See {archetype.name} in Action
           </h2>
@@ -148,7 +148,7 @@ export default function ArchetypePage({
               >
                 <div className="w-full h-[180px] bg-[#e5e5e5]" />
                 <div className="p-[25px]">
-                  <div className="text-xs text-[#d2b4fe] font-semibold uppercase mb-2.5">
+                  <div className="text-xs text-[#8B5CF6] font-semibold uppercase mb-2.5">
                     Scenario {i + 1}
                   </div>
                   <h3 className="text-lg font-semibold text-black mb-2.5">{s.title}</h3>

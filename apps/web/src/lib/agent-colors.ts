@@ -1,9 +1,12 @@
-import { Landmark, Megaphone, CalendarCheck, type LucideIcon } from "lucide-react";
+import { Landmark, Megaphone, CalendarCheck, BookOpen, UserCheck, CalendarDays, type LucideIcon } from "lucide-react";
 
 export type AgentRoleSlug =
   | "development_director"
   | "marketing_director"
-  | "executive_assistant";
+  | "executive_assistant"
+  | "programs_director"
+  | "hr_volunteer_coordinator"
+  | "events_director";
 
 export interface AgentColorConfig {
   bg: string;
@@ -49,6 +52,39 @@ export const AGENT_COLORS: Record<AgentRoleSlug, AgentColorConfig> = {
     label: "Executive Assistant",
     description:
       "Manages schedules, triages emails, preps meetings, and coordinates tasks.",
+  },
+  programs_director: {
+    bg: "bg-violet-500",
+    text: "text-violet-700",
+    border: "border-violet-500",
+    light: "bg-violet-50",
+    ring: "ring-violet-500/20",
+    icon: BookOpen,
+    label: "Programs Director",
+    description:
+      "Program delivery, outcomes tracking, and compliance reporting.",
+  },
+  hr_volunteer_coordinator: {
+    bg: "bg-indigo-500",
+    text: "text-indigo-700",
+    border: "border-indigo-500",
+    light: "bg-indigo-50",
+    ring: "ring-indigo-500/20",
+    icon: UserCheck,
+    label: "HR & Volunteer Coordinator",
+    description:
+      "Staff, volunteers, hiring, and organizational culture.",
+  },
+  events_director: {
+    bg: "bg-rose-500",
+    text: "text-rose-700",
+    border: "border-rose-500",
+    light: "bg-rose-50",
+    ring: "ring-rose-500/20",
+    icon: CalendarDays,
+    label: "Events Director",
+    description:
+      "Event planning, sponsorships, and logistics.",
   },
 };
 

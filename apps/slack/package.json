@@ -10,11 +10,12 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@slack/bolt": "^4.1.0",
     "@edify/shared": "workspace:*",
+    "@slack/bolt": "^4.1.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@slack/types": "^2.20.1",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0"
   }

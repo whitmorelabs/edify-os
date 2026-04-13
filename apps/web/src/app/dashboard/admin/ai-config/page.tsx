@@ -6,7 +6,6 @@ import {
   Megaphone,
   CalendarCheck,
   BookOpen,
-  DollarSign,
   UserCheck,
   CalendarDays,
   Key,
@@ -18,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getApiKey, setApiKey, clearApiKey, hasApiKey } from "@/lib/api-key";
 
 interface ArchetypeConfig {
   slug: string;
@@ -38,7 +38,6 @@ const ARCHETYPE_ICONS: Record<string, LucideIcon> = {
   marketing_director: Megaphone,
   executive_assistant: CalendarCheck,
   programs_director: BookOpen,
-  finance_director: DollarSign,
   hr_volunteer_coordinator: UserCheck,
   events_director: CalendarDays,
 };
@@ -48,7 +47,6 @@ const ARCHETYPE_COLORS: Record<string, string> = {
   marketing_director: "bg-amber-50 text-amber-600",
   executive_assistant: "bg-sky-50 text-sky-600",
   programs_director: "bg-violet-50 text-violet-600",
-  finance_director: "bg-teal-50 text-teal-600",
   hr_volunteer_coordinator: "bg-indigo-50 text-indigo-600",
   events_director: "bg-rose-50 text-rose-600",
 };
@@ -61,10 +59,24 @@ const autonomyOptions = [
 
 const providers = ["Claude (Anthropic)", "OpenAI", "Qwen", "Mistral"];
 
+const DEFAULT_ARCHETYPES: ArchetypeConfig[] = [
+  { slug: "development_director", label: "Director of Development", enabled: true, autonomyLevel: "suggestion", personaOverrides: "" },
+  { slug: "marketing_director", label: "Marketing Director", enabled: true, autonomyLevel: "suggestion", personaOverrides: "" },
+  { slug: "executive_assistant", label: "Executive Assistant", enabled: true, autonomyLevel: "suggestion", personaOverrides: "" },
+  { slug: "programs_director", label: "Programs Director", enabled: true, autonomyLevel: "suggestion", personaOverrides: "" },
+  { slug: "hr_volunteer_coordinator", label: "HR & Volunteer Coordinator", enabled: true, autonomyLevel: "suggestion", personaOverrides: "" },
+  { slug: "events_director", label: "Events Director", enabled: true, autonomyLevel: "suggestion", personaOverrides: "" },
+];
+
+const ARCHETYPES_STORAGE_KEY = "edify_archetype_config";
+
 export default function AIConfigPage() {
-  const [archetypes, setArchetypes] = useState<ArchetypeConfig[]>([]);
-  const [provider, setProvider] = useState<ProviderConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [archetypes, setArchetypes] = useState<ArchetypeConfig[]>(DEFAULT_ARCHETYPES);
+  const [provider, setProvider] = useState<ProviderConfig>({
+    provider: "Claude (Anthropic)",
+    accessKeySet: false,
+    accessKeyPreview: "",
+  });
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
@@ -72,18 +84,28 @@ export default function AIConfigPage() {
   const [accessKey, setAccessKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "fail">("idle");
-
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
+  // Load saved config from localStorage on mount
   useEffect(() => {
-    fetch("/api/admin/ai-config")
-      .then((r) => r.json())
-      .then((d) => {
-        setArchetypes(d.archetypes);
-        setProvider(d.provider);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    try {
+      const savedArchetypes = localStorage.getItem(ARCHETYPES_STORAGE_KEY);
+      if (savedArchetypes) {
+        setArchetypes(JSON.parse(savedArchetypes));
+      }
+
+      const savedKey = getApiKey();
+      if (savedKey) {
+        const preview = savedKey.slice(0, 12) + "..." + savedKey.slice(-4);
+        setProvider({
+          provider: "Claude (Anthropic)",
+          accessKeySet: true,
+          accessKeyPreview: preview,
+        });
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   function updateArchetype(slug: string, patch: Partial<ArchetypeConfig>) {
@@ -92,24 +114,59 @@ export default function AIConfigPage() {
 
   async function handleSave() {
     setSaveStatus("saving");
-    await fetch("/api/admin/ai-config", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ archetypes, provider }),
-    });
-    setSaveStatus("saved");
+    try {
+      // Save archetype config to localStorage
+      localStorage.setItem(ARCHETYPES_STORAGE_KEY, JSON.stringify(archetypes));
+
+      // Save API key if one was entered
+      if (accessKey.trim()) {
+        setApiKey(accessKey.trim());
+        const preview = accessKey.trim().slice(0, 12) + "..." + accessKey.trim().slice(-4);
+        setProvider((p) => ({ ...p, accessKeySet: true, accessKeyPreview: preview }));
+        setAccessKey("");
+      }
+
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("idle");
+    }
     setTimeout(() => setSaveStatus("idle"), 2500);
   }
 
-  async function handleTestConnection() {
-    setTestStatus("testing");
-    await new Promise((r) => setTimeout(r, 1200));
-    setTestStatus("ok");
-    setTimeout(() => setTestStatus("idle"), 3000);
+  function handleClearKey() {
+    clearApiKey();
+    setAccessKey("");
+    setProvider((p) => ({ ...p, accessKeySet: false, accessKeyPreview: "" }));
   }
 
-  if (loading) {
-    return <div className="py-24 text-center text-slate-500 text-sm">Loading configuration...</div>;
+  async function handleTestConnection() {
+    const keyToTest = accessKey.trim() || getApiKey();
+    if (!keyToTest) {
+      setTestStatus("fail");
+      setTimeout(() => setTestStatus("idle"), 3000);
+      return;
+    }
+    setTestStatus("testing");
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": keyToTest,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 16,
+          messages: [{ role: "user", content: "Say OK" }],
+        }),
+      });
+      setTestStatus(res.ok ? "ok" : "fail");
+    } catch {
+      setTestStatus("fail");
+    }
+    setTimeout(() => setTestStatus("idle"), 3000);
   }
 
   return (
@@ -255,7 +312,7 @@ export default function AIConfigPage() {
                       <button
                         key={p}
                         onClick={() => {
-                          setProvider((prev) => prev ? { ...prev, provider: p } : null);
+                          setProvider((prev) => ({ ...prev, provider: p }));
                           setProviderDropdownOpen(false);
                         }}
                         className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center justify-between"
@@ -283,7 +340,7 @@ export default function AIConfigPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setProvider((p) => p ? { ...p, accessKeySet: false } : null)}
+                  onClick={handleClearKey}
                   className="text-xs font-medium text-red-600 hover:text-red-700"
                 >
                   Replace

@@ -2,7 +2,6 @@
 
 import {
   Star,
-  DollarSign,
   Landmark,
   Megaphone,
   Heart,
@@ -32,16 +31,6 @@ export const ARCHETYPES: Archetype[] = [
     selectedBg: 'bg-violet-100',
     selectedText: 'text-violet-700',
     selectedBorder: 'border-violet-400',
-  },
-  {
-    slug: 'finance_director',
-    label: 'Finance Director',
-    shortLabel: 'Finance',
-    icon: DollarSign,
-    color: 'text-emerald-600',
-    selectedBg: 'bg-emerald-100',
-    selectedText: 'text-emerald-700',
-    selectedBorder: 'border-emerald-400',
   },
   {
     slug: 'development_director',

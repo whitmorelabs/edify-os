@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = 'force-static';
+
 function getMockUsage(days: number) {
   const multiplier = days / 7;
 
@@ -44,14 +46,6 @@ function getMockUsage(days: number) {
         messages: Math.round(162 * multiplier),
         tasks: Math.round(9 * multiplier),
         color: "bg-violet-500",
-      },
-      {
-        slug: "finance_director",
-        label: "Finance Director",
-        conversations: Math.round(14 * multiplier),
-        messages: Math.round(114 * multiplier),
-        tasks: Math.round(7 * multiplier),
-        color: "bg-teal-500",
       },
       {
         slug: "hr_volunteer_coordinator",

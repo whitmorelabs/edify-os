@@ -109,10 +109,10 @@ export default function DashboardHome() {
       {/* Welcome Header */}
       <div>
         <h1 className="heading-1 flex items-center gap-2">
-          <Sparkles className="h-7 w-7 text-brand-500" />
+          <Sparkles className="h-7 w-7 text-[#8B5CF6]" />
           Good morning
         </h1>
-        <p className="mt-1 text-slate-500">
+        <p className="mt-1 text-gray-500">
           Here&apos;s what your AI team has been working on.
         </p>
       </div>
@@ -122,13 +122,13 @@ export default function DashboardHome() {
         {stats.map((stat) => (
           <div key={stat.label} className="card p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
-                <stat.icon className="h-5 w-5 text-brand-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/10">
+                <stat.icon className="h-5 w-5 text-[#8B5CF6]" />
               </div>
-              <span className="text-sm text-slate-500">{stat.label}</span>
+              <span className="text-sm text-gray-500">{stat.label}</span>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900">
+              <span className="text-2xl font-bold text-gray-900">
                 {stat.value}
               </span>
               {stat.trend && (
@@ -161,13 +161,13 @@ export default function DashboardHome() {
               onClick={() => openChat("executive_assistant")}
               className="card-interactive p-5 text-left"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
-                <action.icon className="h-5 w-5 text-brand-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/10">
+                <action.icon className="h-5 w-5 text-[#8B5CF6]" />
               </div>
-              <h3 className="mt-3 font-semibold text-slate-900">
+              <h3 className="mt-3 font-semibold text-gray-900">
                 {action.title}
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-gray-500">
                 {action.description}
               </p>
             </button>
@@ -177,13 +177,13 @@ export default function DashboardHome() {
               href={"href" in action ? action.href : "#"}
               className="card-interactive p-5"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
-                <action.icon className="h-5 w-5 text-brand-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/10">
+                <action.icon className="h-5 w-5 text-[#8B5CF6]" />
               </div>
-              <h3 className="mt-3 font-semibold text-slate-900">
+              <h3 className="mt-3 font-semibold text-gray-900">
                 {action.title}
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-gray-500">
                 {action.description}
               </p>
             </a>
@@ -197,7 +197,7 @@ export default function DashboardHome() {
           <h2 className="heading-2">Recent Activity</h2>
           <a
             href="/dashboard/tasks"
-            className="text-sm font-medium text-brand-500 hover:text-brand-600"
+            className="text-sm font-medium text-[#8B5CF6] hover:text-[#7C3AED]"
           >
             View all
           </a>
@@ -223,7 +223,7 @@ export default function DashboardHome() {
                       <span className={`text-sm font-medium ${agentConfig.text}`}>
                         {agentConfig.label}
                       </span>
-                      <p className="text-sm text-slate-600">{item.action}</p>
+                      <p className="text-sm text-gray-600">{item.action}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -232,7 +232,7 @@ export default function DashboardHome() {
                         Needs Approval
                       </span>
                     )}
-                    <span className="text-xs text-slate-400">{item.time}</span>
+                    <span className="text-xs text-gray-400">{item.time}</span>
                   </div>
                 </div>
               </div>

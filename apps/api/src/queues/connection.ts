@@ -1,4 +1,4 @@
-import { Queue, Worker, type ConnectionOptions } from 'bullmq';
+import { Queue, Worker, type ConnectionOptions, type Processor } from 'bullmq';
 import type IORedis from 'ioredis';
 
 export function createQueue(name: string, redis: IORedis) {
@@ -15,7 +15,7 @@ export function createQueue(name: string, redis: IORedis) {
 
 export function createWorker(
   name: string,
-  processor: Parameters<typeof Worker>[1],
+  processor: Processor,
   redis: IORedis,
   concurrency = 5
 ) {

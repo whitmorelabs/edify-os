@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
 
+export const dynamic = 'force-static';
+
 const mockHistory: HeartbeatResult[] = [
   {
     id: "hb-001",
@@ -43,12 +45,12 @@ const mockHistory: HeartbeatResult[] = [
   },
   {
     id: "hb-005",
-    archetype: "finance_director",
+    archetype: "programs_director",
     timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     status: "completed",
-    title: "Monthly Cash Flow Summary: April Looking Strong",
-    body: "April revenue is tracking 12% ahead of budget with two grants closing early. Operating expenses are on target. The reserve fund is at 2.8 months of operating costs, up from 2.3 last month. One outstanding invoice from a March event ($4,200) remains unpaid at 35 days.",
-    suggestedAction: "Follow up on the outstanding $4,200 invoice",
+    title: "Q2 Program Outcomes: Youth Mentorship Exceeding Targets",
+    body: "The youth mentorship program hit 94% participant retention this quarter, up from 81% in Q1. Session attendance averaging 12.3 per cohort (target was 10). Three participants completed job shadow placements ahead of schedule. The summer cohort waitlist is at 28 applicants for 15 spots.",
+    suggestedAction: "Review summer cohort application criteria to manage waitlist",
   },
   {
     id: "hb-006",

@@ -7,6 +7,7 @@ import { Step2Programs, newProgram, type ProgramsData } from './components/Step2
 import { Step3Goals, type GoalsData } from './components/Step3Goals';
 import { Step4Documents, type DocumentsData } from './components/Step4Documents';
 import { BriefingComplete } from './components/BriefingComplete';
+import { setOrgContext } from '@/lib/org-context';
 
 const STORAGE_KEY = 'edify_briefing_draft';
 const COMPLETE_KEY = 'edify_briefing_completed';
@@ -86,15 +87,32 @@ export default function BriefingPage() {
   const handleFinish = async () => {
     setIsSaving(true);
     try {
-      await fetch('/api/briefing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgProfile, programs, goals }),
+      // Save org context to localStorage for injection into archetype system prompts
+      setOrgContext({
+        orgName: orgProfile.orgName,
+        missionStatement: orgProfile.missionStatement,
+        website: orgProfile.website,
+        annualBudget: orgProfile.annualBudget,
+        fullTimeStaff: orgProfile.fullTimeStaff,
+        regularVolunteers: orgProfile.regularVolunteers,
+        orgType: orgProfile.orgType,
+        primaryServiceArea: orgProfile.primaryServiceArea,
+        foundedYear: orgProfile.foundedYear,
+        programs: programs.programs
+          .filter((p) => p.name.trim())
+          .map((p) => ({
+            name: p.name,
+            description: p.description ?? '',
+            targetPopulation: p.peopleServed ?? '',
+          })),
+        goals: goals.selectedGoals,
+        additionalContext: goals.additionalContext,
       });
+
       localStorage.setItem(COMPLETE_KEY, 'true');
       setIsComplete(true);
     } catch {
-      // Still mark complete locally even if API fails
+      // Still mark complete locally even if save fails
       localStorage.setItem(COMPLETE_KEY, 'true');
       setIsComplete(true);
     } finally {

@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@edify/shared"],
+  output: "export",
   images: { unoptimized: true },
+  transpilePackages: ["@edify/shared"],
 };
 
 export default nextConfig;

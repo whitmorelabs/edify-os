@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 
+export function generateStaticParams() {
+  const validSlugs: ArchetypeSlug[] = [
+    "development_director",
+    "marketing_director",
+    "executive_assistant",
+    "programs_director",
+    "hr_volunteer_coordinator",
+    "events_director",
+  ];
+  return validSlugs.map((slug) => ({ slug }));
+}
+
 // Mock responses per archetype -- each has a distinct voice and domain
 const MOCK_RESPONSES: Record<string, string[]> = {
   development_director: [
@@ -30,13 +42,6 @@ const MOCK_RESPONSES: Record<string, string[]> = {
     "The waitlist for the summer youth program is at 47 families — that's 2x last year. If you can secure one additional part-time facilitator, you could expand by 15 slots. Want me to pull the budget impact numbers?",
     "The **community partner survey** results are in. Partners rate coordination at 4.1/5, but communication timeliness dropped to 3.2. That's the thing to address before the next partner meeting — I can draft a communication protocol proposal.",
     "Your program model documentation is 18 months out of date. Funders increasingly request replication-ready materials. A two-day documentation sprint would get you current — I can structure the outline and facilitation guide.",
-  ],
-  finance_director: [
-    "Your cash runway is 4.7 months at current burn rate. The pending grant from **United Way** ($85K) would extend that to 6.2 months if it hits by June 1st as projected. I'd recommend holding off on any new hires until that clears.",
-    "March budget variance report: you're 12% over in program expenses and 8% under in administrative costs. The program overage is driven by the new site — it's expected, but worth flagging for the board finance committee.",
-    "Your **Form 990** is due in 4 months. The two items that typically need the most prep time are the schedule of functional expenses and the compensation disclosure. I'll start the data pull now so you're not scrambling in August.",
-    "The events budget is currently tracking $4,200 over projection for the gala. Most of that is catering — the per-person cost came in higher than estimated. You have two options: adjust the guest count or find a different catering tier. I can model both scenarios.",
-    "Your restricted fund balances: the Ford grant has $12,400 remaining with a June 30 spend-down deadline. At current program spending, you'll leave $3,100 unspent. That needs to be either spent or returned — let's talk about eligible expenses.",
   ],
   hr_volunteer_coordinator: [
     "You have **3 open volunteer coordinator applications** this week — all look strong on paper. I've drafted interview questions tailored to each applicant's background. The best available interview slot that works across your team is Thursday at 2 PM.",
@@ -85,7 +90,6 @@ export async function POST(
     "marketing_director",
     "executive_assistant",
     "programs_director",
-    "finance_director",
     "hr_volunteer_coordinator",
     "events_director",
   ];

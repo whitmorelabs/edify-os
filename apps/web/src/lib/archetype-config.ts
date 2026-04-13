@@ -3,7 +3,7 @@ import {
   Megaphone,
   CalendarCheck,
   BookOpen,
-  DollarSign,
+
   UserCheck,
   CalendarDays,
   type LucideIcon,
@@ -67,17 +67,6 @@ export const ARCHETYPE_CONFIG: Record<ArchetypeSlug, ArchetypeMetadata> = {
     text: "text-violet-700",
     border: "border-violet-500",
     light: "bg-violet-50",
-  },
-  finance_director: {
-    slug: "finance_director",
-    label: "Finance Director",
-    description: "Cash flow, budgets, and financial health",
-    scanDescription: "Budget variances, cash runway, and financial reporting deadlines",
-    icon: DollarSign,
-    bg: "bg-teal-500",
-    text: "text-teal-700",
-    border: "border-teal-500",
-    light: "bg-teal-50",
   },
   hr_volunteer_coordinator: {
     slug: "hr_volunteer_coordinator",

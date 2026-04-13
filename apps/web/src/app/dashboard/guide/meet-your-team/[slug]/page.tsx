@@ -79,6 +79,10 @@ const TEAM_SLUG_ORDER = ARTICLE_ORDER
   .filter((s) => s.startsWith('meet-your-team/'))
   .map((s) => s.replace('meet-your-team/', ''));
 
+export function generateStaticParams() {
+  return TEAM_SLUG_ORDER.map((slug) => ({ slug }));
+}
+
 interface PageProps {
   params: { slug: string };
 }

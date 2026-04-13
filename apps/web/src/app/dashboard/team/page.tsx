@@ -13,7 +13,7 @@ const LAST_ACTIVE: Record<string, string> = {
   marketing_director: "15 min ago",
   executive_assistant: "Just now",
   programs_director: "1 hr ago",
-  finance_director: "3 hrs ago",
+
   hr_volunteer_coordinator: "Yesterday",
   events_director: "30 min ago",
 };
@@ -37,7 +37,7 @@ export default function TeamPage() {
     <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="heading-1">Your AI Team</h1>
-        <p className="mt-1 text-slate-500">
+        <p className="mt-1 text-gray-500">
           Meet the leaders powering your organization. Click any card to start a conversation.
         </p>
       </div>
@@ -75,10 +75,10 @@ export default function TeamPage() {
 
                 {/* Name and role */}
                 <div className="mt-4">
-                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                  <h3 className="text-sm font-bold text-gray-900 leading-tight">
                     {config.label}
                   </h3>
-                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                  <p className="mt-1 text-xs text-gray-500 leading-relaxed">
                     {config.description}
                   </p>
                 </div>
@@ -86,11 +86,11 @@ export default function TeamPage() {
                 {/* Last message or invite */}
                 <div className="mt-4 min-h-[2.5rem]">
                   {lastMsg ? (
-                    <p className="text-xs text-slate-400 italic truncate">
+                    <p className="text-xs text-gray-400 italic truncate">
                       &ldquo;{lastMsg}&rdquo;
                     </p>
                   ) : (
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-gray-400">
                       Start a conversation
                     </p>
                   )}
@@ -98,7 +98,7 @@ export default function TeamPage() {
 
                 {/* Footer */}
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{lastActive}</span>
+                  <span className="text-xs text-gray-400">{lastActive}</span>
                   <span
                     className={`inline-flex items-center gap-1.5 text-xs font-medium ${config.text} group-hover:underline`}
                   >

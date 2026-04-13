@@ -2,19 +2,29 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
+
+const archetypes = [
+  { label: "Development Director", href: "/agents/development-director" },
+  { label: "Marketing Director", href: "/agents/marketing-director" },
+  { label: "Executive Assistant", href: "/agents/executive-assistant" },
+  { label: "Programs Director", href: "/agents/programs-director" },
+  { label: "HR & Volunteer Coordinator", href: "/agents/hr-volunteer-coordinator" },
+  { label: "Events Director", href: "/agents/events-director" },
+];
 
 const links = [
-  { label: "About us", href: "/#about" },
-  { label: "Features", href: "/#features" },
-  { label: "Blogs", href: "/#blogs" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Integrations", href: "/#integrations" },
-  { label: "Contact us", href: "/#contact" },
+  { label: "About", href: "/about" },
+  { label: "Features", href: "/features" },
+  { label: "Demo", href: "/demo" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Blog", href: "/blog" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export default function SpialNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
 
   return (
     <>
@@ -26,7 +36,7 @@ export default function SpialNavbar() {
               href="/"
               className="text-2xl font-bold text-white flex items-center gap-2.5 no-underline"
             >
-              Edify-OS
+              Edify OS
             </Link>
 
             {/* Desktop inline nav links (xl and above) */}
@@ -35,11 +45,38 @@ export default function SpialNavbar() {
                 <Link
                   key={l.label}
                   href={l.href}
-                  className="text-white text-sm font-normal no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                  className="text-white text-sm font-normal no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
                   {l.label}
                 </Link>
               ))}
+
+              {/* Your AI Team dropdown */}
+              <div className="relative" onMouseLeave={() => setTeamOpen(false)}>
+                <button
+                  className="text-white text-sm font-normal flex items-center gap-1 cursor-pointer transition-colors duration-300 hover:text-[#8B5CF6] bg-transparent border-0 font-[inherit]"
+                  onMouseEnter={() => setTeamOpen(true)}
+                  onClick={() => setTeamOpen(!teamOpen)}
+                >
+                  Your AI Team
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+                {teamOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-[#1a2b32] border border-white/10 rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.3)] py-2 z-[1001]">
+                    {archetypes.map((a) => (
+                      <Link
+                        key={a.label}
+                        href={a.href}
+                        className="block px-4 py-2.5 text-sm text-white/80 no-underline transition-colors duration-200 hover:text-[#8B5CF6] hover:bg-white/5"
+                        onClick={() => setTeamOpen(false)}
+                      >
+                        {a.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <Link href="/signup" className="spial-btn no-underline">
                 Get Started
               </Link>
@@ -86,12 +123,25 @@ export default function SpialNavbar() {
             <Link
               key={l.label}
               href={l.href}
-              className="text-white text-lg font-medium uppercase tracking-wide no-underline py-3 transition-colors duration-300 hover:text-[#d2b4fe]"
+              className="text-white text-lg font-medium uppercase tracking-wide no-underline py-3 transition-colors duration-300 hover:text-[#8B5CF6]"
               onClick={() => setMobileOpen(false)}
             >
               {l.label}
             </Link>
           ))}
+          <div className="w-full border-t border-white/10 mt-2 pt-4">
+            <p className="text-white/40 text-xs uppercase tracking-wider text-center mb-3">Your AI Team</p>
+            {archetypes.map((a) => (
+              <Link
+                key={a.label}
+                href={a.href}
+                className="block text-white/70 text-base font-normal text-center no-underline py-2 transition-colors duration-300 hover:text-[#8B5CF6]"
+                onClick={() => setMobileOpen(false)}
+              >
+                {a.label}
+              </Link>
+            ))}
+          </div>
         </nav>
 
         {/* Get Started button */}

@@ -1,4 +1,9 @@
 // Types for the team chat system
+import { getApiKey } from "@/lib/api-key";
+import { getOrgContext } from "@/lib/org-context";
+import { getSystemPrompt } from "@/lib/archetype-prompts";
+import { callClaude, type ClaudeMessage } from "@/lib/claude-client";
+import { getMessages as getStoredMessages } from "@/lib/conversations";
 
 export interface Message {
   id: string;
@@ -31,38 +36,53 @@ export interface AssistantMessage {
 
 /**
  * Send a message to a team member and get their response.
+ * Calls Claude API directly from the browser using the user's BYOK key.
  */
 export async function sendMessage(
   slug: string,
   message: string,
   conversationId?: string
 ): Promise<AssistantMessage> {
-  const res = await fetch(`/api/team/${slug}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, conversationId }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to send message: ${res.statusText}`);
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("No API key set. Please add your Claude API key in AI Configuration.");
   }
 
-  return res.json();
+  const orgContext = getOrgContext();
+  const systemPrompt = getSystemPrompt(slug, orgContext);
+
+  // Build conversation history for context
+  const historyMessages: ClaudeMessage[] = [];
+  if (conversationId) {
+    const stored = getStoredMessages(conversationId);
+    for (const msg of stored) {
+      historyMessages.push({ role: msg.role, content: msg.content });
+    }
+  }
+
+  // Add the new user message
+  historyMessages.push({ role: "user", content: message });
+
+  const response = await callClaude(apiKey, systemPrompt, historyMessages, {
+    maxTokens: 4096,
+    temperature: 0.3,
+  });
+
+  return {
+    id: response.id,
+    role: "assistant",
+    content: response.content,
+    timestamp: response.timestamp,
+    conversationId: conversationId ?? crypto.randomUUID(),
+  };
 }
 
 /**
  * Fetch conversation list for a team member.
+ * Returns locally-stored conversations (no server needed).
  */
 export async function getConversations(slug: string): Promise<Conversation[]> {
-  const res = await fetch(`/api/team/${slug}/conversations`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch conversations: ${res.statusText}`);
-  }
-
-  return res.json();
+  return getLocalConversations(slug);
 }
 
 /**
@@ -140,19 +160,17 @@ export function getLocalConversations(slug: string): Conversation[] {
 }
 
 /**
- * Create a new conversation (calls API + persists locally).
+ * Create a new conversation locally (no server needed).
  */
 export async function createConversation(slug: string): Promise<Conversation> {
-  const res = await fetch(`/api/team/${slug}/conversations`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to create conversation: ${res.statusText}`);
-  }
-
-  const conv: Conversation = await res.json();
+  const conv: Conversation = {
+    id: crypto.randomUUID(),
+    slug,
+    title: "New conversation",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    messageCount: 0,
+  };
   saveConversationMeta(slug, conv);
   return conv;
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Notification } from '@/components/notifications/types';
 
+export const dynamic = 'force-static';
+
 // Mock notifications — realistic sample data
 const MOCK_NOTIFICATIONS: Notification[] = [
   {
@@ -50,16 +52,6 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     body: 'Your Executive Assistant can now see your availability and schedule meetings on your behalf.',
     link: '/dashboard/integrations',
     timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // yesterday
-    read: true,
-  },
-  {
-    id: 'notif-006',
-    type: 'message',
-    title: 'Your Finance Director flagged something',
-    body: 'March expenses are running 8% over budget on program delivery. Sending a full breakdown to your inbox.',
-    archetype: 'finance_director',
-    link: '/dashboard/inbox',
-    timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), // yesterday
     read: true,
   },
 ];

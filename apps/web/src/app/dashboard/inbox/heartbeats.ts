@@ -5,7 +5,6 @@ export type ArchetypeSlug =
   | "marketing_director"
   | "executive_assistant"
   | "programs_director"
-  | "finance_director"
   | "hr_volunteer_coordinator"
   | "events_director";
 
@@ -76,13 +75,6 @@ const MOCK_CONFIG: OrgHeartbeatSettings = {
       archetype: "programs_director",
       enabled: false,
       frequencyHours: 8,
-      activeHoursStart: 9,
-      activeHoursEnd: 17,
-    },
-    finance_director: {
-      archetype: "finance_director",
-      enabled: true,
-      frequencyHours: 24,
       activeHoursStart: 9,
       activeHoursEnd: 17,
     },

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = 'force-static';
+
 const defaultConfigs = [
   {
     slug: "development_director",
@@ -26,13 +28,6 @@ const defaultConfigs = [
     slug: "programs_director",
     label: "Programs Director",
     enabled: true,
-    autonomyLevel: "suggestion",
-    personaOverrides: "",
-  },
-  {
-    slug: "finance_director",
-    label: "Finance Director",
-    enabled: false,
     autonomyLevel: "suggestion",
     personaOverrides: "",
   },

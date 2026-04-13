@@ -1,4 +1,4 @@
-import type { KnownBlock } from "@slack/bolt";
+import type { KnownBlock } from "@slack/types";
 
 export interface DigestItem {
   title: string;

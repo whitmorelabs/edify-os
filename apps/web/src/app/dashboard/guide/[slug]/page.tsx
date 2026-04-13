@@ -1,9 +1,16 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { readGuideFile, getAdjacentArticles } from '@/lib/guide-content';
+import { readGuideFile, getAdjacentArticles, ARTICLE_ORDER } from '@/lib/guide-content';
 import { renderMarkdown, extractHeadings } from '@/lib/markdown';
 import { ArticleFeedback } from '../ArticleFeedback';
+
+export function generateStaticParams() {
+  // Only top-level slugs (not meet-your-team/* sub-paths)
+  return ARTICLE_ORDER
+    .filter((s) => !s.includes('/'))
+    .map((slug) => ({ slug }));
+}
 
 interface PageProps {
   params: { slug: string };

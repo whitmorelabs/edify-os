@@ -1,4 +1,5 @@
-import type { App, MessageEvent } from "@slack/bolt";
+import type { App } from "@slack/bolt";
+import type { MessageEvent } from "@slack/types";
 import type { Config } from "../config";
 import { EdifyApiClient } from "../services/api-client";
 import { buildAgentResponseBlocks } from "../views/blocks/agent-response";

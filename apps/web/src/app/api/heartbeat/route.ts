@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { OrgHeartbeatSettings } from "@/app/dashboard/inbox/heartbeats";
 
+export const dynamic = 'force-static';
+
 // Default config — single source of truth for the mock API layer.
 // Archetypes mirror the canonical backend slugs.
 const defaultConfig: OrgHeartbeatSettings = {
@@ -34,13 +36,6 @@ const defaultConfig: OrgHeartbeatSettings = {
       archetype: "programs_director",
       enabled: false,
       frequencyHours: 8,
-      activeHoursStart: 9,
-      activeHoursEnd: 17,
-    },
-    finance_director: {
-      archetype: "finance_director",
-      enabled: true,
-      frequencyHours: 24,
       activeHoursStart: 9,
       activeHoursEnd: 17,
     },

@@ -1,15 +1,27 @@
+import Link from "next/link";
+
 export default function SpialFooter() {
   return (
     <footer className="bg-[#1a2b32] text-white py-[60px] pb-5 text-sm">
       <div className="spial-container">
-        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-10 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-10 mb-10">
           {/* Brand */}
           <div>
-            <h4 className="text-sm font-semibold mb-5 uppercase">Spial</h4>
+            <h4 className="text-sm font-semibold mb-5 uppercase">Edify OS</h4>
             <p className="leading-[1.6] text-white/70">
-              Innovative SaaS solutions empowering businesses to thrive in the
-              digital age. From custom platforms to seamless integrations, we
-              transform your vision into reality.
+              AI-powered team members built for nonprofits. Six directors working around the clock so you can focus on what only you can do: leading.
+            </p>
+            <p className="mt-4 text-white/50 text-xs">
+              Built by{" "}
+              <a
+                href="https://edifyanother.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#8B5CF6] no-underline hover:underline"
+              >
+                Edify
+              </a>{" "}
+              -- a creative impact studio in Beaufort, SC.
             </p>
           </div>
 
@@ -18,36 +30,36 @@ export default function SpialFooter() {
             <h4 className="text-sm font-semibold mb-5 uppercase">Product</h4>
             <ul className="list-none">
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/features"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
                   Features
-                </a>
+                </Link>
               </li>
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/pricing"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
                   Pricing
-                </a>
+                </Link>
               </li>
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/demo"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
-                  Security
-                </a>
+                  Demo
+                </Link>
               </li>
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/integrations-page"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
                   Integrations
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -57,74 +69,37 @@ export default function SpialFooter() {
             <h4 className="text-sm font-semibold mb-5 uppercase">Company</h4>
             <ul className="list-none">
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/about"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
                   About Us
-                </a>
+                </Link>
               </li>
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/blog"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
                   Blog
-                </a>
+                </Link>
               </li>
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Careers
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/contact"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
                   Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Utilities */}
-          <div>
-            <h4 className="text-sm font-semibold mb-5 uppercase">Utilities</h4>
-            <ul className="list-none">
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Resources
-                </a>
+                </Link>
               </li>
               <li className="mb-3">
                 <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                  href="https://edifyanother.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
-                  Documentation
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  API Docs
-                </a>
-              </li>
-              <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-                >
-                  Support
+                  Edify Studio
                 </a>
               </li>
             </ul>
@@ -138,27 +113,30 @@ export default function SpialFooter() {
             <ul className="list-none">
               <li className="mb-3">
                 <a
-                  href="mailto:hello@spial.com"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                  href="mailto:connect@edifyanother.com"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
-                  hello@spial.com
+                  connect@edifyanother.com
                 </a>
               </li>
               <li className="mb-3">
                 <a
-                  href="tel:+1234567890"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                  href="tel:+18439294185"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
-                  +1 (234) 567-890
+                  (843) 929-4185
                 </a>
               </li>
+              <li className="mb-3 text-white/70">
+                500 Carteret St, Beaufort, SC 29902
+              </li>
               <li className="mb-3">
-                <a
-                  href="#"
-                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+                <Link
+                  href="/demo"
+                  className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
                 >
-                  Schedule Demo
-                </a>
+                  See the Demo
+                </Link>
               </li>
             </ul>
           </div>
@@ -166,45 +144,54 @@ export default function SpialFooter() {
 
         {/* Footer bottom */}
         <div className="border-t border-white/10 pt-[30px] flex flex-col md:flex-row justify-between items-center flex-wrap gap-5">
-          <div className="text-center md:text-left">
-            &copy; 2025 Spial. Designed by Nixar. Powered by Webflow.
+          <div className="text-center md:text-left text-white/50">
+            &copy; 2026 Edify OS. Built by{" "}
+            <a
+              href="https://edifyanother.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#8B5CF6] no-underline hover:underline"
+            >
+              Edify
+            </a>
+            .
           </div>
           <div className="flex gap-5">
             <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              Twitter
-            </a>
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
-            >
-              LinkedIn
-            </a>
-            <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+              href="https://facebook.com/edifyanother"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
             >
               Facebook
             </a>
             <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+              href="https://instagram.com/edifyanother"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
             >
               Instagram
+            </a>
+            <a
+              href="https://youtube.com/@edifyanother"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
+            >
+              YouTube
             </a>
           </div>
           <div className="flex gap-5">
             <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+              href="/legal/privacy"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
             >
               Privacy Policy
             </a>
             <a
-              href="#"
-              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#d2b4fe]"
+              href="/legal/terms"
+              className="text-white/70 no-underline transition-colors duration-300 hover:text-[#8B5CF6]"
             >
               Terms &amp; Conditions
             </a>

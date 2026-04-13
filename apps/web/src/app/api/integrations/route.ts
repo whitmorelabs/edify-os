@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-static';
+
 // In production these would come from Supabase using the authenticated user's org_id.
 // For now we return mock data so the frontend flow works end-to-end.
 
