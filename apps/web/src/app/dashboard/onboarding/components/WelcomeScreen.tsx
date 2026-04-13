@@ -5,7 +5,6 @@ import {
   Megaphone,
   CalendarCheck,
   ClipboardList,
-  DollarSign,
   UserCog,
   PartyPopper,
   ArrowRight,
@@ -17,7 +16,6 @@ const teamPreviews = [
   { icon: Megaphone, color: 'bg-amber-500', label: 'Marketing Director' },
   { icon: CalendarCheck, color: 'bg-sky-500', label: 'Executive Assistant' },
   { icon: ClipboardList, color: 'bg-violet-500', label: 'Programs Director' },
-  { icon: DollarSign, color: 'bg-teal-500', label: 'Finance Director' },
   { icon: UserCog, color: 'bg-rose-500', label: 'HR & Volunteer Coord.' },
   { icon: PartyPopper, color: 'bg-orange-500', label: 'Events Director' },
 ];
@@ -37,7 +35,7 @@ export function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
         </div>
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl leading-tight">
           You just hired a team of<br />
-          <span className="text-brand-600">7 AI specialists.</span>
+          <span className="text-brand-600">6 AI specialists.</span>
         </h1>
         <p className="text-slate-500 max-w-md mx-auto leading-relaxed">
           Not software. Not a chatbot. A real team -- each one trained for a specific part of running
@@ -46,7 +44,7 @@ export function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
       </div>
 
       {/* Team display */}
-      <div className="grid grid-cols-4 gap-3 max-w-sm mx-auto sm:grid-cols-7 sm:max-w-none">
+      <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto sm:grid-cols-6 sm:max-w-none">
         {teamPreviews.map((member) => {
           const Icon = member.icon;
           return (

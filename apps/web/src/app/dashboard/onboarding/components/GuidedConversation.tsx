@@ -33,13 +33,6 @@ const EXAMPLE_PROMPTS: Record<string, string[]> = {
     'Design a simple participant survey for our [program name].',
     'We\'re expanding this program. What data would support that decision?',
   ],
-  'finance-director': [
-    'Build a budget template for a 12-month [program type] program with a staff of [number].',
-    'Help me forecast cash flow for the next 90 days. Current balance and expenses: [paste].',
-    'Write the financial narrative for our Q2 grant report. Budget: [X]. Spent: [Y].',
-    'What documents do I need for our annual audit?',
-    'Explain our finances to the board in plain language. Numbers: [paste].',
-  ],
   'hr-volunteer-coordinator': [
     'Write a job description for a part-time [role]. Salary: [amount].',
     'Design a one-week onboarding plan for a new [role].',

@@ -5,7 +5,6 @@ import {
   Megaphone,
   CalendarCheck,
   ClipboardList,
-  DollarSign,
   UserCog,
   PartyPopper,
   type LucideIcon,
@@ -64,16 +63,6 @@ export const ARCHETYPES: Archetype[] = [
     bgLight: 'bg-violet-50',
   },
   {
-    slug: 'finance-director',
-    icon: DollarSign,
-    label: 'Finance Director',
-    tagline: 'Budgets & Financial Planning',
-    description: 'Budgets, cash flow forecasts, grant financials, and audit prep.',
-    color: 'bg-teal-500',
-    textColor: 'text-teal-700',
-    bgLight: 'bg-teal-50',
-  },
-  {
     slug: 'hr-volunteer-coordinator',
     icon: UserCog,
     label: 'HR & Volunteer Coordinator',
@@ -106,7 +95,7 @@ export function ArchetypePicker({ onSelect, completedSlugs }: ArchetypePickerPro
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Who do you want to work with first?</h2>
         <p className="mt-1 text-slate-500">
-          Pick one team member to start. You can work with all seven -- but let&apos;s begin somewhere.
+          Pick one team member to start. You can work with all six -- but let&apos;s begin somewhere.
         </p>
       </div>
 

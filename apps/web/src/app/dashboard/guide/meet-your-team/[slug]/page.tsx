@@ -9,7 +9,6 @@ import {
   Megaphone,
   CalendarCheck,
   ClipboardList,
-  DollarSign,
   UserCog,
   PartyPopper,
   type LucideIcon,
@@ -51,13 +50,6 @@ const ARCHETYPE_STYLES: Record<string, ArchetypeStyle> = {
     accentText: 'text-violet-700',
     accentBorder: 'border-violet-300',
     label: 'Programs Director',
-  },
-  'finance-director': {
-    icon: DollarSign,
-    accentBg: 'bg-teal-50',
-    accentText: 'text-teal-700',
-    accentBorder: 'border-teal-300',
-    label: 'Finance Director',
   },
   'hr-volunteer-coordinator': {
     icon: UserCog,

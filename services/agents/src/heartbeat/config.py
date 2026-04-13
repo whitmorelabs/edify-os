@@ -17,7 +17,6 @@ ALL_ARCHETYPES: list[str] = [
     "marketing_director",
     "executive_assistant",
     "programs_director",
-    "finance_director",
     "hr_volunteer_coordinator",
     "events_director",
 ]
@@ -44,7 +43,7 @@ class HeartbeatConfigManager:
         self._pool = db_pool
 
     async def get_org_config(self, org_id: str) -> OrgHeartbeatSettings:
-        """Return heartbeat settings for all 7 archetypes.
+        """Return heartbeat settings for all 6 archetypes.
 
         Creates defaults for any archetype that has no stored config.
         """
@@ -135,7 +134,7 @@ class HeartbeatConfigManager:
     # ------------------------------------------------------------------
 
     async def _load_from_db(self, org_id: str) -> list[HeartbeatConfig]:
-        """Load configs for all 7 archetypes, inserting defaults as needed."""
+        """Load configs for all 6 archetypes, inserting defaults as needed."""
         configs: list[HeartbeatConfig] = []
         for archetype in ALL_ARCHETYPES:
             cfg = await self._fetch_one_from_db(org_id, archetype)
@@ -233,7 +232,7 @@ class HeartbeatConfigManager:
     # ------------------------------------------------------------------
 
     def _load_from_memory(self, org_id: str) -> list[HeartbeatConfig]:
-        """Return all 7 archetype configs from memory, creating defaults as needed."""
+        """Return all 6 archetype configs from memory, creating defaults as needed."""
         if org_id not in _IN_MEMORY_CONFIGS:
             _IN_MEMORY_CONFIGS[org_id] = {}
 

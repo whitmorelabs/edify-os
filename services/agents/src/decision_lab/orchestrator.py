@@ -28,7 +28,6 @@ ALL_ARCHETYPES: list[str] = [
     "marketing_director",
     "executive_assistant",
     "programs_director",
-    "finance_director",
     "hr_volunteer_coordinator",
     "events_director",
 ]
@@ -39,7 +38,6 @@ _DISPLAY_NAMES: dict[str, str] = {
     "marketing_director": "Marketing Director",
     "executive_assistant": "Executive Assistant",
     "programs_director": "Programs Director",
-    "finance_director": "Finance Director",
     "hr_volunteer_coordinator": "HR & Volunteer Coordinator",
     "events_director": "Events Director",
 }

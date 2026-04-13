@@ -40,10 +40,6 @@ ARCHETYPE_SCAN_FOCUS: dict[str, str] = {
         "Focus on: funder reporting deadlines within 14 days, outcome data gaps, "
         "program milestones approaching, compliance items due soon."
     ),
-    "finance_director": (
-        "Focus on: current cash runway, budget variances above 10%, "
-        "upcoming financial reporting deadlines, restricted fund spending approaching limits."
-    ),
     "hr_volunteer_coordinator": (
         "Focus on: understaffed volunteer roles, new applications, "
         "upcoming policy review dates, training or certification expirations."

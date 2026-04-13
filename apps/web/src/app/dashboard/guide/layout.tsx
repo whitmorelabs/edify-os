@@ -26,7 +26,6 @@ const mainLinks = [
       { href: '/dashboard/guide/meet-your-team/marketing-director', label: 'Marketing Director' },
       { href: '/dashboard/guide/meet-your-team/executive-assistant', label: 'Executive Assistant' },
       { href: '/dashboard/guide/meet-your-team/programs-director', label: 'Programs Director' },
-      { href: '/dashboard/guide/meet-your-team/finance-director', label: 'Finance Director' },
       { href: '/dashboard/guide/meet-your-team/hr-volunteer-coordinator', label: 'HR & Volunteer Coordinator' },
       { href: '/dashboard/guide/meet-your-team/events-director', label: 'Events Director' },
     ],

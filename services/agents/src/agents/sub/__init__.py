@@ -1,10 +1,7 @@
 """Subagent package -- exports all concrete subagent classes."""
 
 from src.agents.sub.analytics import AnalyticsSubagent
-from src.agents.sub.audit_prep import AuditPrepSubagent
-from src.agents.sub.budget_builder import BudgetBuilderSubagent
 from src.agents.sub.calendar_agent import CalendarAgentSubagent
-from src.agents.sub.cash_flow_forecast import CashFlowForecastSubagent
 from src.agents.sub.comms_strategy import CommsStrategySubagent
 from src.agents.sub.compliance_monitor import ComplianceMonitorSubagent
 from src.agents.sub.content_writing import ContentWritingSubagent
@@ -13,7 +10,6 @@ from src.agents.sub.donor_outreach import DonorOutreachSubagent
 from src.agents.sub.email_campaign import EmailCampaignSubagent
 from src.agents.sub.email_triage import EmailTriageSubagent
 from src.agents.sub.event_planner import EventPlannerSubagent
-from src.agents.sub.grant_financial_report import GrantFinancialReportSubagent
 from src.agents.sub.grant_reporting import GrantReportingSubagent
 from src.agents.sub.grant_research import GrantResearchSubagent
 from src.agents.sub.grant_writing import GrantWritingSubagent
@@ -34,10 +30,7 @@ from src.agents.sub.volunteer_management import VolunteerManagementSubagent
 
 __all__ = [
     "AnalyticsSubagent",
-    "AuditPrepSubagent",
-    "BudgetBuilderSubagent",
     "CalendarAgentSubagent",
-    "CashFlowForecastSubagent",
     "CommsStrategySubagent",
     "ComplianceMonitorSubagent",
     "ContentWritingSubagent",
@@ -46,7 +39,6 @@ __all__ = [
     "EmailCampaignSubagent",
     "EmailTriageSubagent",
     "EventPlannerSubagent",
-    "GrantFinancialReportSubagent",
     "GrantReportingSubagent",
     "GrantResearchSubagent",
     "GrantWritingSubagent",

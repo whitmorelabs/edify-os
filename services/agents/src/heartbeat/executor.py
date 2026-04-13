@@ -19,7 +19,6 @@ ARCHETYPE_DISPLAY_NAMES: dict[str, str] = {
     "marketing_director": "Marketing Director",
     "executive_assistant": "Executive Assistant",
     "programs_director": "Programs Director",
-    "finance_director": "Finance Director",
     "hr_volunteer_coordinator": "HR & Volunteer Coordinator",
     "events_director": "Events Director",
 }

@@ -47,7 +47,6 @@ export function getAllGuideArticles(): GuideArticle[] {
     'marketing-director',
     'executive-assistant',
     'programs-director',
-    'finance-director',
     'hr-volunteer-coordinator',
     'events-director',
   ];
@@ -68,7 +67,6 @@ export const ARTICLE_ORDER = [
   'meet-your-team/marketing-director',
   'meet-your-team/executive-assistant',
   'meet-your-team/programs-director',
-  'meet-your-team/finance-director',
   'meet-your-team/hr-volunteer-coordinator',
   'meet-your-team/events-director',
   'working-with-your-team',

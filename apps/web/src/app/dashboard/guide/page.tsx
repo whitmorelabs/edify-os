@@ -30,7 +30,6 @@ const categories = [
       { label: 'Marketing Director', href: '/dashboard/guide/meet-your-team/marketing-director' },
       { label: 'Executive Assistant', href: '/dashboard/guide/meet-your-team/executive-assistant' },
       { label: 'Programs Director', href: '/dashboard/guide/meet-your-team/programs-director' },
-      { label: 'Finance Director', href: '/dashboard/guide/meet-your-team/finance-director' },
       { label: 'HR & Volunteer Coordinator', href: '/dashboard/guide/meet-your-team/hr-volunteer-coordinator' },
       { label: 'Events Director', href: '/dashboard/guide/meet-your-team/events-director' },
     ],

@@ -17,7 +17,6 @@ const GUIDE_ARTICLES: { slug: string; title: string; keywords: string[] }[] = [
   { slug: 'meet-your-team/marketing-director', title: 'Marketing Director', keywords: ['marketing', 'campaigns', 'brand', 'content', 'social media'] },
   { slug: 'meet-your-team/executive-assistant', title: 'Executive Assistant', keywords: ['executive', 'assistant', 'schedule', 'calendar', 'email', 'triage'] },
   { slug: 'meet-your-team/programs-director', title: 'Programs Director', keywords: ['programs', 'compliance', 'outcomes', 'director', 'delivery'] },
-  { slug: 'meet-your-team/finance-director', title: 'Finance Director', keywords: ['finance', 'budget', 'cash flow', 'accounting', 'director'] },
   { slug: 'meet-your-team/hr-volunteer-coordinator', title: 'HR & Volunteer Coordinator', keywords: ['hr', 'human resources', 'volunteer', 'coordinator', 'hiring', 'staff'] },
   { slug: 'meet-your-team/events-director', title: 'Events Director', keywords: ['events', 'gala', 'sponsorship', 'logistics', 'director'] },
 ];

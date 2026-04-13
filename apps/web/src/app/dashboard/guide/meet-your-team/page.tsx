@@ -4,7 +4,6 @@ import {
   Megaphone,
   CalendarCheck,
   ClipboardList,
-  DollarSign,
   UserCog,
   PartyPopper,
   ArrowRight,
@@ -60,18 +59,6 @@ const teamMembers = [
     iconBg: 'bg-violet-500',
   },
   {
-    slug: 'finance-director',
-    icon: DollarSign,
-    label: 'Finance Director',
-    tagline: 'Budgets, cash flow, audit prep, financial reports',
-    description:
-      'Your numbers person. They handle financial planning, grant budgets, and prepare you for audits.',
-    accentBg: 'bg-teal-50',
-    accentText: 'text-teal-700',
-    accentBorder: 'border-teal-200',
-    iconBg: 'bg-teal-500',
-  },
-  {
     slug: 'hr-volunteer-coordinator',
     icon: UserCog,
     label: 'HR & Volunteer Coordinator',
@@ -103,7 +90,7 @@ export default function MeetYourTeamPage() {
       <div>
         <h1 className="heading-1">Meet Your Team</h1>
         <p className="mt-2 text-slate-500 max-w-2xl">
-          You have seven AI specialists on staff from day one. Each one has a specific domain.
+          You have six AI specialists on staff from day one. Each one has a specific domain.
           Click any team member to learn what they do, when to use them, and example prompts to get started.
         </p>
       </div>

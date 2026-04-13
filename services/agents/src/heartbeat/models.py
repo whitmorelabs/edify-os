@@ -9,7 +9,7 @@ class HeartbeatConfig(BaseModel):
     """Per-archetype heartbeat configuration for an org."""
 
     org_id: str = Field(..., description="Organisation that owns this config.")
-    archetype: str = Field(..., description="Archetype slug, e.g. 'finance_director'.")
+    archetype: str = Field(..., description="Archetype slug, e.g. 'development_director'.")
     enabled: bool = Field(True, description="Whether this heartbeat is active.")
     frequency_hours: int = Field(
         4, ge=1, le=168, description="How often to scan, in hours."

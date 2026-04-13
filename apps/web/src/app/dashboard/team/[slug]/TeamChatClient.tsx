@@ -28,46 +28,40 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 const SUGGESTED_PROMPTS: Record<string, string[]> = {
   development_director: [
-    "What grant deadlines are coming up this month?",
-    "Help me draft talking points for a major donor meeting",
-    "Review our fundraising pipeline and flag any gaps",
-    "Write an LOI for a youth services grant",
-    "How can we improve our donor retention rate?",
+    "Find grants we're eligible for in youth development",
+    "Draft an LOI for a $25K community foundation grant",
+    "Write a thank-you letter for a major donor",
+    "What grants are due this month?",
   ],
   marketing_director: [
-    "Draft a press release for our spring campaign",
-    "What should we post on social media this week?",
-    "Analyze our email open rates and suggest improvements",
-    "Create a content calendar for next month",
-    "How do we grow our newsletter subscriber list?",
+    "Create a 3-post social media series for our upcoming gala",
+    "Write this month's newsletter",
+    "Plan our content calendar for next month",
+    "Review this draft for brand voice consistency",
   ],
   executive_assistant: [
-    "What's on my schedule that needs attention this week?",
-    "Help me prep for tomorrow's board meeting",
-    "Triage my inbox and flag urgent messages",
-    "Schedule the team planning session for next month",
-    "Draft a follow-up email to the venue coordinator",
+    "Prep me for my board meeting next Tuesday",
+    "Summarize action items from today's staff meeting",
+    "Draft a professional response to this email",
+    "What needs my attention this week?",
   ],
   programs_director: [
-    "How are our programs tracking against Q2 targets?",
-    "What compliance deadlines do I need to know about?",
-    "Help me write the quarterly outcome report",
-    "What's the waitlist situation for summer programs?",
-    "Draft a program expansion proposal for the board",
+    "Build a logic model for our after-school tutoring program",
+    "Draft the program section of our Q2 grant report",
+    "Design an outcome survey for program participants",
+    "Are we on track with our funder deliverables?",
   ],
   hr_volunteer_coordinator: [
-    "Who needs to renew their certifications soon?",
-    "Help me write job postings for open coordinator roles",
-    "What does the staff pulse survey tell us?",
-    "Draft a volunteer onboarding checklist",
-    "How can we improve volunteer retention?",
+    "Write a job description for a part-time Programs Coordinator",
+    "Create a volunteer onboarding checklist",
+    "Draft our remote work policy",
+    "Design a volunteer recognition program",
   ],
   events_director: [
-    "What's the status of the May gala planning?",
-    "Which sponsors haven't responded to our outreach?",
-    "Help me fill the volunteer roles for the event",
-    "Draft the event program booklet outline",
-    "What post-event follow-ups still need to happen?",
+    "Build a timeline for our annual gala on June 15",
+    "Create a run of show for our community open house",
+    "Design sponsorship tiers for our fall fundraiser",
+    "What are the make-or-break items for this event?",
   ],
 };
 
@@ -341,7 +335,6 @@ export default function TeamChatClient({
     setPendingPrompt(prompt);
   }
 
-  const suggestedPrompts = SUGGESTED_PROMPTS[slug] ?? [];
   const showEmptyState = messages.length === 0 && !isTyping;
 
   return (
@@ -409,7 +402,6 @@ export default function TeamChatClient({
         <ChatInput
           onSend={handleSend}
           isDisabled={isTyping}
-          suggestedPrompts={suggestedPrompts}
           showPrompts={false}
         />
       </div>
