@@ -12,7 +12,7 @@ class BaseIntegration(ABC):
     """Common interface for every external integration.
 
     Subclasses declare a ``provider`` class attribute matching the provider
-    string used in ``oauth_connections``, then implement ``execute``.
+    string used in ``integrations``, then implement ``execute``.
     """
 
     provider: str  # Must be overridden by each subclass.

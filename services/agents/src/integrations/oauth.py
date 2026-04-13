@@ -1,6 +1,6 @@
 """OAuth token management for external integrations.
 
-Fetches and refreshes OAuth tokens stored in the `oauth_connections` table.
+Fetches and refreshes OAuth tokens stored in the `integrations` table.
 Never log or expose token values in error messages.
 """
 
@@ -39,9 +39,9 @@ class OAuthTokenManager:
 
         row = await self._pool.fetchrow(
             """
-            SELECT access_token, refresh_token, expires_at
-            FROM oauth_connections
-            WHERE org_id = $1 AND provider = $2
+            SELECT access_token_encrypted, refresh_token_encrypted, token_expires_at
+            FROM integrations
+            WHERE org_id = $1 AND type = $2
             LIMIT 1
             """,
             self._org_id,
@@ -49,7 +49,7 @@ class OAuthTokenManager:
         )
         if row is None:
             return None
-        return row["access_token"]
+        return row["access_token_encrypted"]
 
     async def refresh_if_expired(self, provider: str) -> str | None:
         """Return a valid access token, refreshing if the stored one has expired.
@@ -62,9 +62,9 @@ class OAuthTokenManager:
 
         row = await self._pool.fetchrow(
             """
-            SELECT access_token, refresh_token, expires_at
-            FROM oauth_connections
-            WHERE org_id = $1 AND provider = $2
+            SELECT access_token_encrypted, refresh_token_encrypted, token_expires_at
+            FROM integrations
+            WHERE org_id = $1 AND type = $2
             LIMIT 1
             """,
             self._org_id,
@@ -73,15 +73,15 @@ class OAuthTokenManager:
         if row is None:
             return None
 
-        expires_at: datetime | None = row["expires_at"]
+        expires_at: datetime | None = row["token_expires_at"]
         now = datetime.now(timezone.utc)
 
         if expires_at is not None and expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
 
         if expires_at is not None and now >= expires_at:
-            # TODO: Call provider token refresh endpoint using row["refresh_token"],
-            #       persist the new access_token + expires_at, then return it.
+            # TODO: Call provider token refresh endpoint using row["refresh_token_encrypted"],
+            #       persist the new access_token_encrypted + token_expires_at, then return it.
             pass  # Fall through and return current token for now.
 
-        return row["access_token"]
+        return row["access_token_encrypted"]

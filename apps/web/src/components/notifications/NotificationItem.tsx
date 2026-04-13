@@ -2,6 +2,7 @@
 
 import { Bell, Info } from 'lucide-react';
 import { ARCHETYPE_CONFIG } from '@/lib/archetype-config';
+import type { ArchetypeSlug } from '@/app/dashboard/inbox/heartbeats';
 import type { Notification } from './types';
 import { cn } from '@/lib/utils';
 
@@ -29,7 +30,7 @@ interface NotificationItemProps {
 export function NotificationItem({ notification, onClick }: NotificationItemProps) {
   const { type, title, body, archetype, timestamp, read } = notification;
 
-  const archetypeConfig = archetype ? ARCHETYPE_CONFIG[archetype] : null;
+  const archetypeConfig = archetype ? ARCHETYPE_CONFIG[archetype as ArchetypeSlug] : null;
 
   return (
     <button

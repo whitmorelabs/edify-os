@@ -1,6 +1,7 @@
 export type NotificationType = "checkin" | "message" | "system";
 
-export type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
+import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
+export type { ArchetypeSlug };
 
 export interface Notification {
   id: string;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, X, Info } from 'lucide-react';
 import { ARCHETYPE_CONFIG } from '@/lib/archetype-config';
+import type { ArchetypeSlug } from '@/app/dashboard/inbox/heartbeats';
 import { useNotifications } from './NotificationProvider';
 import type { Notification } from './types';
 import { cn } from '@/lib/utils';
@@ -103,7 +104,7 @@ export function ToastNotification() {
       {toasts.map((toast) => {
         const { notification } = toast;
         const archetypeConfig = notification.archetype
-          ? ARCHETYPE_CONFIG[notification.archetype]
+          ? ARCHETYPE_CONFIG[notification.archetype as ArchetypeSlug]
           : null;
 
         return (

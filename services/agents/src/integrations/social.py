@@ -17,7 +17,7 @@ import httpx
 from .base_integration import BaseIntegration
 from .oauth import OAuthTokenManager
 
-# Provider key format used in oauth_connections
+# Provider key format used in integrations
 _PROVIDER_PREFIX = "social_"
 
 # TODO: Replace placeholder base URLs with real API roots per platform.

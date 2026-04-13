@@ -10,6 +10,15 @@ const AUTH_PATHS = ["/login", "/signup"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const isConfigured = Boolean(
+    (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      (process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  );
+
+  if (!isConfigured) {
+    return NextResponse.next();
+  }
+
   const { response, session } = await updateSession(request);
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>
