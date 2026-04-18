@@ -556,3 +556,13 @@ CREATE POLICY "Users can insert their own first member row"
       SELECT 1 FROM members WHERE user_id = auth.uid()
     )
   );
+
+-- 00013: Tighten orgs INSERT policy (no multi-org creation via direct DB access)
+DROP POLICY IF EXISTS "Authenticated users can create orgs" ON orgs;
+
+CREATE POLICY "Authenticated users can create orgs"
+  ON orgs FOR INSERT
+  WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM members WHERE user_id = auth.uid())
+  );

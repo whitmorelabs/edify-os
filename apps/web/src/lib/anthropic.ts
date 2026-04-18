@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+/** Shared prefix constant — used in both onboarding form and API route for format checks. */
+export const ANTHROPIC_KEY_PREFIX = "sk-ant-";
+
 /**
  * Fetch the org's Anthropic client for BYOK routes.
  * Returns either { client, orgName, org } or { error: NextResponse } — the caller

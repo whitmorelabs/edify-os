@@ -2,6 +2,31 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
+/**
+ * Builds the Anthropic key columns for an org row.
+ * Pass validated=true when the key has just been confirmed live (org create).
+ * Pass validated=false for lazy validation on first use (settings PATCH).
+ */
+export function buildAnthropicKeyPayload(
+  plaintextKey: string | null | undefined,
+  validated: boolean
+) {
+  if (!plaintextKey) {
+    return {
+      anthropic_api_key_encrypted: null,
+      anthropic_api_key_set_at: null,
+      anthropic_api_key_valid: false,
+      anthropic_api_key_hint: null,
+    };
+  }
+  return {
+    anthropic_api_key_encrypted: plaintextKey,
+    anthropic_api_key_set_at: new Date().toISOString(),
+    anthropic_api_key_valid: validated,
+    anthropic_api_key_hint: plaintextKey.slice(-4),
+  };
+}
+
 const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey =
   process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

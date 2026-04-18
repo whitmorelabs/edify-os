@@ -46,11 +46,16 @@
 - `/onboarding` page uses same dark theme as `(auth)` layout (standalone page with matching CSS).
 - `(auth)/onboarding/page.tsx` left untouched — different route, different purpose (old mock content).
 
+### Additional notes
+- `(auth)/onboarding/page.tsx` was renamed to `(auth)/_onboarding-old/page.tsx` — it resolved to the same `/onboarding` URL as the new root-level page, causing a Next.js build error. The old file was stale mock content (not wired to any API). Renamed instead of deleted per security rules.
+- Onboarding layout (`/onboarding/layout.tsx`) is a server component that redirects existing members to /dashboard on direct navigation. Middleware handles unauthenticated users.
+- `anthropic_api_key_valid: true` is set at org creation time (key was just validated). The PATCH handler in ai-config sets it to `false` on update (validated on first use). Difference is intentional.
+
 ### Build
-(To be filled after build)
+`npm run build` passed cleanly. 75 routes generated (76 minus the deprecated (auth)/onboarding page). `/onboarding` is `ƒ` (server-rendered), `/api/org/create` is `ƒ` (dynamic API route).
 
 ### Commit
-(To be filled after commit)
+`feat: org creation + onboarding flow (Phase 1.5)` — commit `3131f01`, pushed to origin/main. Vercel deploy triggered.
 
 ---
 
@@ -1895,3 +1900,75 @@ The deployed app needs these env vars set in Vercel project settings
 
 If these aren't in Vercel already, the deployed app will silently fall through to unauthenticated mode (middleware passes through, API routes return 503).
 Check at: https://vercel.com/whitmorelabs/edify-os/settings/environment-variables
+
+## 2026-04-17 — /simplify pass on onboarding (coding agent)
+
+**Commit:** `simplify: onboarding consolidation, rollback safety, free key validation`
+**Branch:** main
+**Agent model:** claude-sonnet-4-6
+
+### Changes Applied
+
+**H1 — Onboarding moved into (auth) route group**
+- Deleted `apps/web/src/app/onboarding/page.tsx` and `layout.tsx`
+- Created `apps/web/src/app/(auth)/onboarding/page.tsx` (card contents only — no two-panel shell; (auth) layout provides it)
+- Created `apps/web/src/app/(auth)/onboarding/layout.tsx` (same guard logic, no PR-narration comments)
+- Confirmed (auth)/layout.tsx has no redirect-if-authenticated logic, so move was safe
+- `_onboarding-old/` left untouched per hard rules
+
+**H2 — Awaited org-rollback delete in /api/org/create**
+- `serviceClient.from("orgs").delete()` is now awaited; if it fails, logs `console.error('Org rollback failed', { orgId, deleteError })` and still returns original 500
+
+**H3 — Fixed silent auth bypass in /auth/callback when service client is null**
+- Null service client now redirects to `/onboarding` (fail-safe) instead of falling through to `/dashboard`
+
+**H4 — Sanitized Anthropic error forwarding**
+- 401 → explicit user-actionable message
+- Other APIError → generic "try again" message
+- Non-APIError → "Unexpected error" + server-side log
+
+**H5 — Switched key validation to free /v1/models endpoint**
+- `anthropic.messages.create(...)` replaced with `anthropic.models.list()`
+- Confirmed `models.list` exists in installed SDK version (typeof === "function")
+
+**M1 — Extracted buildAnthropicKeyPayload helper**
+- Added to `apps/web/src/lib/supabase/server.ts`
+- Used in both `api/org/create` (validated=true) and `api/admin/ai-config` PATCH (validated=false)
+
+**M2 — Added NOT EXISTS guard to orgs INSERT RLS policy**
+- New migration: `supabase/migrations/00013_tighten_orgs_insert_policy.sql`
+- Appended DROP+CREATE to `supabase/combined_migration.sql`
+
+**M3 — Used orgId from getAuthContext in 409 branch**
+- Dropped second serviceClient query; `existingOrgId` from `getAuthContext()` used directly
+
+**M4 — Added synchronous double-submit ref guard**
+- `inFlightRef = useRef(false)` added; checked and set at top of handleSubmit, cleared in finally
+
+**M5 — Extracted ANTHROPIC_KEY_PREFIX constant**
+- Added `export const ANTHROPIC_KEY_PREFIX = "sk-ant-"` to `apps/web/src/lib/anthropic.ts`
+- Used in both `api/org/create/route.ts` and `(auth)/onboarding/page.tsx`
+
+**M6 — Switched /auth/callback to use createServerSupabaseClient**
+- Removed inline cookie-adapter boilerplate; helper verified to have writable setAll in Route Handler context
+
+**M7 — Server-side org name length cap**
+- Added 100-char limit check before slug generation in `/api/org/create`
+
+**L1 — trimmedKey computed once**
+- `const trimmedKey = anthropicKey.trim()` at top of handleSubmit; used throughout
+
+**L2 — Removed PR-narration comments**
+- Old onboarding/layout.tsx deleted; new (auth)/onboarding/layout.tsx has clean JSDoc only
+
+**L3 — Slug uniqueness retry on 23505**
+- After orgs INSERT, if error.code === "23505", regenerates slug and retries once; two consecutive failures return 500
+
+### Skipped (per instructions)
+- Eliminating double getAuthContext call — larger refactor, out of scope
+- Deleting _onboarding-old/ — never-delete rule
+- Changing VALIDATION_MODEL constant — irrelevant after H5
+- Streaming, feature additions
+
+### Build Result
+`npm run build` in `apps/web/` — SUCCESS (all 75 static pages generated, no type errors)

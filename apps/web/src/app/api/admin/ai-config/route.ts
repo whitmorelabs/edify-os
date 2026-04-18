@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
+import { createServiceRoleClient, getAuthContext, buildAnthropicKeyPayload } from "@/lib/supabase/server";
 import { ARCHETYPE_LABELS } from "@/lib/archetypes";
 
 const DEFAULT_ARCHETYPES = [
@@ -82,17 +82,11 @@ export async function PATCH(req: NextRequest) {
 
   // Handle updating the Claude API key
   if (body.anthropicApiKey !== undefined) {
-    const keyValue = body.anthropicApiKey?.trim();
-    // Store the last 4 chars of the plaintext key as a safe display hint
-    const keyHint = keyValue ? keyValue.slice(-4) : null;
+    const keyValue = body.anthropicApiKey?.trim() || null;
+    // validated=false — key will be confirmed on first use
     const { error } = await serviceClient
       .from("orgs")
-      .update({
-        anthropic_api_key_encrypted: keyValue || null,
-        anthropic_api_key_set_at: keyValue ? new Date().toISOString() : null,
-        anthropic_api_key_valid: false, // will be validated on first use
-        anthropic_api_key_hint: keyHint,
-      })
+      .update(buildAnthropicKeyPayload(keyValue, false))
       .eq("id", orgId);
 
     if (error) {

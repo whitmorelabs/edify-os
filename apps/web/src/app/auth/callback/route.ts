@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { createServiceRoleClient } from "@/lib/supabase/server";
-
-const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey =
-  process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 
 /**
  * GET /auth/callback
@@ -31,25 +25,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=no_code`);
   }
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) {
     // Supabase not configured — should not happen in production
     return NextResponse.redirect(`${origin}/login?error=not_configured`);
   }
-
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
-      },
-    },
-  });
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -65,6 +45,9 @@ export async function GET(request: NextRequest) {
 
   // Check whether this user already has an org membership.
   // Use service client to bypass RLS (user is authenticated but may have no member row).
+  // If service client is null (env vars missing), treat as "no member found" and send to
+  // onboarding — failing safe here: if they have a member row, onboarding layout will
+  // redirect them to dashboard. If they don't, onboarding is the right destination.
   if (user) {
     const serviceClient = createServiceRoleClient();
     if (serviceClient) {
@@ -75,9 +58,12 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (!member) {
-        // Brand-new user — send them to onboarding to create their org.
         return NextResponse.redirect(`${origin}/onboarding`);
       }
+      // Member found — fall through to redirect to intended destination below.
+    } else {
+      // Service client unavailable — fail safe: send to onboarding.
+      return NextResponse.redirect(`${origin}/onboarding`);
     }
   }
 
