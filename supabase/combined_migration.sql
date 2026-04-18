@@ -566,3 +566,31 @@ CREATE POLICY "Authenticated users can create orgs"
     auth.uid() IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM members WHERE user_id = auth.uid())
   );
+
+-- 00014: Explicit RLS policies for integrations table
+-- Drop the blanket "Tenant isolation" policy from 00006 and replace with per-op policies
+drop policy if exists "Tenant isolation" on integrations;
+
+create policy "Members can view org integrations"
+  on integrations for select
+  using (
+    org_id in (select org_id from members where user_id = auth.uid())
+  );
+
+create policy "Members can insert org integrations"
+  on integrations for insert
+  with check (
+    org_id in (select org_id from members where user_id = auth.uid())
+  );
+
+create policy "Members can update org integrations"
+  on integrations for update
+  using (
+    org_id in (select org_id from members where user_id = auth.uid())
+  );
+
+create policy "Members can delete org integrations"
+  on integrations for delete
+  using (
+    org_id in (select org_id from members where user_id = auth.uid())
+  );

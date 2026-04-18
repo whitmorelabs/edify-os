@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // TODO: Returns 501 until per-integration token exchange is implemented (Phase 2 — Google Workspace OAuth first).
-  // When implemented: exchange code for tokens, encrypt, store in integrations table.
+  // Per-provider OAuth callbacks now live at /api/integrations/{provider}/callback.
+  // This generic callback rejects all real codes; remove or repurpose when no providers reference it.
   return NextResponse.json(
     { error: "OAuth token exchange not yet implemented for this integration type" },
     { status: 501 }

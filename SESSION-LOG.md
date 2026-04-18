@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-04-17 — Phase 2a Google OAuth (coding agent)
+
+**Task:** Implement Google Workspace OAuth foundation per PRD-phase-2a-google-oauth.md.
+
+### Pre-work Audit Findings
+
+**1. /api/integrations/route.ts shape:**
+GET returns `{ success: true, connected: [{ id, integrationId, type, connectedAt }] }` — note it only selects `id, type, status, created_at, updated_at` and returns type as `integrationId`. The new Google rows will follow this exact shape naturally.
+
+**2. Integrations UI:**
+Already exists at `apps/web/src/app/dashboard/integrations/page.tsx`. Large page component with all 34 integrations listed. `gmail`, `google_calendar`, and `google_drive` are already in the catalog. Current OAuth flow goes through a generic OAuthModal that calls `/api/integrations` POST (mock flow). Will update so Google-type integrations redirect to the real `/api/integrations/google/connect` endpoint instead. The page fetches connected status from server at load time — will convert to fetch from API.
+
+**3. RLS on integrations table:**
+`00006_integrations.sql` already has: `create policy "Tenant isolation" on integrations for all using (org_id in (select org_id from members where user_id = auth.uid()))`. This covers SELECT, INSERT, UPDATE, DELETE for all members of the org. Migration 00014 will add explicit granular policies matching the existing pattern on orgs/members tables (SELECT/INSERT/UPDATE/DELETE separately) for clarity and future-proofing, but the blanket policy already covers us.
+
+**4. googleapis package:**
+NOT installed. `apps/web/package.json` only has `@anthropic-ai/sdk`, `@supabase/*`, `next`, `react`, `lucide-react`, `clsx`, `tailwind-merge`. Need to `pnpm add googleapis`.
+
+**5. `integrations` type CHECK constraint:**
+`00007_expand_integrations.sql` already includes `'gmail'`, `'google_calendar'`, `'google_drive'` in the allowed values. No constraint change needed.
+
+**6. Token storage pattern:**
+`buildAnthropicKeyPayload` in server.ts stores plaintext in `*_encrypted` columns. Will match this — `access_token_encrypted` and `refresh_token_encrypted` store plaintext for now, column names aspirational.
+
+**7. SUPABASE_URL note:**
+`server.ts` reads `SUPABASE_URL ?? NEXT_PUBLIC_SUPABASE_URL`. The `.env.local` only has `NEXT_PUBLIC_SUPABASE_URL`. That's fine — the fallback handles it.
+
+---
+
 ## 2026-04-17 — Phase 1.5 Onboarding (coding agent)
 
 **Task:** Implement org creation + onboarding flow per PRD-phase-1-onboarding.md.

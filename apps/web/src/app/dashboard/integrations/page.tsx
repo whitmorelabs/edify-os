@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Mail,
   Calendar,
@@ -496,13 +497,66 @@ function countByCategory(cat: string) {
 /*  Page component                                                     */
 /* ------------------------------------------------------------------ */
 
-export default function IntegrationsPage() {
+/** Integration types backed by real Google OAuth. */
+const GOOGLE_INTEGRATION_IDS = new Set(['gmail', 'google_calendar', 'google_drive']);
+
+function IntegrationsPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [connected, setConnected] = useState<Set<string>>(new Set());
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [oauthModalId, setOauthModalId] = useState<string | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, Record<string, string>>>({});
+  const [toast, setToast] = useState<{ message: string; kind: 'success' | 'error' } | null>(null);
+
+  /* ---------- load real Google connection status ---------- */
+
+  useEffect(() => {
+    async function loadGoogleStatus() {
+      try {
+        const res = await fetch('/api/integrations/google');
+        if (!res.ok) return;
+        const data = await res.json() as { connected: boolean; email: string | null };
+        if (data.connected) {
+          setConnected((prev) => new Set([...prev, 'gmail', 'google_calendar', 'google_drive']));
+          setGoogleEmail(data.email ?? null);
+        }
+      } catch {
+        // Non-fatal — UI degrades to disconnected state
+      }
+    }
+    loadGoogleStatus();
+  }, []);
+
+  /* ---------- handle ?google=connected / denied toast ---------- */
+
+  useEffect(() => {
+    const googleParam = searchParams.get('google');
+    if (googleParam === 'connected') {
+      setToast({ message: 'Google Workspace connected successfully!', kind: 'success' });
+      // Remove query param from URL without navigation
+      router.replace('/dashboard/integrations', { scroll: false });
+    } else if (googleParam === 'denied') {
+      const reason = searchParams.get('reason') ?? 'access_denied';
+      setToast({
+        message: `Google connection was not completed (${reason}). Please try again.`,
+        kind: 'error',
+      });
+      router.replace('/dashboard/integrations', { scroll: false });
+    }
+  }, [searchParams, router]);
+
+  /* ---------- auto-dismiss toast ---------- */
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   /* ---------- filtering ---------- */
 
@@ -521,6 +575,12 @@ export default function IntegrationsPage() {
   function handleConnectClick(id: string) {
     const integration = INTEGRATIONS.find((i) => i.id === id);
     if (!integration) return;
+
+    // Google integrations use the real OAuth flow — redirect to initiate route
+    if (GOOGLE_INTEGRATION_IDS.has(id)) {
+      window.location.href = '/api/integrations/google/connect';
+      return;
+    }
 
     if (integration.connectionType === 'oauth') {
       setOauthModalId(id);
@@ -548,7 +608,30 @@ export default function IntegrationsPage() {
     setExpandedId(null);
   }
 
-  function handleDisconnect(id: string) {
+  async function handleDisconnect(id: string) {
+    // Google integrations: call real DELETE endpoint, removes all 3 rows
+    if (GOOGLE_INTEGRATION_IDS.has(id)) {
+      try {
+        const res = await fetch('/api/integrations/google', { method: 'DELETE' });
+        if (!res.ok) {
+          setToast({ message: 'Failed to disconnect Google. Please try again.', kind: 'error' });
+          return;
+        }
+        // Remove all 3 Google integration IDs from connected set
+        setConnected((prev) => {
+          const next = new Set(prev);
+          GOOGLE_INTEGRATION_IDS.forEach((gid) => next.delete(gid));
+          return next;
+        });
+        setGoogleEmail(null);
+        setExpandedId(null);
+        setToast({ message: 'Google Workspace disconnected.', kind: 'success' });
+      } catch {
+        setToast({ message: 'Failed to disconnect Google. Please try again.', kind: 'error' });
+      }
+      return;
+    }
+
     setConnected((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -580,6 +663,27 @@ export default function IntegrationsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6 lg:p-10 animate-fade-in">
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg text-sm font-medium animate-slide-up ${
+            toast.kind === 'success'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-red-600 text-white'
+          }`}
+        >
+          {toast.kind === 'success' ? (
+            <CheckCircle className="h-4 w-4 shrink-0" />
+          ) : (
+            <X className="h-4 w-4 shrink-0" />
+          )}
+          {toast.message}
+          <button onClick={() => setToast(null)} className="ml-2 opacity-75 hover:opacity-100">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="heading-1">Connected Accounts</h1>
@@ -731,6 +835,13 @@ export default function IntegrationsPage() {
                   </button>
                 )}
               </div>
+
+              {/* Google email badge */}
+              {isConnected && GOOGLE_INTEGRATION_IDS.has(i.id) && googleEmail && (
+                <p className="mt-2 text-xs text-slate-400">
+                  Connected as <span className="font-medium text-slate-600">{googleEmail}</span>
+                </p>
+              )}
 
               {/* Footer */}
               <div className="mt-4 flex items-center gap-2">
@@ -926,5 +1037,17 @@ export default function IntegrationsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function IntegrationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto max-w-7xl p-6 lg:p-10">
+        <div className="h-8 w-48 animate-pulse rounded bg-slate-100" />
+      </div>
+    }>
+      <IntegrationsPageInner />
+    </Suspense>
   );
 }
