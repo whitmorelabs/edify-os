@@ -1771,3 +1771,13 @@ Recommend (b) for smoke testing and (a) as a follow-up task in a new PRD or as a
 5. ✅ output: 'export' removed: Vercel deploy shows no static export warnings (confirmed in build output)
 6. ⚠️ Seed data: Combined migration includes demo org seed in seed.sql — needs manual run after migrations
 
+
+**Third item to verify:** Vercel environment variables.
+The deployed app needs these env vars set in Vercel project settings
+(values are in `apps/web/.env.local` — do not commit them):
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+If these aren't in Vercel already, the deployed app will silently fall through to unauthenticated mode (middleware passes through, API routes return 503).
+Check at: https://vercel.com/whitmorelabs/edify-os/settings/environment-variables
