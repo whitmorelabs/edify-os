@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { OrgHeartbeatSettings } from "@/app/dashboard/inbox/heartbeats";
 
-export const dynamic = 'force-static';
 
 // Default config — single source of truth for the mock API layer.
 // Archetypes mirror the canonical backend slugs.

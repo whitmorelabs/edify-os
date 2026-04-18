@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
 
-export const dynamic = 'force-static';
 
 const mockHistory: HeartbeatResult[] = [
   {

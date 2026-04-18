@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Notification } from '@/components/notifications/types';
 
-export const dynamic = 'force-static';
 
 // Mock notifications — realistic sample data
 const MOCK_NOTIFICATIONS: Notification[] = [
