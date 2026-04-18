@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
 
+const SUPPORT_SYSTEM_PROMPT = `You are the Edify OS support assistant. You help nonprofit organizations navigate the Edify OS platform.
 
-const AGENT_SERVICE_URL =
-  process.env.AGENT_SERVICE_URL ?? 'http://localhost:4000';
+You are knowledgeable about:
+- The 6 AI team members (Director of Development, Marketing Director, Executive Assistant, Programs Director, HR & Volunteer Coordinator, Events Director)
+- How to use the chat interface to work with each team member
+- The Inbox and heartbeat check-in system
+- The Integrations settings and how to connect tools
+- The Briefing (onboarding) flow
+- Account settings and org management
+
+Keep responses concise and practical. If a question is outside Edify OS (e.g., general fundraising advice), let the user know they should ask their Development Director instead.
+
+Do not compliment or flatter. Be direct and helpful.`;
 
 export interface SupportChatRequest {
   message: string;
@@ -28,35 +40,57 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Message is required' }, { status: 400 });
   }
 
-  // Try forwarding to the agent service (Executive Assistant archetype)
-  try {
-    const res = await fetch(`${AGENT_SERVICE_URL}/api/agents/executive_assistant/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: message.trim(), history }),
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (res.ok) {
-      const data = (await res.json()) as { reply?: string; message?: string };
-      const reply = data.reply ?? data.message ?? 'Got it! How else can I help?';
-      return NextResponse.json<SupportChatResponse>({ reply });
-    }
-  } catch {
-    // Agent service unavailable — fall through to placeholder
+  // Get auth context — support chat is available to authenticated users
+  const { user, orgId, memberId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Placeholder response when agent service is not yet wired up
-  const placeholderReplies = [
-    "Thanks for reaching out! I'm your Edify OS support assistant. I'm here to help you navigate the platform, understand your team members' capabilities, and get the most out of your workspace. What can I help you with today?",
-    "Great question! While I'm getting fully connected, I can share that Edify OS is designed to make working with your AI team as smooth as possible. Is there a specific feature or workflow you'd like to understand better?",
-    "I hear you! Let me look into that for you. In the meantime, you can explore the Team section to manage your AI team members, or check Inbox for items awaiting your approval.",
-    "Thanks for your patience as I get fully set up. Your support assistant will soon be able to answer questions in real time. For urgent help, check the docs or use the team chat on your dashboard.",
-  ];
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  }
 
-  // Vary response based on message length to seem less robotic
-  const idx = message.length % placeholderReplies.length;
-  const reply = placeholderReplies[idx];
+  // Get org's Claude API key
+  const { data: org } = await serviceClient
+    .from('orgs')
+    .select('anthropic_api_key_encrypted')
+    .eq('id', orgId)
+    .single();
 
-  return NextResponse.json<SupportChatResponse>({ reply });
+  if (!org?.anthropic_api_key_encrypted) {
+    return NextResponse.json(
+      { error: 'No Claude API key configured. Add your Anthropic API key in Settings.' },
+      { status: 402 }
+    );
+  }
+
+  const anthropic = new Anthropic({ apiKey: org.anthropic_api_key_encrypted });
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-20250514',
+      max_tokens: 1024,
+      system: SUPPORT_SYSTEM_PROMPT,
+      messages: [
+        ...(history ?? []).slice(-10), // Keep last 10 history messages
+        { role: 'user', content: message.trim() },
+      ],
+    });
+
+    const reply =
+      response.content[0]?.type === 'text' ? response.content[0].text : 'Sorry, I could not generate a response.';
+
+    // Persist both messages to support_messages table
+    await serviceClient.from('support_messages').insert([
+      { org_id: orgId, member_id: memberId, role: 'user', content: message.trim() },
+      { org_id: orgId, member_id: memberId, role: 'assistant', content: reply },
+    ]);
+
+    return NextResponse.json<SupportChatResponse>({ reply });
+  } catch (err) {
+    console.error('[support/chat] Claude API error:', err);
+    const msg = err instanceof Error ? err.message : 'Claude API error';
+    return NextResponse.json({ error: msg }, { status: 502 });
+  }
 }

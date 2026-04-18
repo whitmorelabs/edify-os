@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-
+import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
 
 interface BriefingPayload {
   orgProfile: {
@@ -31,32 +30,42 @@ interface BriefingPayload {
 }
 
 export async function POST(req: NextRequest) {
+  const { user, orgId, memberId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body: BriefingPayload = await req.json();
-
     const { orgProfile, programs, goals } = body;
 
-    // Shape the data as it would map to the orgs table
-    const orgData = {
-      name: orgProfile.orgName,
-      mission: orgProfile.missionStatement,
-      website: orgProfile.website || null,
-      // Extended fields stored as metadata (not in base schema yet)
-      metadata: {
-        annualBudget: orgProfile.annualBudget,
-        fullTimeStaff: orgProfile.fullTimeStaff ? parseInt(orgProfile.fullTimeStaff) : null,
-        regularVolunteers: orgProfile.regularVolunteers ? parseInt(orgProfile.regularVolunteers) : null,
-        orgType: orgProfile.orgType,
-        primaryServiceArea: orgProfile.primaryServiceArea,
-        foundedYear: orgProfile.foundedYear ? parseInt(orgProfile.foundedYear) : null,
-      },
-    };
+    const serviceClient = createServiceRoleClient();
+    if (!serviceClient) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+    }
 
-    // Shape memory entries for programs
+    // Update org profile
+    const { error: orgError } = await serviceClient
+      .from('orgs')
+      .update({
+        name: orgProfile.orgName,
+        mission: orgProfile.missionStatement,
+        website: orgProfile.website || null,
+        onboarding_completed_at: new Date().toISOString(),
+      })
+      .eq('id', orgId);
+
+    if (orgError) {
+      console.error('[briefing] Org update error:', orgError);
+      return NextResponse.json({ success: false, error: 'Failed to save org profile' }, { status: 500 });
+    }
+
+    // Create memory entries for programs
     const programMemories = programs.programs
       .filter((p) => p.name.trim())
       .map((p) => ({
-        category: 'programs',
+        org_id: orgId,
+        category: 'programs' as const,
         title: p.name,
         content: [
           p.description,
@@ -68,35 +77,55 @@ export async function POST(req: NextRequest) {
           .join('\n'),
         source: 'briefing',
         auto_generated: false,
+        created_by: memberId,
       }));
 
-    // Shape memory entry for goals
-    const goalsMemory = goals.selectedGoals.length > 0 || goals.additionalContext
-      ? {
-          category: 'general',
-          title: 'Organizational Priorities',
-          content: [
-            goals.selectedGoals.length > 0
-              ? `Top priorities:\n${goals.selectedGoals.map((g) => `- ${g.replace(/_/g, ' ')}`).join('\n')}`
-              : null,
-            goals.additionalContext ? `Additional context:\n${goals.additionalContext}` : null,
-          ]
-            .filter(Boolean)
-            .join('\n\n'),
-          source: 'briefing',
-          auto_generated: false,
-        }
-      : null;
+    // Create memory entry for goals
+    const goalsContent = [
+      goals.selectedGoals.length > 0
+        ? `Top priorities:\n${goals.selectedGoals.map((g) => `- ${g.replace(/_/g, ' ')}`).join('\n')}`
+        : null,
+      goals.additionalContext ? `Additional context:\n${goals.additionalContext}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
-    // In production: save orgData to orgs table, save programMemories + goalsMemory to memory_entries
-    // For now, return success with the shaped data so the frontend can proceed
+    const memoryInserts: Array<{
+      org_id: string;
+      category: string;
+      title: string;
+      content: string;
+      source: string;
+      auto_generated: boolean;
+      created_by: string | null;
+    }> = [...programMemories];
+
+    if (goalsContent) {
+      memoryInserts.push({
+        org_id: orgId,
+        category: 'general' as const,
+        title: 'Organizational Priorities',
+        content: goalsContent,
+        source: 'briefing',
+        auto_generated: false,
+        created_by: memberId,
+      });
+    }
+
+    if (memoryInserts.length > 0) {
+      const { error: memoryError } = await serviceClient
+        .from('memory_entries')
+        .insert(memoryInserts);
+
+      if (memoryError) {
+        console.error('[briefing] Memory insert error:', memoryError);
+        // Don't fail the whole request — org profile was saved
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Briefing saved successfully',
-      data: {
-        org: orgData,
-        memories: [...programMemories, ...(goalsMemory ? [goalsMemory] : [])],
-      },
     });
   } catch (error) {
     console.error('[POST /api/briefing]', error);

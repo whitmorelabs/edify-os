@@ -1,36 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-
-// In production these would come from Supabase using the authenticated user's org_id.
-// For now we return mock data so the frontend flow works end-to-end.
-
-const MOCK_CONNECTED: Array<{
-  id: string;
-  integrationId: string;
-  connectedAccount: string;
-  connectedAt: string;
-}> = [];
-
-// Map of integration ID -> mock OAuth start URL.
-// In production these would be real OAuth authorization URLs built server-side
-// using the appropriate client_id and redirect_uri for each service.
-function buildMockOAuthUrl(integrationId: string): string {
-  const callbackBase =
-    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  // The callback route will handle the code exchange and post a message back
-  return `${callbackBase}/api/integrations/callback?integration=${integrationId}&mock=true`;
-}
+import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
 
 /** GET /api/integrations — list connected integrations for the org */
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    connected: MOCK_CONNECTED,
-  });
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  }
+
+  const { data: integrations, error } = await serviceClient
+    .from('integrations')
+    .select('id, type, status, created_at, updated_at')
+    .eq('org_id', orgId)
+    .eq('status', 'active');
+
+  if (error) {
+    console.error('[integrations GET] DB error:', error);
+    return NextResponse.json({ error: 'Failed to fetch integrations' }, { status: 500 });
+  }
+
+  // Shape into the format the frontend expects
+  const connected = (integrations ?? []).map((i) => ({
+    id: i.id,
+    integrationId: i.type,
+    connectedAt: i.created_at,
+  }));
+
+  return NextResponse.json({ success: true, connected });
 }
 
 /** POST /api/integrations — initiate the connection flow */
 export async function POST(req: NextRequest) {
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { integrationId } = body as { integrationId: string };
@@ -42,15 +52,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // In production: validate the user is authenticated, look up the service's
-    // OAuth config, build the real authorization URL with state param, etc.
-    const oauthUrl = buildMockOAuthUrl(integrationId);
+    // Build OAuth redirect URL
+    // For now we return a mock URL since real OAuth per-integration is Phase 2 work.
+    // The callback route handles real token exchange when code is present.
+    const callbackBase = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const oauthUrl = `${callbackBase}/api/integrations/callback?integration=${integrationId}&mock=true`;
 
-    return NextResponse.json({
-      success: true,
-      integrationId,
-      oauthUrl,
-    });
+    return NextResponse.json({ success: true, integrationId, oauthUrl });
   } catch (err) {
     console.error('[POST /api/integrations]', err);
     return NextResponse.json(
@@ -62,6 +70,11 @@ export async function POST(req: NextRequest) {
 
 /** DELETE /api/integrations — disconnect an integration */
 export async function DELETE(req: NextRequest) {
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const integrationId = searchParams.get('integrationId');
@@ -73,9 +86,22 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // In production: revoke the stored token and delete from DB
-    const idx = MOCK_CONNECTED.findIndex((c) => c.integrationId === integrationId);
-    if (idx !== -1) MOCK_CONNECTED.splice(idx, 1);
+    const serviceClient = createServiceRoleClient();
+    if (!serviceClient) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+    }
+
+    // Soft-delete by updating status to revoked
+    const { error } = await serviceClient
+      .from('integrations')
+      .update({ status: 'revoked' })
+      .eq('org_id', orgId)
+      .eq('type', integrationId);
+
+    if (error) {
+      console.error('[DELETE /api/integrations] DB error:', error);
+      return NextResponse.json({ success: false, error: 'Failed to disconnect' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -1,91 +1,107 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 
+const ARCHETYPE_COLORS: Record<string, string> = {
+  development_director: "bg-emerald-500",
+  executive_assistant: "bg-sky-500",
+  marketing_director: "bg-amber-500",
+  programs_director: "bg-violet-500",
+  hr_volunteer_coordinator: "bg-indigo-500",
+  events_director: "bg-rose-500",
+};
 
-function getMockUsage(days: number) {
-  const multiplier = days / 7;
-
-  return {
-    period: `Last ${days} days`,
-    summary: {
-      totalConversations: Math.round(142 * multiplier),
-      totalMessages: Math.round(1087 * multiplier),
-      tasksCreated: Math.round(63 * multiplier),
-      heartbeatsDelivered: Math.round(84 * multiplier),
-      documentsUploaded: Math.round(17 * multiplier),
-    },
-    byArchetype: [
-      {
-        slug: "development_director",
-        label: "Director of Development",
-        conversations: Math.round(38 * multiplier),
-        messages: Math.round(294 * multiplier),
-        tasks: Math.round(18 * multiplier),
-        color: "bg-emerald-500",
-      },
-      {
-        slug: "executive_assistant",
-        label: "Executive Assistant",
-        conversations: Math.round(32 * multiplier),
-        messages: Math.round(241 * multiplier),
-        tasks: Math.round(14 * multiplier),
-        color: "bg-sky-500",
-      },
-      {
-        slug: "marketing_director",
-        label: "Marketing Director",
-        conversations: Math.round(27 * multiplier),
-        messages: Math.round(198 * multiplier),
-        tasks: Math.round(11 * multiplier),
-        color: "bg-amber-500",
-      },
-      {
-        slug: "programs_director",
-        label: "Programs Director",
-        conversations: Math.round(22 * multiplier),
-        messages: Math.round(162 * multiplier),
-        tasks: Math.round(9 * multiplier),
-        color: "bg-violet-500",
-      },
-      {
-        slug: "hr_volunteer_coordinator",
-        label: "HR & Volunteer Coordinator",
-        conversations: Math.round(7 * multiplier),
-        messages: Math.round(56 * multiplier),
-        tasks: Math.round(3 * multiplier),
-        color: "bg-indigo-500",
-      },
-      {
-        slug: "events_director",
-        label: "Events Director",
-        conversations: Math.round(2 * multiplier),
-        messages: Math.round(22 * multiplier),
-        tasks: Math.round(1 * multiplier),
-        color: "bg-rose-500",
-      },
-    ],
-    hourlyDistribution: [
-      { hour: 6, label: "6 AM", value: 8 },
-      { hour: 7, label: "7 AM", value: 14 },
-      { hour: 8, label: "8 AM", value: 31 },
-      { hour: 9, label: "9 AM", value: 67 },
-      { hour: 10, label: "10 AM", value: 88 },
-      { hour: 11, label: "11 AM", value: 74 },
-      { hour: 12, label: "12 PM", value: 52 },
-      { hour: 13, label: "1 PM", value: 61 },
-      { hour: 14, label: "2 PM", value: 79 },
-      { hour: 15, label: "3 PM", value: 83 },
-      { hour: 16, label: "4 PM", value: 71 },
-      { hour: 17, label: "5 PM", value: 48 },
-      { hour: 18, label: "6 PM", value: 22 },
-      { hour: 19, label: "7 PM", value: 11 },
-    ],
-  };
-}
+const ARCHETYPE_LABELS: Record<string, string> = {
+  development_director: "Director of Development",
+  marketing_director: "Marketing Director",
+  executive_assistant: "Executive Assistant",
+  programs_director: "Programs Director",
+  hr_volunteer_coordinator: "HR & Volunteer Coordinator",
+  events_director: "Events Director",
+};
 
 export async function GET(req: NextRequest) {
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const days = parseInt(searchParams.get("days") || "7", 10);
   const validDays = [7, 30, 90].includes(days) ? days : 7;
+  const since = new Date(Date.now() - validDays * 24 * 60 * 60 * 1000).toISOString();
 
-  return NextResponse.json(getMockUsage(validDays));
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  // Count conversations
+  const { count: totalConversations } = await serviceClient
+    .from("conversations")
+    .select("*", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .gte("created_at", since);
+
+  // Count messages
+  const { count: totalMessages } = await serviceClient
+    .from("messages")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", since);
+
+  // Count tasks
+  const { count: tasksCreated } = await serviceClient
+    .from("tasks")
+    .select("*", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .gte("created_at", since);
+
+  // Count heartbeat runs
+  const { count: heartbeatsDelivered } = await serviceClient
+    .from("heartbeat_runs")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "completed")
+    .gte("started_at", since);
+
+  // Count documents
+  const { count: documentsUploaded } = await serviceClient
+    .from("documents")
+    .select("*", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .gte("created_at", since);
+
+  // Per-archetype breakdown via conversations
+  // Conversations store agent_config_id; join to agent_configs for role_slug
+  const { data: convByAgent } = await serviceClient
+    .from("conversations")
+    .select("agent_config_id, agent_configs(role_slug)")
+    .eq("org_id", orgId)
+    .gte("created_at", since);
+
+  const slugCounts: Record<string, number> = {};
+  for (const conv of convByAgent ?? []) {
+    const slug = (conv.agent_configs as { role_slug?: string } | null)?.role_slug ?? "unknown";
+    slugCounts[slug] = (slugCounts[slug] ?? 0) + 1;
+  }
+
+  const byArchetype = Object.entries(ARCHETYPE_LABELS).map(([slug, label]) => ({
+    slug,
+    label,
+    conversations: slugCounts[slug] ?? 0,
+    messages: 0, // Phase 1: leave as 0 — message-per-archetype requires a join
+    tasks: 0,
+    color: ARCHETYPE_COLORS[slug] ?? "bg-gray-500",
+  }));
+
+  return NextResponse.json({
+    period: `Last ${validDays} days`,
+    summary: {
+      totalConversations: totalConversations ?? 0,
+      totalMessages: totalMessages ?? 0,
+      tasksCreated: tasksCreated ?? 0,
+      heartbeatsDelivered: heartbeatsDelivered ?? 0,
+      documentsUploaded: documentsUploaded ?? 0,
+    },
+    byArchetype,
+    hourlyDistribution: [], // Phase 2: compute from messages.created_at
+  });
 }

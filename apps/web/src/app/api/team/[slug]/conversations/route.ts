@@ -1,71 +1,14 @@
 import { NextResponse } from "next/server";
-import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
+import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 
-export function generateStaticParams() {
-  const validSlugs: ArchetypeSlug[] = [
-    "development_director",
-    "marketing_director",
-    "executive_assistant",
-    "programs_director",
-    "hr_volunteer_coordinator",
-    "events_director",
-  ];
-  return validSlugs.map((slug) => ({ slug }));
-}
-
-// In-memory store for mock conversations (per process lifetime)
-// In production this will be replaced by a real DB call
-const conversationStore: Record<string, ConversationRecord[]> = {};
-
-interface ConversationRecord {
-  id: string;
-  slug: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-  messageCount: number;
-}
-
-function getDefaultConversations(slug: ArchetypeSlug): ConversationRecord[] {
-  const titles: Record<string, string[]> = {
-    development_director: [
-      "Spring fundraising campaign strategy",
-      "Ford Foundation grant LOI",
-    ],
-    marketing_director: [
-      "Annual Impact Report content plan",
-      "Social media calendar — Q2",
-    ],
-    executive_assistant: [
-      "May gala scheduling conflicts",
-      "Board meeting prep",
-    ],
-    programs_director: [
-      "Q1 outcome data review",
-      "Summer program expansion",
-    ],
-    hr_volunteer_coordinator: [
-      "Volunteer coordinator hiring",
-      "Certification renewal tracking",
-    ],
-    events_director: [
-      "May 15th gala checklist",
-      "Sponsorship pipeline review",
-    ],
-  };
-
-  const slugTitles = titles[slug] ?? ["General conversation"];
-
-  const now = new Date();
-  return slugTitles.map((title, i) => ({
-    id: `mock-conv-${slug}-${i}`,
-    slug,
-    title,
-    createdAt: new Date(now.getTime() - (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(now.getTime() - i * 2 * 60 * 60 * 1000).toISOString(),
-    messageCount: Math.floor(Math.random() * 8) + 2,
-  }));
-}
+const VALID_SLUGS = [
+  "development_director",
+  "marketing_director",
+  "executive_assistant",
+  "programs_director",
+  "hr_volunteer_coordinator",
+  "events_director",
+];
 
 export async function GET(
   _request: Request,
@@ -73,25 +16,37 @@ export async function GET(
 ) {
   const { slug } = params;
 
-  const validSlugs: ArchetypeSlug[] = [
-    "development_director",
-    "marketing_director",
-    "executive_assistant",
-    "programs_director",
-    "hr_volunteer_coordinator",
-    "events_director",
-  ];
-
-  if (!validSlugs.includes(slug as ArchetypeSlug)) {
+  if (!VALID_SLUGS.includes(slug)) {
     return NextResponse.json({ error: "Unknown team member" }, { status: 404 });
   }
 
-  // Return stored + default conversations
-  const stored = conversationStore[slug] ?? [];
-  const defaults = getDefaultConversations(slug as ArchetypeSlug);
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  // Stored conversations come first (most recent)
-  return NextResponse.json([...stored, ...defaults]);
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  // Fetch conversations for this org and archetype slug
+  // We match by the slug stored in agent_configs, but conversations may not always
+  // have an agent_config_id set. For now, return all conversations for this org
+  // and filter by a slug tag stored in metadata.
+  const { data: conversations, error } = await serviceClient
+    .from("conversations")
+    .select("id, title, created_at, updated_at")
+    .eq("org_id", orgId)
+    .order("updated_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("[team/conversations] DB error:", error);
+    return NextResponse.json({ error: "Failed to fetch conversations" }, { status: 500 });
+  }
+
+  return NextResponse.json(conversations ?? []);
 }
 
 export async function POST(
@@ -100,19 +55,34 @@ export async function POST(
 ) {
   const { slug } = params;
 
-  const newConversation: ConversationRecord = {
-    id: crypto.randomUUID(),
-    slug,
-    title: "New conversation",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    messageCount: 0,
-  };
-
-  if (!conversationStore[slug]) {
-    conversationStore[slug] = [];
+  if (!VALID_SLUGS.includes(slug)) {
+    return NextResponse.json({ error: "Unknown team member" }, { status: 404 });
   }
-  conversationStore[slug].unshift(newConversation);
 
-  return NextResponse.json(newConversation, { status: 201 });
+  const { user, orgId, memberId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  const { data: newConv, error } = await serviceClient
+    .from("conversations")
+    .insert({
+      org_id: orgId,
+      member_id: memberId,
+      title: "New conversation",
+    })
+    .select("id, title, created_at, updated_at")
+    .single();
+
+  if (error || !newConv) {
+    console.error("[team/conversations] Create error:", error);
+    return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
+  }
+
+  return NextResponse.json(newConv, { status: 201 });
 }

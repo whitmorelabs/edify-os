@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
+import { ARCHETYPE_PROMPTS } from '@/lib/archetype-prompts';
 
-
-// -------------------------------------------------------------------
-// Types
-// -------------------------------------------------------------------
 export interface ArchetypeResponse {
   role_slug: string;
   display_name: string;
@@ -28,95 +27,57 @@ export interface ScenarioResult {
   synthesis: SynthesisResult;
 }
 
-// -------------------------------------------------------------------
-// Mock data generator
-// -------------------------------------------------------------------
-function buildMockResult(scenarioText: string): ScenarioResult {
+const ARCHETYPE_META: Record<string, { display_name: string; icon: string }> = {
+  executive_assistant:      { display_name: 'Executive Assistant',       icon: 'Star' },
+  development_director:     { display_name: 'Development Director',      icon: 'Landmark' },
+  marketing_director:       { display_name: 'Marketing Director',        icon: 'Megaphone' },
+  programs_director:        { display_name: 'Programs Director',         icon: 'Heart' },
+  hr_volunteer_coordinator: { display_name: 'HR & Volunteer Coordinator', icon: 'Users' },
+  events_director:          { display_name: 'Events Director',           icon: 'Calendar' },
+};
+
+const DECISION_LAB_SUFFIX = `
+
+## Decision Lab Response Format
+You are participating in a multi-perspective decision review. Respond with:
+1. Your STANCE: one word — Support, Caution, or Oppose
+2. Your CONFIDENCE: one word — Low, Medium, or High
+3. Your RESPONSE: 2-4 sentences from your domain perspective
+
+Format exactly as:
+STANCE: [Support|Caution|Oppose]
+CONFIDENCE: [Low|Medium|High]
+RESPONSE: [your analysis]`;
+
+function parseDecisionResponse(text: string): { stance: string; confidence: string; response_text: string } {
+  const lines = text.split('\n').map((l) => l.trim());
+  let stance = 'Caution';
+  let confidence = 'Medium';
+  let responseText = text;
+
+  for (const line of lines) {
+    if (line.startsWith('STANCE:')) stance = line.replace('STANCE:', '').trim();
+    if (line.startsWith('CONFIDENCE:')) confidence = line.replace('CONFIDENCE:', '').trim();
+    if (line.startsWith('RESPONSE:')) responseText = line.replace('RESPONSE:', '').trim();
+  }
+
+  // Validate
+  if (!['Support', 'Caution', 'Oppose'].includes(stance)) stance = 'Caution';
+  if (!['Low', 'Medium', 'High'].includes(confidence)) confidence = 'Medium';
+
   return {
-    id: `mock-${Date.now()}`,
-    scenario_text: scenarioText,
-    created_at: new Date().toISOString(),
-    responses: [
-      {
-        role_slug: 'executive_assistant',
-        display_name: 'Executive Assistant',
-        icon: 'Star',
-        stance: 'Caution',
-        response_text:
-          "Before moving forward, we need to align this with our strategic plan and ensure the board is informed. The timing matters — our team is already stretched, and we should pressure-test our capacity before committing. That said, if the opportunity is genuinely time-sensitive, a phased approach could reduce risk.",
-        confidence: 'Medium',
-      },
-      {
-        role_slug: 'development_director',
-        display_name: 'Development Director',
-        icon: 'Landmark',
-        stance: 'Support',
-        response_text:
-          "This looks like a strong signal to funders that we're growing and taking initiative. It could open doors for multi-year grants and major donor conversations. I'd recommend we document the decision-making process to show due diligence — that story plays well in grant narratives.",
-        confidence: 'High',
-      },
-      {
-        role_slug: 'marketing_director',
-        display_name: 'Marketing Director',
-        icon: 'Megaphone',
-        stance: 'Support',
-        response_text:
-          "The optics are good. This gives us a news peg — we can build a campaign around the announcement and use it to re-engage lapsed donors. Social media storytelling potential is high. My only flag is we need at least 3 weeks of lead time to do it properly.",
-        confidence: 'Medium',
-      },
-      {
-        role_slug: 'programs_director',
-        display_name: 'Programs Director',
-        icon: 'Heart',
-        stance: 'Oppose',
-        response_text:
-          "My concern is mission drift. Every hour spent on this is an hour not spent on direct service delivery. Our current program participants deserve our full attention, and I worry we're being opportunistic rather than strategic. If we do this, we need protected staff time and clear guardrails.",
-        confidence: 'High',
-      },
-      {
-        role_slug: 'hr_volunteer_coordinator',
-        display_name: 'HR & Volunteer Coordinator',
-        icon: 'Users',
-        stance: 'Caution',
-        response_text:
-          "Team morale is already fragile after last quarter. Adding new responsibilities without adding headcount is a burnout risk. If we move forward, I'd want a clear staffing plan, updated job descriptions, and an honest conversation with the team before announcing anything publicly.",
-        confidence: 'Medium',
-      },
-      {
-        role_slug: 'events_director',
-        display_name: 'Events Director',
-        icon: 'Calendar',
-        stance: 'Support',
-        response_text:
-          "From an events standpoint, this gives us a natural milestone to build programming around. A launch event could double as a fundraiser and community engagement moment. I'd want to start scoping logistics now if we're serious — good venues book fast.",
-        confidence: 'Medium',
-      },
-    ],
-    synthesis: {
-      consensus: [
-        'The decision requires a clear staffing plan before moving forward',
-        'Funder and donor communication should be proactive, not reactive',
-        'Timeline planning needs to begin immediately if approved',
-      ],
-      disagreements: [
-        'Programs team sees mission risk; Development team sees strategic opportunity',
-        'Finance wants more runway; Marketing sees a time-sensitive window',
-      ],
-      top_risks: [
-        'Staff burnout if new responsibilities are added without capacity relief',
-        'Cash flow strain if costs exceed projections in months 1-3',
-        'Mission dilution if program delivery suffers during the transition',
-      ],
-      recommended_action:
-        "Move to a conditional green light: approve in principle, contingent on a staffing plan from HR within two weeks and a cash flow pro forma from Finance. Set a board briefing before any public announcement. If both deliverables check out, proceed with a phased rollout starting in Q3.",
-    },
+    stance,
+    confidence,
+    response_text: responseText,
   };
 }
 
-// -------------------------------------------------------------------
-// Route handlers
-// -------------------------------------------------------------------
 export async function POST(req: NextRequest) {
+  const { user, orgId, memberId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { scenario_text, selected_archetypes } = await req.json() as {
       scenario_text: string;
@@ -127,53 +88,146 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'scenario_text is required' }, { status: 400 });
     }
 
-    // Attempt to proxy to backend agent service
-    const backendUrl = process.env.AGENT_SERVICE_URL ?? 'http://localhost:4000';
-    try {
-      const upstream = await fetch(`${backendUrl}/api/decision-lab`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario_text, selected_archetypes }),
-        signal: AbortSignal.timeout(5000),
-      });
-      if (upstream.ok) {
-        const data = await upstream.json();
-        return NextResponse.json(data);
-      }
-    } catch {
-      // Backend not available — fall through to mock
+    const serviceClient = createServiceRoleClient();
+    if (!serviceClient) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
     }
 
-    // Return mock data so the frontend is independently testable
-    const result = buildMockResult(scenario_text.trim());
+    // Get org's Claude API key
+    const { data: org } = await serviceClient
+      .from('orgs')
+      .select('name, anthropic_api_key_encrypted')
+      .eq('id', orgId)
+      .single();
 
-    // Filter by selected archetypes if provided
-    if (selected_archetypes && selected_archetypes.length > 0) {
-      result.responses = result.responses.filter((r) =>
-        selected_archetypes.includes(r.role_slug),
+    if (!org?.anthropic_api_key_encrypted) {
+      return NextResponse.json(
+        { error: 'No Claude API key configured. Add your Anthropic API key in Settings.' },
+        { status: 402 }
       );
     }
+
+    const anthropic = new Anthropic({ apiKey: org.anthropic_api_key_encrypted });
+    const orgName = org.name || 'your organization';
+
+    // Determine which archetypes to query
+    const allSlugs = Object.keys(ARCHETYPE_META);
+    const slugsToQuery = selected_archetypes?.length
+      ? allSlugs.filter((s) => selected_archetypes.includes(s))
+      : allSlugs;
+
+    // Fan out Claude calls in parallel
+    const callResults = await Promise.allSettled(
+      slugsToQuery.map(async (slug) => {
+        const basePrompt = ARCHETYPE_PROMPTS[slug] || '';
+        const systemPrompt = basePrompt.replace(/\{org_name\}/g, orgName) + DECISION_LAB_SUFFIX;
+
+        const response = await anthropic.messages.create({
+          model: 'claude-haiku-4-20250514', // Use Haiku for speed in parallel calls
+          max_tokens: 512,
+          temperature: 0.25,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: `Scenario for decision review:\n\n${scenario_text}` }],
+        });
+
+        const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+        const parsed = parseDecisionResponse(text);
+        const meta = ARCHETYPE_META[slug];
+
+        return {
+          role_slug: slug,
+          display_name: meta.display_name,
+          icon: meta.icon,
+          stance: parsed.stance as 'Support' | 'Caution' | 'Oppose',
+          confidence: parsed.confidence as 'Low' | 'Medium' | 'High',
+          response_text: parsed.response_text,
+        };
+      })
+    );
+
+    const responses: ArchetypeResponse[] = callResults
+      .map((result, idx) => {
+        if (result.status === 'fulfilled') return result.value;
+        const slug = slugsToQuery[idx];
+        const meta = ARCHETYPE_META[slug];
+        return {
+          role_slug: slug,
+          display_name: meta.display_name,
+          icon: meta.icon,
+          stance: 'Caution' as const,
+          confidence: 'Low' as const,
+          response_text: 'Could not retrieve response from this team member.',
+        };
+      });
+
+    // Build synthesis from responses
+    const supporters = responses.filter((r) => r.stance === 'Support').map((r) => r.display_name);
+    const opponents = responses.filter((r) => r.stance === 'Oppose').map((r) => r.display_name);
+    const cautious = responses.filter((r) => r.stance === 'Caution').map((r) => r.display_name);
+
+    const synthesis: SynthesisResult = {
+      consensus: supporters.length > 0
+        ? [`${supporters.join(', ')} support moving forward`]
+        : ['No clear consensus among team members'],
+      disagreements: opponents.length > 0 && supporters.length > 0
+        ? [`${opponents.join(', ')} oppose; ${supporters.join(', ')} support`]
+        : [],
+      top_risks: cautious.length > 0
+        ? [`${cautious.join(', ')} recommend further review before proceeding`]
+        : [],
+      recommended_action: supporters.length > opponents.length
+        ? 'Majority support — review cautionary notes and address concerns before proceeding.'
+        : 'Mixed or majority opposition — gather more information before making this decision.',
+    };
+
+    const result: ScenarioResult = {
+      id: crypto.randomUUID(),
+      scenario_text: scenario_text.trim(),
+      created_at: new Date().toISOString(),
+      responses,
+      synthesis,
+    };
+
+    // Persist the decision to the database
+    await serviceClient.from('decisions').insert({
+      org_id: orgId,
+      created_by: memberId,
+      scenario_text: scenario_text.trim(),
+      selected_archetypes: slugsToQuery,
+      responses: responses,
+      synthesis: synthesis,
+    });
 
     return NextResponse.json(result);
   } catch (err) {
     console.error('[decision-lab] POST error', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function GET() {
-  // Return mock history list
-  const history = [
-    {
-      id: 'mock-history-1',
-      scenario_text: 'Should we cancel our annual gala?',
-      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'mock-history-2',
-      scenario_text: 'We\'re considering expanding to a second location',
-      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-  return NextResponse.json(history);
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  }
+
+  const { data: decisions, error } = await serviceClient
+    .from('decisions')
+    .select('id, scenario_text, created_at')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error('[decision-lab GET] DB error:', error);
+    return NextResponse.json({ error: 'Failed to fetch decision history' }, { status: 500 });
+  }
+
+  return NextResponse.json(decisions ?? []);
 }

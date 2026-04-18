@@ -74,6 +74,34 @@ export async function getSession() {
 }
 
 /**
+ * Initiate Google OAuth sign-in via Supabase.
+ * Redirects the browser to Google's OAuth consent screen.
+ * After the user grants permission, Google redirects to /auth/callback.
+ */
+export async function signInWithGoogle() {
+  const supabase = createClient();
+  if (!supabase) return notConfigured();
+
+  const redirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/auth/callback`
+      : undefined;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo,
+      queryParams: {
+        // Force account selection so users can switch Google accounts
+        prompt: "select_account",
+      },
+    },
+  });
+
+  return { data, error };
+}
+
+/**
  * Send a password-reset email to the given address.
  */
 export async function resetPassword(email: string) {

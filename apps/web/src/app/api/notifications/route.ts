@@ -1,65 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Notification } from '@/components/notifications/types';
-
-
-// Mock notifications — realistic sample data
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'notif-001',
-    type: 'checkin',
-    title: 'Your Director of Development has an update',
-    body: 'Ford Foundation LOI deadline is in 3 days. Two new donor prospects surfaced from last week\'s event — both show strong giving history.',
-    archetype: 'development_director',
-    link: '/dashboard/inbox?section=team-updates',
-    timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(), // 12 min ago
-    read: false,
-  },
-  {
-    id: 'notif-002',
-    type: 'checkin',
-    title: 'Your Marketing Director checked in',
-    body: 'Last week\'s impact post is outperforming average by 2.4x. Recommends boosting the Friday post before the gala.',
-    archetype: 'marketing_director',
-    link: '/dashboard/inbox?section=team-updates',
-    timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(), // 1.5 hrs ago
-    read: false,
-  },
-  {
-    id: 'notif-003',
-    type: 'message',
-    title: 'Your Executive Assistant has a heads-up',
-    body: 'Board meeting moved to Thursday at 2 PM. I\'ve updated your calendar and sent the agenda to attendees.',
-    archetype: 'executive_assistant',
-    link: '/dashboard/inbox',
-    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hrs ago
-    read: false,
-  },
-  {
-    id: 'notif-004',
-    type: 'checkin',
-    title: 'Your Programs Director checked in',
-    body: 'Q1 outcomes report is due in 10 days. Youth Workforce program is on track; Housing Stability program needs 2 additional outcome entries.',
-    archetype: 'programs_director',
-    link: '/dashboard/inbox?section=team-updates',
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hrs ago
-    read: true,
-  },
-  {
-    id: 'notif-005',
-    type: 'system',
-    title: 'Google Calendar connected',
-    body: 'Your Executive Assistant can now see your availability and schedule meetings on your behalf.',
-    link: '/dashboard/integrations',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // yesterday
-    read: true,
-  },
-];
+import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
 
 export async function GET() {
-  return NextResponse.json(MOCK_NOTIFICATIONS);
+  const { user, orgId, memberId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  }
+
+  const { data: notifications, error } = await serviceClient
+    .from('notifications')
+    .select('id, type, title, body, archetype, link, read, created_at')
+    .eq('org_id', orgId)
+    .eq('member_id', memberId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error('[notifications GET] DB error:', error);
+    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+  }
+
+  // Shape into the format the frontend expects
+  const shaped = (notifications ?? []).map((n) => ({
+    id: n.id,
+    type: n.type,
+    title: n.title,
+    body: n.body,
+    archetype: n.archetype,
+    link: n.link,
+    read: n.read,
+    timestamp: n.created_at,
+  }));
+
+  return NextResponse.json(shaped);
 }
 
 export async function PATCH(req: NextRequest) {
+  const { user, orgId, memberId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json() as { ids: string[] };
   const { ids } = body;
 
@@ -67,7 +53,21 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'ids must be an array' }, { status: 400 });
   }
 
-  // In a real implementation this would write to a database.
-  // For now just echo back success.
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  }
+
+  const { error } = await serviceClient
+    .from('notifications')
+    .update({ read: true })
+    .in('id', ids)
+    .eq('member_id', memberId);
+
+  if (error) {
+    console.error('[notifications PATCH] DB error:', error);
+    return NextResponse.json({ error: 'Failed to mark notifications as read' }, { status: 500 });
+  }
+
   return NextResponse.json({ updated: ids, success: true });
 }

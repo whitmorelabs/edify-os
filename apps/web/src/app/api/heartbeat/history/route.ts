@@ -1,86 +1,64 @@
 import { NextResponse } from "next/server";
-import type { HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
-
-
-const mockHistory: HeartbeatResult[] = [
-  {
-    id: "hb-001",
-    archetype: "development_director",
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    title: "Grant Deadline Alert: Ford Foundation LOI Due in 5 Days",
-    body: "The Ford Foundation Youth Development LOI is due April 15th. Your draft is 80% complete — the budget narrative and outcome metrics sections still need attention. Two similar grants from peer organizations closed oversubscribed last cycle, so early submission is recommended.",
-    suggestedAction: "Review the draft LOI and complete the budget narrative",
-    suggestedActionUrl: "/dashboard/tasks",
-  },
-  {
-    id: "hb-002",
-    archetype: "marketing_director",
-    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    title: "Spring Campaign Engagement Up 34% This Week",
-    body: "Your Spring fundraising email campaign is performing above benchmark. Open rate hit 28% (industry average: 21%) and click-through is at 6.2%. The donor spotlight feature in Tuesday's email drove the highest engagement. Consider a follow-up story post to capitalize on momentum.",
-    suggestedAction: "Schedule a follow-up donor spotlight for next week",
-    suggestedActionUrl: "/dashboard/tasks",
-  },
-  {
-    id: "hb-003",
-    archetype: "executive_assistant",
-    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    title: "3 Meetings Need Prep Materials by Tomorrow",
-    body: "You have three back-to-back meetings tomorrow starting at 9 AM. The board finance committee meeting at 2 PM still needs the Q1 financial summary and program impact slides. The vendor call at 4 PM has no agenda set. I've drafted prep notes for the morning meetings.",
-    suggestedAction: "Review prep notes and add Q1 financials to board packet",
-    suggestedActionUrl: "/dashboard/tasks",
-  },
-  {
-    id: "hb-004",
-    archetype: "development_director",
-    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    title: "Major Donor Prospect: New Signal from the Martinez Family",
-    body: "The Martinez Family Foundation posted a new grant cycle announcement aligned with your youth mentorship work. They funded two comparable organizations last year at $75K–$100K. Their program officer, Diana Reyes, attended your community forum in February. A warm intro through board member Chen may be the right first step.",
-    suggestedAction: "Ask board member Chen for an introduction to Diana Reyes",
-  },
-  {
-    id: "hb-005",
-    archetype: "programs_director",
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    title: "Q2 Program Outcomes: Youth Mentorship Exceeding Targets",
-    body: "The youth mentorship program hit 94% participant retention this quarter, up from 81% in Q1. Session attendance averaging 12.3 per cohort (target was 10). Three participants completed job shadow placements ahead of schedule. The summer cohort waitlist is at 28 applicants for 15 spots.",
-    suggestedAction: "Review summer cohort application criteria to manage waitlist",
-  },
-  {
-    id: "hb-006",
-    archetype: "marketing_director",
-    timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    status: "skipped",
-    title: null,
-    body: null,
-    suggestedAction: null,
-    skipReason: "No significant updates since last check-in",
-  },
-  {
-    id: "hb-007",
-    archetype: "programs_director",
-    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    status: "skipped",
-    title: null,
-    body: null,
-    suggestedAction: null,
-    skipReason: "Check-ins are currently disabled for this team member",
-  },
-];
+import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const archetype = searchParams.get("archetype");
 
-  let results = mockHistory;
-  if (archetype) {
-    results = mockHistory.filter((h) => h.archetype === archetype);
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  // Get heartbeat jobs for this org (filtered by archetype if specified)
+  let jobQuery = serviceClient
+    .from("heartbeat_jobs")
+    .select("id, config")
+    .eq("org_id", orgId);
+
+  if (archetype) {
+    jobQuery = jobQuery.contains("config", { archetype });
+  }
+
+  const { data: jobs } = await jobQuery;
+
+  if (!jobs || jobs.length === 0) {
+    return NextResponse.json([]);
+  }
+
+  const jobIds = jobs.map((j) => j.id);
+  const jobArchetypeMap = Object.fromEntries(
+    jobs.map((j) => [j.id, (j.config as { archetype?: string })?.archetype ?? "unknown"])
+  );
+
+  // Fetch run history for these jobs
+  const { data: runs, error } = await serviceClient
+    .from("heartbeat_runs")
+    .select("id, job_id, status, findings_summary, started_at, completed_at")
+    .in("job_id", jobIds)
+    .order("started_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("[heartbeat/history] DB error:", error);
+    return NextResponse.json({ error: "Failed to fetch heartbeat history" }, { status: 500 });
+  }
+
+  // Shape into the format the frontend expects
+  const results = (runs ?? []).map((run) => ({
+    id: run.id,
+    archetype: jobArchetypeMap[run.job_id],
+    timestamp: run.started_at,
+    status: run.status,
+    title: run.findings_summary ? run.findings_summary.split("\n")[0] : null,
+    body: run.findings_summary ?? null,
+    suggestedAction: null,
+  }));
 
   return NextResponse.json(results);
 }

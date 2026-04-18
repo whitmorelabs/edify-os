@@ -1,9 +1,65 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey =
   process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+/**
+ * Service-role Supabase client — bypasses RLS, server-side only.
+ * Use only in API routes where you need to act on behalf of an authenticated user
+ * but need to query across org boundaries (e.g., to look up their org_id from user_id).
+ * NEVER expose this client or its queries to the browser.
+ */
+export function createServiceRoleClient() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null;
+  }
+  return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+/**
+ * Get the authenticated user and their org membership in one call.
+ * Returns null for both if the user is not authenticated or Supabase is not configured.
+ *
+ * Usage in API routes:
+ *   const { user, orgId, memberId } = await getAuthContext();
+ *   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ */
+export async function getAuthContext(): Promise<{
+  user: { id: string; email?: string } | null;
+  orgId: string | null;
+  memberId: string | null;
+}> {
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return { user: null, orgId: null, memberId: null };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { user: null, orgId: null, memberId: null };
+
+  // Look up the user's org membership (take first org — multi-org support is future work)
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) return { user, orgId: null, memberId: null };
+
+  const { data: member } = await serviceClient
+    .from("members")
+    .select("id, org_id")
+    .eq("user_id", user.id)
+    .single();
+
+  return {
+    user,
+    orgId: member?.org_id ?? null,
+    memberId: member?.id ?? null,
+  };
+}
 
 /**
  * Server-side Supabase client for use in Server Components and Route Handlers.
