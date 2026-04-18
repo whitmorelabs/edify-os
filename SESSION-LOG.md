@@ -1547,3 +1547,227 @@ Added document parsing dependencies: PyMuPDF>=1.24.0, python-docx>=1.1.0, openpy
 ### Category slug coverage
 All 12 slugs confirmed present in both `VALID_CATEGORIES` (router.py) and new `CategorySlug` literal (models.py):
 `mission, programs, donors, grants, campaigns, brand_voice, contacts, processes, general, financials, volunteers, events`
+
+---
+
+## 2026-04-12 — Remove Finance Director (Permanent)
+
+**Task:** Remove all Finance Director references from the codebase. Z confirmed permanent removal.
+
+### Files Deleted
+- `apps/web/src/app/agents/finance-director/page.tsx` + directory
+- `services/agents/src/prompts/primary/finance_director.md`
+- `services/agents/src/agents/primary/finance_director.py`
+- `services/agents/src/agents/sub/audit_prep.py`
+- `services/agents/src/agents/sub/budget_builder.py`
+- `services/agents/src/agents/sub/cash_flow_forecast.py`
+- `services/agents/src/agents/sub/grant_financial_report.py`
+- `services/agents/src/prompts/sub/audit_prep.md`
+- `services/agents/src/prompts/sub/budget_builder.md`
+- `services/agents/src/prompts/sub/cash_flow_forecast.md`
+- `services/agents/src/prompts/sub/grant_financial_report.md`
+
+### Files Updated
+- `services/agents/src/decision_lab/orchestrator.py` — removed `finance_director` from `ALL_ARCHETYPES` and `_DISPLAY_NAMES`
+- `services/agents/src/heartbeat/config.py` — removed `finance_director` from `ALL_ARCHETYPES`, updated docstring counts from 7 to 6
+- `services/agents/src/heartbeat/executor.py` — removed `finance_director` from `ARCHETYPE_DISPLAY_NAMES`
+- `services/agents/src/heartbeat/prompts.py` — removed `finance_director` from `ARCHETYPE_SCAN_FOCUS`
+- `services/agents/src/heartbeat/models.py` — updated docstring example slug
+- `services/agents/src/agents/primary/__init__.py` — removed `FinanceDirector` import and export
+- `services/agents/src/agents/sub/__init__.py` — removed finance-specific sub-agent imports and exports
+- `apps/web/src/app/dashboard/guide/meet-your-team/page.tsx` — removed Finance Director from team list, updated "seven" to "six"
+- `apps/web/src/app/dashboard/guide/meet-your-team/[slug]/page.tsx` — removed finance-director from ARCHETYPE_STYLES, removed DollarSign import
+- `apps/web/src/app/dashboard/guide/layout.tsx` — removed finance-director nav link
+- `apps/web/src/app/dashboard/guide/page.tsx` — removed Finance Director link from Meet Your Team section
+- `apps/web/src/app/dashboard/guide/search/page.tsx` — removed finance-director from GUIDE_ARTICLES
+- `apps/web/src/lib/guide-content.ts` — removed from meetTeamSlugs array and ARTICLE_ORDER
+- `apps/web/src/app/dashboard/onboarding/components/ArchetypePicker.tsx` — removed finance-director archetype, removed DollarSign import, updated "all seven" to "all six"
+- `apps/web/src/app/dashboard/onboarding/components/GuidedConversation.tsx` — removed finance-director from EXAMPLE_PROMPTS
+- `apps/web/src/app/dashboard/onboarding/components/WelcomeScreen.tsx` — removed Finance Director from teamPreviews, removed DollarSign import, updated count to 6
+
+### Verification
+- `pnpm run typecheck` passed with 0 errors
+- Final grep confirmed 0 remaining `finance_director`/`Finance Director`/`finance-director` references in source code
+
+---
+
+## 2026-04-17 — Phase 1 Foundation (coding agent)
+
+### Phase A: Audit
+
+**Objective:** Connect to live Supabase, dump actual schema, compare to supabase/migrations/, determine SAFE/NOT SAFE.
+
+**Credentials used:** SUPABASE_SERVICE_ROLE_KEY from apps/web/.env.local. Project URL: https://tuirnficbifoewuijzeq.supabase.co
+
+**Live DB schema dump:**
+
+Queried via Supabase REST API OpenAPI spec (service role key, which bypasses RLS):
+```
+GET https://tuirnficbifoewuijzeq.supabase.co/rest/v1/ (Accept: application/openapi+json)
+```
+
+Exposed paths in live DB public schema:
+- `/` (root)
+- `/rpc/rls_auto_enable`
+
+That is the complete list. **No tables exist.** No migration history table. No data.
+
+Spot-checked tables from all 8 migrations against live DB — all returned PGRST205 ("Could not find the table in the schema cache"):
+- orgs, members, agent_configs, tasks, task_steps — NOT FOUND
+- memory_entries, conversations, messages — NOT FOUND
+- heartbeat_jobs, heartbeat_runs, approvals, digest_preferences — NOT FOUND
+- integrations — NOT FOUND
+
+**Interpretation:** The live Supabase project has never had migrations applied. It is a clean slate. No data to protect, no diverged schema to reconcile. This is the best possible scenario.
+
+**Migration files on disk (supabase/migrations/):**
+- 00001_core_tenancy.sql — orgs, members tables + RLS
+- 00002_agents_and_tasks.sql — agent_configs, tasks, task_steps tables + RLS
+- 00003_memory_and_context.sql — memory_entries, conversations, messages tables + RLS
+- 00004_heartbeat.sql — heartbeat_jobs, heartbeat_runs tables + RLS
+- 00005_approvals.sql — approvals, digest_preferences tables + RLS
+- 00006_integrations.sql — integrations table + RLS
+- 00007_expand_integrations.sql — expands integrations.type check constraint (34 connectors)
+- 00008_expand_memory_categories.sql — adds financials, volunteers, events to memory_entries category check
+
+**Tables referenced in PRD routes but missing from migrations 00001-00008:**
+- documents — PRD /api/briefing + /api/briefing/upload → needs new migration
+- decisions — PRD /api/decision-lab → needs new migration
+- notifications — PRD /api/notifications → needs new migration
+- support_messages — PRD /api/support/chat → needs new migration
+- conversations + messages → ALREADY in migration 00003 (good)
+
+**Other findings:**
+- next.config.mjs has `output: 'export'` (static mode) — blocks all 14 API routes in production
+- apps/web/src/middleware.ts.bak exists — auth middleware is disabled (just needs rename)
+- All 14 API routes have `export const dynamic = 'force-static'` and return mock data
+- No Anthropic SDK (@anthropic-ai/sdk) in package.json — server-side Claude calls blocked
+- claude-client.ts makes browser-side Claude calls — PRD requires server-side routing
+- No /app/auth/callback/route.ts for Google OAuth callback
+- git is clean (main branch, up to date with remote) — safe to commit
+
+**AUDIT VERDICT: SAFE TO PROCEED**
+
+The live DB is a clean slate. Migrations can be applied fresh via Supabase REST API (psql migration approach). All 8 existing migrations plus 4 new ones (documents, decisions, notifications, support_messages) will bring the schema to the state the PRD requires. No destructive operations needed. No data at risk.
+
+
+### Phase B: Implementation
+
+All changes committed to main and pushed. Vercel auto-deploy triggered.
+
+**Commit 1 — `d1e5df8` — Switch Next.js to server mode and restore auth middleware**
+- Removed `output: 'export'` from `apps/web/next.config.mjs`
+- Copied `middleware.ts.bak` → `middleware.ts` to restore auth redirects
+- Removed `export const dynamic = 'force-static'` from all 12 static API routes
+- Removed `generateStaticParams()` from team/[slug] API routes (static export artifact)
+
+**Commit 2 — `c0cb67f` — Add @anthropic-ai/sdk**
+- Required for server-side Claude API calls in team/chat and support/chat
+- pnpm-lock.yaml updated
+
+**Commit 3 — `a5297ac` — Wire all 14 API routes to Supabase + Google OAuth**
+- `/api/team/[slug]/chat` → Real Claude call using org's `anthropic_api_key_encrypted`, persists to `conversations` + `messages` tables
+- `/api/team/[slug]/conversations` → Real SELECT from `conversations` table
+- `/api/admin/members` → Real SELECT from `members` table, enriched with auth.admin.getUserById()
+- `/api/admin/ai-config` → Real SELECT from `agent_configs` + PATCH with upsert
+- `/api/admin/usage` → Real COUNT queries across conversations, messages, tasks, heartbeat_runs, documents
+- `/api/heartbeat` → Real heartbeat_jobs SELECT/upsert; PATCH updates heartbeat_job config
+- `/api/heartbeat/history` → Real heartbeat_runs SELECT
+- `/api/integrations` → Real integrations table GET/POST/DELETE
+- `/api/notifications` → Real notifications table GET/PATCH
+- `/api/support/chat` → Real Claude call (claude-haiku), persists to `support_messages`
+- `/api/decision-lab` → Parallel Claude calls for all 6 archetypes, persists to `decisions`
+- `/api/briefing` → Updates `orgs` table + inserts into `memory_entries`
+- Added `createServiceRoleClient()` and `getAuthContext()` to `supabase/server.ts`
+- Added `signInWithGoogle()` to `supabase/auth.ts`
+- Added `/app/auth/callback/route.ts` — exchanges OAuth code for Supabase session
+- Added Google sign-in button to login page (above email/password form)
+- Added migrations 00009 (documents, notifications) and 00010 (decisions, support_messages)
+- Added `supabase/config.toml` (CLI init)
+
+**Commit 4 — `1fbcda8` — Migration helper files**
+- `supabase/combined_migration.sql` — all 10 migrations in one file for manual execution
+- `supabase/apply-migrations.js` — documents 3 ways to apply migrations
+
+**Commit 5 — `35c76eb` — Wire briefing/upload to documents table**
+- Creates a `documents` row on file upload (storage_path set to null until Phase 2 Storage setup)
+
+### Files Modified
+- `apps/web/next.config.mjs`
+- `apps/web/src/middleware.ts` (new — restored from .bak)
+- All 14 API routes in `apps/web/src/app/api/`
+- `apps/web/src/lib/supabase/server.ts`
+- `apps/web/src/lib/supabase/auth.ts`
+- `apps/web/src/app/(auth)/login/page.tsx`
+- `apps/web/package.json` + `pnpm-lock.yaml`
+
+### Files Created
+- `apps/web/src/app/auth/callback/route.ts`
+- `supabase/config.toml`
+- `supabase/migrations/00009_documents_and_notifications.sql`
+- `supabase/migrations/00010_decisions_and_support.sql`
+- `supabase/combined_migration.sql`
+- `supabase/apply-migrations.js`
+
+### Decisions Made
+
+1. **`decisions` table uses JSONB for responses/synthesis** — simpler than separate tables for Phase 1. Decision Lab query patterns are read-heavy, not join-heavy.
+
+2. **`heartbeat_jobs.config` stores archetype slug** — existing heartbeat_jobs table has a `config jsonb` column; used it to store archetype identification rather than adding a new column.
+
+3. **Support chat uses claude-haiku** — cheaper and faster for support queries; team archetype chat uses claude-sonnet.
+
+4. **Decision Lab also uses claude-haiku** — 6 parallel calls; haiku speed matters here.
+
+5. **`admin/members` enriches with `auth.admin.getUserById()`** — the `members` table stores `user_id` (UUID from auth.users) but not the email. Service role client has access to auth.admin; this lets us return email + name without storing PII in the public schema.
+
+6. **`briefing/upload` storage deferred** — creating a `documents` row is enough for Phase 1; actual file binary storage requires a Supabase Storage bucket to be created in the dashboard first.
+
+7. **Heartbeat upsert uses `org_id,name` conflict key** — `heartbeat_jobs` doesn't have a unique constraint on archetype slug, so we use the job name as a proxy key.
+
+### Outstanding Issues / Questions for Lopmon
+
+**BLOCKER: DB migrations not applied to live Supabase.**
+
+All code is deployed to Vercel. The API routes will return 503/500 errors until the schema exists in the live DB. I could not apply migrations automatically because:
+- No psql installed on this machine
+- Supabase service role key cannot execute arbitrary SQL (only exposes PostgREST)
+- Supabase Management API requires a PAT (personal access token) — not stored locally
+- DB password is in Citlali's password manager — not accessible to this agent
+
+**Action needed from Citlali (5 minutes):**
+1. Go to: https://supabase.com/dashboard/project/tuirnficbifoewuijzeq/sql/new
+2. Open: `C:\Users\Araly\edify-os\supabase\combined_migration.sql` in any text editor
+3. Copy all contents → paste into the SQL editor → click "Run"
+4. Confirm all tables appear in the Table Editor
+
+OR, if Citlali has the DB password handy:
+   npx supabase db push --db-url "postgresql://postgres.tuirnficbifoewuijzeq:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+   (run from C:\Users\Araly\edify-os)
+
+**After migrations are applied:**
+- The API routes will work
+- Create a test org and user via the Supabase dashboard (Auth → Users → "Invite user") to smoke-test
+- Or sign in with Google via https://edifyos.vercel.app/login — if the org creation flow isn't wired yet, the user will have a session but no org_id and API routes will return 401
+
+**Second blocker: No org creation flow wired.**
+After a user signs in with Google (or email), there's no automatic org provisioning. A new Supabase user will have a session but won't be in the `members` table, so `getAuthContext()` returns `orgId: null` and all API routes return 401.
+
+**Proposed fix for Lopmon:** This is a 1-session task. Need to either:
+(a) Wire a `/api/org/create` endpoint + call it after first Google sign-in (onboarding flow), OR
+(b) Manually insert a row into `orgs` + `members` in the SQL editor for the first user
+
+Recommend (b) for smoke testing and (a) as a follow-up task in a new PRD or as an addendum to Phase 1.
+
+### Acceptance Criteria Status
+
+1. ✅ Code complete: Google Sign-in button → /auth/callback → session → /dashboard redirect
+   ⚠️ Blocked: migrations not applied; org creation not wired
+2. ✅ Code complete: /api/team/[slug]/chat calls Claude and persists to conversations+messages
+   ⚠️ Blocked: migrations not applied; no org creation flow
+3. ✅ Code complete: All 14 routes use real Supabase queries, zero getMock() functions remain
+   ⚠️ Blocked: migrations not applied
+4. ✅ Middleware restored: /dashboard requires auth, unauthenticated redirects to /login
+5. ✅ output: 'export' removed: Vercel deploy shows no static export warnings (confirmed in build output)
+6. ⚠️ Seed data: Combined migration includes demo org seed in seed.sql — needs manual run after migrations
+
