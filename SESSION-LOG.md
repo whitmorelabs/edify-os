@@ -2,6 +2,102 @@
 
 ---
 
+## 2026-04-17 — Phase 3 Grants + CRM (coding agent)
+
+**Task:** Implement Phase 3 — Grants & Fundraising per PRD-phase-3-grants-and-crm.md.
+
+### Pre-work Findings
+
+**PRD:** Three tables (donors, donations, donor_interactions), trigger for aggregate updates, RLS SELECT-only (service client does all writes). Two Grants.gov endpoints (search2, fetchOpportunity). 2 grants tools + 5 CRM tools. development_director gets all 7; programs_director gets grants-only (read-only).
+
+**`lib/tools/calendar.ts` shape (to replicate):**
+- Exports `calendarTools: Anthropic.Tool[]`, `CALENDAR_TOOLS_ADDENDUM`, `executeCalendarTool({ name, input, accessToken })`.
+- try/catch around switch, `is_error: true` on errors, JSON.stringify (no indent).
+
+**`lib/tools/registry.ts`:**
+- `ARCHETYPE_TOOLS` keyed on underscore slugs, `development_director: []` currently (to fill with grants+CRM).
+- `executeTool` dispatches on `calendar_` prefix via startsWith — extend with else-if branches for `grants_` and `crm_`.
+- `executeTool` signature: `{ name, input, orgId, serviceClient, preFetchedTokens? }` — need to add `memberId` for CRM tools. Chat route already extracts `memberId` from `getAuthContext()`.
+
+**`lib/google-calendar.ts` pattern:**
+- Custom error class, `authHeaders` helper, `handleResponse<T>` helper, individual typed REST functions.
+
+**Migrations:** 00015 is the latest. 00016_crm_tables.sql is new. RLS pattern: `org_id in (select org_id from members where user_id = auth.uid())` — same as all prior migrations.
+
+**Chat route:**
+- `memberId` already extracted from `getAuthContext()` at line 36.
+- System prompt currently appends `CALENDAR_TOOLS_ADDENDUM` unconditionally when `tools.length > 0`. Need to replace with addendum-chain logic for calendar/grants/CRM.
+- `executeTool` call site does NOT currently pass `memberId` — need to add it to the signature and call site.
+
+### What Was Built
+
+**Step 1 — `supabase/migrations/00016_crm_tables.sql` (NEW)**
+- Three tables: `donors`, `donations`, `donor_interactions`
+- RLS SELECT-only policies using `org_id in (select org_id from members where user_id = auth.uid())` pattern
+- `update_donor_aggregates()` trigger: fires after INSERT on donations, updates `lifetime_giving_cents`, `first_gift_at`, `last_gift_at` on the parent donor row. `security definer` so the trigger runs as the definer, not the caller.
+- Appended to `supabase/combined_migration.sql` — Citlali can run the full combined file in one go.
+
+**Step 2 — `apps/web/src/lib/grants-gov.ts` (NEW)**
+- `Grant` and `GrantDetail` types, `GrantsGovError` class
+- `grantsGovHeaders()`: includes `X-Api-Key` header if `process.env.API_DATA_GOV_KEY` is set
+- `searchGrants()`: POST to `https://api.grants.gov/v1/api/search2`. `deadlineWithinDays` convenience param → `closeDate: { startDate, endDate }` in MM/DD/YYYY format. Rows capped at 50. Handles both `oppHits` and `hits` response field names (API can vary).
+- `fetchGrantDetails()`: POST to `https://api.grants.gov/v1/api/fetchOpportunity`.
+- `projectGrant()` helper maps API camelCase fields to our typed shape.
+
+**Step 3 — `apps/web/src/lib/crm.ts` (NEW)**
+- `Donor`, `Donation`, `Interaction` types
+- `listDonors()`: `ilike` search on name/email, `contains` filter on tags, configurable sort + limit
+- `getDonor()`: 3 queries in `Promise.all` (donor, 10 recent donations, 10 recent interactions)
+- `createDonor()`: returns inserted row via `.select('*').single()`
+- `logDonation()`: inserts row; trigger handles aggregate updates; no manual aggregate logic
+- `logInteraction()`: inserts touchpoint record with follow-up tracking
+- All functions enforce `.eq('org_id', orgId)` defense-in-depth
+
+**Step 4 — `apps/web/src/lib/tools/grants.ts` (NEW)**
+- `grantsTools: Anthropic.Tool[]` — 2 tools with careful model-facing descriptions
+- `GRANTS_TOOLS_ADDENDUM` const
+- `executeGrantsTool({ name, input })` — switch on name, slim projection for `grants_search`, full detail for `grants_get_details`, required-field guards, `GrantsGovError` aware catch
+
+**Step 5 — `apps/web/src/lib/tools/crm.ts` (NEW)**
+- `crmTools: Anthropic.Tool[]` — 5 tools with model-facing descriptions
+- `CRM_TOOLS_ADDENDUM` const (clarifies dollar input, warns against making up donor data)
+- `executeCrmTool({ name, input, orgId, memberId, serviceClient })` — dollar→cents conversion (×100, Math.round) in `crm_log_donation`; cents→dollars conversion in all outputs; slim projection for list
+- Type complexity note: `interactionType` cast uses the explicit union type inline (avoids a confusing `Donor["donor_type"]` cross-reference that was a leftover in the type parameter)
+
+**Step 6 — `apps/web/src/lib/tools/registry.ts` (UPDATED)**
+- Added imports for `grantsTools`, `executeGrantsTool`, `crmTools`, `executeCrmTool`
+- Re-exports `GRANTS_TOOLS_ADDENDUM` and `CRM_TOOLS_ADDENDUM` from registry for route convenience
+- `development_director`: `[...grantsTools, ...crmTools]` (7 tools total)
+- `programs_director`: `[...grantsTools]` (2 tools, read-only grants for compliance research)
+- `executeTool` signature: added `memberId: string | null` parameter
+- Dispatch branches: `grants_` → `executeGrantsTool`, `crm_` → `executeCrmTool`
+
+**Step 7 — `apps/web/src/app/api/team/[slug]/chat/route.ts` (UPDATED)**
+- Imports `GRANTS_TOOLS_ADDENDUM` and `CRM_TOOLS_ADDENDUM` from registry
+- Replaced single `CALENDAR_TOOLS_ADDENDUM` conditional with addendum-chain logic: checks `hasCalendar`, `hasGrants`, `hasCrm` via `tools.some(t => t.name.startsWith(...))`, pushes applicable addendums, joins them
+- `executeTool` call site now passes `memberId: memberId ?? null`
+
+### Build
+- `npm run build` in `apps/web/` passed cleanly (79 static pages, no TypeScript errors, no warnings).
+
+### Acceptance Check
+- ✅ Step 1: Migration file + combined_migration.sql updated
+- ✅ Step 2: grants-gov.ts with searchGrants + fetchGrantDetails
+- ✅ Step 3: crm.ts with 5 typed Supabase wrappers
+- ✅ Step 4: tools/grants.ts matching calendar.ts shape
+- ✅ Step 5: tools/crm.ts matching calendar.ts shape, dollar→cents conversion
+- ✅ Step 6: registry.ts updated, development_director gets 7 tools, programs_director gets 2
+- ✅ Step 7: chat route addendum chain + memberId plumbed through
+- ✅ Build clean
+
+### Env Var Checklist Note
+`API_DATA_GOV_KEY` should be added to Vercel env vars for production Grants.gov higher rate limits. Key is already in `.env.local` per PRD. Add alongside the other env vars on the morning checklist.
+
+### Migration Apply Note
+`00016_crm_tables.sql` is the new migration. Citlali still needs to apply 00009–00016. Full `combined_migration.sql` covers all of them — run it in one go in Supabase SQL editor.
+
+---
+
 ## 2026-04-17 — Phase 2b Calendar tools (coding agent)
 
 **Task:** Implement Phase 2b — Calendar tools + Anthropic tool-use loop per PRD-phase-2b-calendar-tools.md.
@@ -2341,3 +2437,22 @@ Apply /simplify findings to commit `777ec0c` (Phase 2b Calendar tools). All HIGH
 ### Build Result
 `npx turbo run build --filter=@edify/web` — SUCCESS (79 static pages, no type errors).
 Note: `@edify/slack` has pre-existing `@slack/types` import error unrelated to these changes.
+
+### Edify OS — /simplify pass on Phase 2b Calendar Tools (coding agent, 2026-04-17)
+
+**What was done:** Applied all HIGH + MEDIUM /simplify findings to commit `777ec0c` (Phase 2b Calendar tools). One clean commit (`85e5b38`) pushed to main.
+
+**Fixes applied:**
+- H1: Persist user message to DB immediately after conversation row is created/verified, before the tool-use loop begins. On Anthropic 5xx mid-loop, user's message is preserved; assistant message is not saved (correct — no response was produced). End of function now only inserts assistant message.
+- H2: `let lastAssistantText = ""` tracks any real text seen across rounds. Cap-hit fallback uses `lastAssistantText || canned_message`. `end_turn`/`max_tokens`/`stop_sequence` all use `textInThisResponse` extracted at the top of each round (not re-extracted).
+- H3: Before `Promise.all` over tool blocks, scan for any `calendar_*` tool. If found, call `getValidGoogleAccessToken` once, store in `Map<string, string>`. Pass map into each `executeTool` call. `registry.ts` `executeTool` accepts optional `preFetchedTokens?: Map<string, string>` — uses pre-fetched token if present, falls back to its own fetch if not.
+- M1: All `JSON.stringify(result, null, 2)` → `JSON.stringify(result)` in `calendar.ts`. `calendar_list_events` maps events to `{id, summary, start, end, location, attendees[email only]}` — drops `htmlLink`, verbose `description`, per-attendee `responseStatus`. `calendar_get_event` returns full detail.
+- M2: Required-field guards: `eventId` in get/update/delete, `summary`/`start`/`end` in createEvent. Bad input returns `{ content, is_error: true }` immediately.
+- M3: Per-block try/catch inside the `Promise.all` — a thrown error becomes `is_error: true` result instead of rejecting the whole round and returning 502 to the user.
+- M4: Explicit stop_reason handling: `refusal` → `"I can't help with that request."`, `end_turn|max_tokens|stop_sequence` → extract text and break, unknown → `console.warn` + break.
+- M5: `CALENDAR_TOOLS_ADDENDUM` moved from `route.ts` to `calendar.ts` (exported). `route.ts` imports it from `@/lib/tools/calendar`.
+- M6: `const MAX_RESPONSE_TOKENS = 4096` added alongside `TOOL_USE_LOOP_MAX`. Used in `anthropic.messages.create`.
+
+**Build:** `npx turbo run build --filter=@edify/web` passed cleanly (79 pages, no TS errors). Note: `@edify/slack` has a pre-existing `@slack/types` missing dependency error unrelated to these changes.
+
+**Commit:** `85e5b38` (`simplify: tool-loop persistence + token dedup + result projection`) pushed to origin/main.

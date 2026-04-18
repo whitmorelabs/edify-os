@@ -9,8 +9,13 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calendarTools, executeCalendarTool } from "@/lib/tools/calendar";
+import { grantsTools, executeGrantsTool } from "@/lib/tools/grants";
+import { crmTools, executeCrmTool } from "@/lib/tools/crm";
 import { getValidGoogleAccessToken } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
+
+export { GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/grants";
+export { CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 
 // ---------------------------------------------------------------------------
 // Per-archetype tool sets
@@ -20,9 +25,9 @@ import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: calendarTools,
   events_director: calendarTools,
-  development_director: [],
+  development_director: [...grantsTools, ...crmTools],
   marketing_director: [],
-  programs_director: [],
+  programs_director: [...grantsTools],
   hr_volunteer_coordinator: [],
 };
 
@@ -48,6 +53,7 @@ export async function executeTool({
   name,
   input,
   orgId,
+  memberId,
   serviceClient,
   preFetchedTokens,
 }: {
@@ -55,6 +61,7 @@ export async function executeTool({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input: Record<string, unknown>;
   orgId: string;
+  memberId: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serviceClient: SupabaseClient<any>;
   preFetchedTokens?: Map<string, string>;
@@ -84,6 +91,14 @@ export async function executeTool({
       input,
       accessToken,
     });
+  }
+
+  if (name.startsWith("grants_")) {
+    return executeGrantsTool({ name, input });
+  }
+
+  if (name.startsWith("crm_")) {
+    return executeCrmTool({ name, input, orgId, memberId, serviceClient });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };

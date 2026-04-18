@@ -4,7 +4,7 @@ import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 import { ARCHETYPE_PROMPTS } from "@/lib/archetype-prompts";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
-import { ARCHETYPE_TOOLS, executeTool } from "@/lib/tools/registry";
+import { ARCHETYPE_TOOLS, executeTool, GRANTS_TOOLS_ADDENDUM, CRM_TOOLS_ADDENDUM } from "@/lib/tools/registry";
 import { CALENDAR_TOOLS_ADDENDUM } from "@/lib/tools/calendar";
 import { getValidGoogleAccessToken } from "@/lib/google";
 
@@ -118,10 +118,16 @@ export async function POST(
   // Look up tools for this archetype
   const tools = ARCHETYPE_TOOLS[slug as ArchetypeSlug] ?? [];
 
-  // Append calendar tools addendum when tools are active
-  const toolsAddendum = tools.length > 0 ? CALENDAR_TOOLS_ADDENDUM : "";
+  // Build addendum chain based on which tool families this archetype has
+  const addendums: string[] = [];
+  const hasCalendar = tools.some((t) => t.name.startsWith("calendar_"));
+  const hasGrants = tools.some((t) => t.name.startsWith("grants_"));
+  const hasCrm = tools.some((t) => t.name.startsWith("crm_"));
+  if (hasCalendar) addendums.push(CALENDAR_TOOLS_ADDENDUM);
+  if (hasGrants) addendums.push(GRANTS_TOOLS_ADDENDUM);
+  if (hasCrm) addendums.push(CRM_TOOLS_ADDENDUM);
 
-  const fullSystemPrompt = systemPrompt + orgContext + toolsAddendum;
+  const fullSystemPrompt = systemPrompt + orgContext + addendums.join("");
 
   // H1: Persist user message immediately — before entering the tool-use loop.
   // This ensures that if Claude's API errors mid-loop, the user's message is
@@ -196,6 +202,7 @@ export async function POST(
                 name: block.name,
                 input: block.input as Record<string, unknown>,
                 orgId,
+                memberId: memberId ?? null,
                 serviceClient,
                 preFetchedTokens,
               });
