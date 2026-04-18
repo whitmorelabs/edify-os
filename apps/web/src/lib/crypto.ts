@@ -5,14 +5,21 @@ const ENC_PREFIX = 'enc:v1:';
 const IV_BYTES = 12;
 const KEY_BYTES = 32;
 
+export const CRYPTO_LABEL_ANTHROPIC_KEY = "orgs.anthropic_api_key";
+export const CRYPTO_LABEL_GOOGLE_ACCESS_TOKEN = "integrations.access_token";
+export const CRYPTO_LABEL_GOOGLE_REFRESH_TOKEN = "integrations.refresh_token";
+
+let _cachedKey: Buffer | null = null;
 function getKey(): Buffer {
+  if (_cachedKey) return _cachedKey;
   const raw = process.env.ENCRYPTION_KEY;
   if (!raw) throw new Error('ENCRYPTION_KEY env var not set');
   const key = Buffer.from(raw, 'base64');
   if (key.length !== KEY_BYTES) {
     throw new Error(`ENCRYPTION_KEY must be ${KEY_BYTES} bytes when base64-decoded; got ${key.length}`);
   }
-  return key;
+  _cachedKey = key;
+  return _cachedKey;
 }
 
 export function isEncrypted(value: string | null | undefined): boolean {

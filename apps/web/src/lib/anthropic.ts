@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { decryptIfEncrypted } from "@/lib/crypto";
+import { decryptIfEncrypted, CRYPTO_LABEL_ANTHROPIC_KEY } from "@/lib/crypto";
 
 /** Shared prefix constant — used in both onboarding form and API route for format checks. */
 export const ANTHROPIC_KEY_PREFIX = "sk-ant-";
@@ -50,11 +50,21 @@ export async function getAnthropicClientForOrg(
     };
   }
 
-  const apiKey = decryptIfEncrypted(
-    org["anthropic_api_key_encrypted"] as string | null,
-    "orgs.anthropic_api_key"
-  );
-  const client = new Anthropic({ apiKey: apiKey as string });
+  let apiKey: string | null;
+  try {
+    apiKey = decryptIfEncrypted(
+      org["anthropic_api_key_encrypted"] as string | null,
+      CRYPTO_LABEL_ANTHROPIC_KEY
+    );
+  } catch (err) {
+    console.error('[anthropic] Failed to decrypt API key', { orgId, error: err });
+    return { error: NextResponse.json({ error: "Could not access organization's Anthropic key. Please re-enter it via Settings." }, { status: 500 }) };
+  }
+  if (!apiKey) {
+    return { error: NextResponse.json({ error: "Anthropic API key not set for this organization." }, { status: 402 }) };
+  }
+  const safeKey: string = apiKey;
+  const client = new Anthropic({ apiKey: safeKey });
   const orgName = (org["name"] as string) || "your organization";
 
   return { client, orgName, org };

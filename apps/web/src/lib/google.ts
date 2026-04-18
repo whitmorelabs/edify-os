@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { encrypt, decryptIfEncrypted } from "@/lib/crypto";
+import { encrypt, decryptIfEncrypted, CRYPTO_LABEL_GOOGLE_ACCESS_TOKEN, CRYPTO_LABEL_GOOGLE_REFRESH_TOKEN } from "@/lib/crypto";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -74,6 +74,10 @@ const refreshInFlight = new Map<
   Promise<{ accessToken: string } | { error: NextResponse }>
 >();
 
+/**
+ * Refreshes the Google access token using the provided refresh token.
+ * @param refreshToken — must be DECRYPTED plaintext, not the raw DB value
+ */
 async function doRefreshToken(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serviceClient: SupabaseClient<any>,
@@ -230,8 +234,20 @@ export async function getValidGoogleAccessToken(
   }
 
   // Decrypt tokens — decryptIfEncrypted handles legacy plaintext rows gracefully
-  const accessToken = decryptIfEncrypted(rawAccessToken, "integrations.access_token");
-  const refreshToken = decryptIfEncrypted(rawRefreshToken, "integrations.refresh_token");
+  let accessToken: string | null;
+  let refreshToken: string | null;
+  try {
+    accessToken = decryptIfEncrypted(rawAccessToken, CRYPTO_LABEL_GOOGLE_ACCESS_TOKEN);
+  } catch (err) {
+    console.error('[google] Failed to decrypt access token', { orgId, integrationType, error: err });
+    return { error: NextResponse.json({ error: "Could not access stored Google credentials. Please reconnect Google in Settings." }, { status: 500 }) };
+  }
+  try {
+    refreshToken = decryptIfEncrypted(rawRefreshToken, CRYPTO_LABEL_GOOGLE_REFRESH_TOKEN);
+  } catch (err) {
+    console.error('[google] Failed to decrypt refresh token', { orgId, integrationType, error: err });
+    return { error: NextResponse.json({ error: "Could not access stored Google credentials. Please reconnect Google in Settings." }, { status: 500 }) };
+  }
 
   if (!accessToken) {
     return {
