@@ -29,6 +29,63 @@ NOT installed. `apps/web/package.json` only has `@anthropic-ai/sdk`, `@supabase/
 **7. SUPABASE_URL note:**
 `server.ts` reads `SUPABASE_URL ?? NEXT_PUBLIC_SUPABASE_URL`. The `.env.local` only has `NEXT_PUBLIC_SUPABASE_URL`. That's fine — the fallback handles it.
 
+### Files Created
+- `apps/web/src/lib/google.ts` — Token helper: `getValidGoogleAccessToken`, `GOOGLE_SCOPES`, `GOOGLE_INTEGRATION_TYPES`, `SCOPES_BY_TYPE`. Reads integration row, returns cached token if >60s from expiry, else refreshes via `POST https://oauth2.googleapis.com/token` (form-urlencoded), updates all 3 Google rows.
+- `apps/web/src/app/api/integrations/google/connect/route.ts` — GET: auth-gates, generates CSRF state (randomBytes 32), sets httpOnly cookie `google_oauth_state` (10min), builds Google auth URL via `googleapis` OAuth2 with all 4 scopes + `access_type:offline` + `prompt:consent`, redirects.
+- `apps/web/src/app/api/integrations/google/callback/route.ts` — GET: validates CSRF cookie, exchanges code for tokens, fetches userinfo email, upserts 3 rows (gmail/google_calendar/google_drive) via service client, clears state cookie, redirects to `/dashboard/integrations?google=connected`.
+- `apps/web/src/app/api/integrations/google/route.ts` — GET: returns `{ connected, email }` status. DELETE: removes all 3 Google integration rows.
+- `apps/web/src/app/api/integrations/google/test-calendars/route.ts` — GET: calls `getValidGoogleAccessToken`, uses `googleapis` calendar v3 to list calendars, returns `{ calendars: [{ id, summary, primary }] }`.
+- `supabase/migrations/00014_integrations_policies.sql` — Drops blanket "Tenant isolation" policy, adds explicit SELECT/INSERT/UPDATE/DELETE policies for org members.
+
+### Files Modified
+- `apps/web/src/app/api/integrations/callback/route.ts` — Updated stub comment per PRD step 9.
+- `apps/web/src/app/dashboard/integrations/page.tsx` — Added real Google status load (fetch `/api/integrations/google` on mount), `useSearchParams` for toast handling (`?google=connected` / `?google=denied`), `handleConnectClick` routes Google IDs to `/api/integrations/google/connect`, `handleDisconnect` calls real DELETE for Google IDs, Google email badge on connected cards, toast UI, Suspense wrapper (required by useSearchParams in Next.js 14).
+- `apps/web/package.json` + `pnpm-lock.yaml` — Added `googleapis ^171.4.0`.
+- `supabase/combined_migration.sql` — Appended 00014 policies.
+
+### Steps Completed
+- ✅ Step 1: `googleapis` installed via pnpm
+- ✅ Step 2: `apps/web/src/lib/google.ts` token refresh helper
+- ✅ Step 3: OAuth initiate route `/api/integrations/google/connect`
+- ✅ Step 4: OAuth callback route `/api/integrations/google/callback`
+- ✅ Step 5: Disconnect endpoint + status GET at `/api/integrations/google`
+- ✅ Step 6: Test-calendars endpoint `/api/integrations/google/test-calendars`
+- ✅ Step 7: Integrations UI updated — real OAuth connect, real disconnect, email display, toast notifications
+- ✅ Step 8: RLS migration `00014_integrations_policies.sql` + combined_migration.sql
+- ✅ Step 9: `/api/integrations/callback` stub comment updated
+
+### Decisions Made
+- `prompt: 'consent'` set on OAuth URL to force refresh token issuance even for previously-consented users. Without this, Google only issues a refresh token on first consent.
+- Token refresh via raw `fetch` (not googleapis) as specified — lighter, avoids full OAuth2 sub-library for a single POST.
+- Upsert uses `serviceClient` (RLS-bypassing) — consistent with all other API routes. RLS policies still added for completeness/future client use.
+- `useSearchParams` required wrapping IntegrationsPage in `Suspense` — matches pattern from `/dashboard/guide/search/page.tsx`.
+- Disconnect deletes rows entirely (not soft-delete to "revoked") — PRD says "nukes the 3 rows" and re-connecting should work cleanly.
+
+### Skipped / Not Built
+- None. All 9 steps complete.
+
+### CRITICAL: Citlali Action Required
+**Add these two redirect URIs to Google Cloud Console before OAuth will work in any environment:**
+1. `https://edifyos.vercel.app/api/integrations/google/callback`
+2. `http://localhost:3000/api/integrations/google/callback`
+
+Steps: Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client IDs → click the client → Authorized redirect URIs → Add URI.
+
+**Also:** The OAuth client is in **Testing** mode. Only users explicitly added to the test users list at [OAuth consent screen → Test users] can authorize. Before real clients can use this, Google verification must be completed (separate weeks-long process — Z's call).
+
+To add a test user: Google Cloud Console → APIs & Services → OAuth consent screen → Test users → Add Users → add the Google account email you want to test with.
+
+### Build
+`npm run build` passed cleanly. 79 routes total. New routes:
+- `ƒ /api/integrations/google` (GET + DELETE)
+- `ƒ /api/integrations/google/callback` (GET)
+- `ƒ /api/integrations/google/connect` (GET)
+- `ƒ /api/integrations/google/test-calendars` (GET)
+- `○ /dashboard/integrations` (static shell, client-rendered)
+
+### Commit
+`feat: Google Workspace OAuth (Phase 2a)` — commit `23ad4bb`, pushed to origin/main. Vercel deploy triggered.
+
 ---
 
 ## 2026-04-17 — Phase 1.5 Onboarding (coding agent)
