@@ -2,6 +2,74 @@
 
 ---
 
+## 2026-04-17 — Encryption (coding agent)
+
+**Task:** Implement real AES-256-GCM encryption for sensitive columns per PRD-encryption.md.
+
+### What Was Built
+
+**Step 1 — `apps/web/src/lib/crypto.ts` (NEW)**
+- Exports `encrypt`, `decrypt`, `isEncrypted`, `decryptIfEncrypted`.
+- Algorithm: AES-256-GCM, 12-byte random IV per encryption.
+- Format: `enc:v1:${ivBase64}.${ciphertextBase64}.${authTagBase64}` — versioned prefix enables format detection.
+- Key: 32 bytes from `ENCRYPTION_KEY` env var (base64-encoded). Throws clearly if missing or wrong length.
+- `decryptIfEncrypted` handles legacy plaintext rows gracefully: passes through as-is + logs a one-time console warning. Enables in-place migration without downtime.
+- Note: import uses `'crypto'` (not `'node:crypto'`) — Next.js 14 webpack does not handle the `node:` URI scheme.
+
+**Step 2 — `buildAnthropicKeyPayload` in `lib/supabase/server.ts`**
+- Now calls `encrypt(plaintextKey)` before storing to `anthropic_api_key_encrypted`.
+- Hint (`slice(-4)`) still computed on plaintext BEFORE encryption. Unchanged UI behavior.
+
+**Step 3 — `getAnthropicClientForOrg` in `lib/anthropic.ts`**
+- Calls `decryptIfEncrypted(org["anthropic_api_key_encrypted"], "orgs.anthropic_api_key")` before passing to `new Anthropic({ apiKey })`.
+- Graceful fallback handles any plaintext rows from before this PRD.
+
+**Step 4 — `/api/integrations/google/callback/route.ts`**
+- `access_token_encrypted` = `encrypt(tokens.access_token)` before upsert.
+- `refresh_token_encrypted` = `encrypt(tokens.refresh_token)` when present.
+
+**Step 5 — `lib/google.ts` — `getValidGoogleAccessToken` + `doRefreshToken`**
+- Reads `rawAccessToken` / `rawRefreshToken` from DB, then decrypts via `decryptIfEncrypted` before use.
+- Returns the DECRYPTED access token (callers use it as a Bearer token — must be plaintext).
+- `doRefreshToken`: stores `encrypt(newAccessToken)` when updating the 3 Google rows after refresh.
+- `refreshInFlight` dedup map unchanged.
+
+**Step 6 — `/api/admin/ai-config` PATCH**
+- Verified: uses `buildAnthropicKeyPayload` — encryption inherited transparently from Step 2. No direct plaintext writes.
+
+**Step 7 — `apps/web/.env.local`**
+- Appended `ENCRYPTION_KEY=REPLACE_ME_GENERATE_VIA_OPENSSL_RAND_BASE64_32` placeholder with generation instructions.
+
+**Step 8 — SESSION-LOG backfill**
+- Added "Updated 2026-04-17 (encryption PRD): now actually encrypted" notes to Phase 2a and Phase 1.5 entries that described plaintext storage.
+
+### CRITICAL: Citlali Action Required
+
+**BEFORE pushing to Vercel, you MUST:**
+
+1. **Generate the encryption key locally:**
+   ```
+   openssl rand -base64 32
+   ```
+   Copy the output.
+
+2. **Replace the placeholder in `apps/web/.env.local`:**
+   Change `REPLACE_ME_GENERATE_VIA_OPENSSL_RAND_BASE64_32` to the generated value.
+
+3. **Add to Vercel environment variables (Production + Preview):**
+   - Variable name: `ENCRYPTION_KEY`
+   - Value: the same base64 string from step 1
+   - Without this, EVERY API route touching encrypted columns will 500 in production.
+
+4. **Key loss = data loss.** If `ENCRYPTION_KEY` is ever lost, all encrypted Anthropic keys + Google tokens become unrecoverable. Users would need to re-enter their keys / reconnect Google. Store it safely (password manager, Vercel env var).
+
+5. **Existing plaintext rows** (if any from earlier tonight): the graceful fallback passes them through unencrypted + logs a warning. They will be re-encrypted on next write (e.g., user re-saves their Anthropic key or reconnects Google). No migration script needed.
+
+### Build
+`npm run build` passed cleanly in `apps/web/`. All 79 static pages generated, no type errors.
+
+---
+
 ## 2026-04-17 — /simplify pass on Phase 2a (coding agent)
 
 **Task:** Apply /simplify findings from commit `23ad4bb` (Phase 2a Google Workspace OAuth). All HIGH + MEDIUM + LOW fixes applied. Build verified before push.
@@ -84,6 +152,7 @@ NOT installed. `apps/web/package.json` only has `@anthropic-ai/sdk`, `@supabase/
 
 **6. Token storage pattern:**
 `buildAnthropicKeyPayload` in server.ts stores plaintext in `*_encrypted` columns. Will match this — `access_token_encrypted` and `refresh_token_encrypted` store plaintext for now, column names aspirational.
+> Updated 2026-04-17 (encryption PRD): now actually encrypted via AES-256-GCM. See Encryption section below.
 
 **7. SUPABASE_URL note:**
 `server.ts` reads `SUPABASE_URL ?? NEXT_PUBLIC_SUPABASE_URL`. The `.env.local` only has `NEXT_PUBLIC_SUPABASE_URL`. That's fine — the fallback handles it.
@@ -155,6 +224,7 @@ To add a test user: Google Cloud Console → APIs & Services → OAuth consent s
 
 **1. Encryption story:**
 `anthropic_api_key_encrypted` stores PLAINTEXT. The column name is aspirational — no pgsodium/Vault wired up. Confirmed by reading `lib/anthropic.ts` which does `new Anthropic({ apiKey: org["anthropic_api_key_encrypted"] as string })` and the PATCH handler in `/api/admin/ai-config` which stores `keyValue` (trimmed plaintext) directly. The `/api/org/create` route will store plaintext in `anthropic_api_key_encrypted` and `keyValue.slice(-4)` as `anthropic_api_key_hint` — identical to the PATCH handler pattern. **Encryption is a follow-up PRD.**
+> Updated 2026-04-17 (encryption PRD): now actually encrypted via AES-256-GCM. See Encryption section below.
 
 **2. RLS policy audit (orgs table):**
 - SELECT: "Members can view their org" — EXISTS
@@ -185,6 +255,7 @@ To add a test user: Google Cloud Console → APIs & Services → OAuth consent s
 
 ### Decisions
 - Anthropic key stored as plaintext in `anthropic_api_key_encrypted` (matches existing PATCH handler pattern). Encryption flagged as follow-up.
+  > Updated 2026-04-17 (encryption PRD): now actually encrypted via AES-256-GCM. See Encryption section below.
 - Model for key validation: `claude-haiku-4-5-20251001` per PRD. `max_tokens: 1`, content `"hi"`.
 - Used `serviceClient` for all DB writes in `/api/org/create` (bypasses RLS, consistent with other API routes).
 - Org `slug` auto-generated from org name (lowercase, non-alphanum → hyphens, max 50 chars + UUID suffix for uniqueness).

@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { encrypt } from "@/lib/crypto";
 
 /**
  * Builds the Anthropic key columns for an org row.
@@ -20,7 +21,7 @@ export function buildAnthropicKeyPayload(
     };
   }
   return {
-    anthropic_api_key_encrypted: plaintextKey,
+    anthropic_api_key_encrypted: encrypt(plaintextKey),
     anthropic_api_key_set_at: new Date().toISOString(),
     anthropic_api_key_valid: validated,
     anthropic_api_key_hint: plaintextKey.slice(-4),

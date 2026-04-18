@@ -8,6 +8,7 @@ import {
   STATE_COOKIE,
   getAppOrigin,
 } from "@/lib/google";
+import { encrypt } from "@/lib/crypto";
 
 /** GET /api/integrations/google/callback — receives code from Google, stores tokens */
 export async function GET(req: NextRequest) {
@@ -140,14 +141,14 @@ export async function GET(req: NextRequest) {
   // They share the same access+refresh token set; scopes split by service type
   const sharedFields: Record<string, unknown> = {
     org_id: orgId,
-    access_token_encrypted: tokens.access_token,
+    access_token_encrypted: encrypt(tokens.access_token),
     config: { google_email: googleEmail },
     connected_by: memberId,
     status: "active",
     updated_at: new Date().toISOString(),
   };
   if (tokens.refresh_token) {
-    sharedFields.refresh_token_encrypted = tokens.refresh_token;
+    sharedFields.refresh_token_encrypted = encrypt(tokens.refresh_token);
   }
   if (tokenExpiresAt) {
     sharedFields.token_expires_at = tokenExpiresAt;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { decryptIfEncrypted } from "@/lib/crypto";
 
 /** Shared prefix constant — used in both onboarding form and API route for format checks. */
 export const ANTHROPIC_KEY_PREFIX = "sk-ant-";
@@ -49,7 +50,11 @@ export async function getAnthropicClientForOrg(
     };
   }
 
-  const client = new Anthropic({ apiKey: org["anthropic_api_key_encrypted"] as string });
+  const apiKey = decryptIfEncrypted(
+    org["anthropic_api_key_encrypted"] as string | null,
+    "orgs.anthropic_api_key"
+  );
+  const client = new Anthropic({ apiKey: apiKey as string });
   const orgName = (org["name"] as string) || "your organization";
 
   return { client, orgName, org };

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { encrypt, decryptIfEncrypted } from "@/lib/crypto";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -125,7 +126,7 @@ async function doRefreshToken(
 
   // Update ALL 3 Google integration rows for this org (they share a token set)
   const updatePayload: Record<string, unknown> = {
-    access_token_encrypted: newAccessToken,
+    access_token_encrypted: encrypt(newAccessToken),
     updated_at: new Date().toISOString(),
   };
   if (newExpiresAt) updatePayload.token_expires_at = newExpiresAt;
@@ -215,9 +216,22 @@ export async function getValidGoogleAccessToken(
     };
   }
 
-  const accessToken = integration.access_token_encrypted as string | null;
-  const refreshToken = integration.refresh_token_encrypted as string | null;
+  const rawAccessToken = integration.access_token_encrypted as string | null;
+  const rawRefreshToken = integration.refresh_token_encrypted as string | null;
   const expiresAt = integration.token_expires_at as string | null;
+
+  if (!rawAccessToken) {
+    return {
+      error: NextResponse.json(
+        { error: "Google integration missing access token" },
+        { status: 500 }
+      ),
+    };
+  }
+
+  // Decrypt tokens — decryptIfEncrypted handles legacy plaintext rows gracefully
+  const accessToken = decryptIfEncrypted(rawAccessToken, "integrations.access_token");
+  const refreshToken = decryptIfEncrypted(rawRefreshToken, "integrations.refresh_token");
 
   if (!accessToken) {
     return {
@@ -233,7 +247,7 @@ export async function getValidGoogleAccessToken(
     const expiresMs = new Date(expiresAt).getTime();
     const nowMs = Date.now();
     if (expiresMs - nowMs > 60_000) {
-      // Token still good
+      // Token still good — return the DECRYPTED token
       return { accessToken };
     }
   }
