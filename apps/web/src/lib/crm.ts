@@ -12,6 +12,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ---------------------------------------------------------------------------
+// Error class
+// ---------------------------------------------------------------------------
+
+export class CrmError extends Error {
+  constructor(
+    public readonly action: string,
+    public readonly cause?: unknown
+  ) {
+    super(
+      `CRM ${action} failed: ${cause instanceof Error ? cause.message : String(cause)}`
+    );
+    this.name = "CrmError";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -62,6 +78,13 @@ export type Interaction = {
 };
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Hard cap on listDonors — defense in depth even if the tool dispatcher is bypassed. */
+const MAX_DONORS_LIMIT = 100;
+
+// ---------------------------------------------------------------------------
 // CRM functions
 // ---------------------------------------------------------------------------
 
@@ -84,13 +107,14 @@ export async function listDonors({
   tags?: string[];
   sortBy?: "lifetime_giving_cents" | "last_gift_at" | "name" | "created_at";
 }): Promise<{ donors: Donor[] }> {
+  const safeLimit = Math.max(1, Math.min(limit, MAX_DONORS_LIMIT));
   const ascending = sortBy === "name";
   let query = serviceClient
     .from("donors")
     .select("*")
     .eq("org_id", orgId)
     .order(sortBy, { ascending })
-    .limit(limit);
+    .limit(safeLimit);
 
   if (search) {
     // ilike search on name and email
@@ -105,7 +129,7 @@ export async function listDonors({
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(`CRM listDonors error: ${error.message}`);
+    throw new CrmError("listDonors", error);
   }
 
   return { donors: (data as Donor[]) ?? [] };
@@ -149,7 +173,7 @@ export async function getDonor({
   ]);
 
   if (donorResult.error) {
-    throw new Error(`CRM getDonor error: ${donorResult.error.message}`);
+    throw new CrmError("getDonor", donorResult.error);
   }
 
   return {
@@ -203,7 +227,7 @@ export async function createDonor({
     .single();
 
   if (error) {
-    throw new Error(`CRM createDonor error: ${error.message}`);
+    throw new CrmError("createDonor", error);
   }
 
   return { donor: data as Donor };
@@ -254,7 +278,7 @@ export async function logDonation({
     .single();
 
   if (error) {
-    throw new Error(`CRM logDonation error: ${error.message}`);
+    throw new CrmError("logDonation", error);
   }
 
   return { donation: data as Donation };
@@ -301,7 +325,7 @@ export async function logInteraction({
     .single();
 
   if (error) {
-    throw new Error(`CRM logInteraction error: ${error.message}`);
+    throw new CrmError("logInteraction", error);
   }
 
   return { interaction: data as Interaction };

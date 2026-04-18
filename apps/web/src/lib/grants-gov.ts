@@ -7,6 +7,8 @@
  * Without a key the public endpoints work at ~1k req/hour per IP.
  */
 
+import { handleJsonResponse } from "@/lib/http";
+
 const GRANTS_GOV_BASE = "https://api.grants.gov/v1/api";
 
 // ---------------------------------------------------------------------------
@@ -64,20 +66,17 @@ function grantsGovHeaders(): Record<string, string> {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  if (response.ok) {
-    return response.json() as Promise<T>;
-  }
-  let message = response.statusText;
-  try {
-    const body = await response.json();
-    // Grants.gov API returns errors in various shapes
-    if (body?.errorMessage) message = body.errorMessage;
-    else if (body?.message) message = body.message;
-    else if (typeof body === "string") message = body;
-  } catch {
-    // ignore parse errors — use statusText
-  }
-  throw new GrantsGovError(response.status, message);
+  return handleJsonResponse<T>(response, {
+    // Grants.gov returns errors in various shapes: errorMessage, message, or a bare string.
+    extractMessage: (body) => {
+      if (typeof body === "string") return body;
+      const b = body as Record<string, unknown> | null;
+      if (typeof b?.errorMessage === "string") return b.errorMessage;
+      if (typeof b?.message === "string") return b.message;
+      return undefined;
+    },
+    makeError: (status, msg) => new GrantsGovError(status, msg),
+  });
 }
 
 /** Format a Date as MM/DD/YYYY for Grants.gov closeDate filters. */

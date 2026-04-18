@@ -8,14 +8,45 @@
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { calendarTools, executeCalendarTool } from "@/lib/tools/calendar";
-import { grantsTools, executeGrantsTool } from "@/lib/tools/grants";
-import { crmTools, executeCrmTool } from "@/lib/tools/crm";
+import { calendarTools, executeCalendarTool, CALENDAR_TOOLS_ADDENDUM } from "@/lib/tools/calendar";
+import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/grants";
+import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { getValidGoogleAccessToken } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
-export { GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/grants";
-export { CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
+// Re-export all tool-family addendums from a single location so callers
+// don't need to know which file each came from.
+export { CALENDAR_TOOLS_ADDENDUM, GRANTS_TOOLS_ADDENDUM, CRM_TOOLS_ADDENDUM };
+
+// ---------------------------------------------------------------------------
+// System-prompt addendum helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * One pass over the tools array to determine which tool families are present.
+ * Returns a Set of prefix strings, e.g. Set { "calendar", "grants", "crm" }.
+ */
+export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
+  const families = new Set<string>();
+  for (const t of tools) {
+    const prefix = t.name.split("_")[0];
+    if (prefix) families.add(prefix);
+  }
+  return families;
+}
+
+/**
+ * Build the concatenated system-prompt addendum for a given tool set.
+ * Replaces 3 separate Array.some() scans in the chat route with a single loop.
+ */
+export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
+  const families = getToolFamilies(tools);
+  const parts: string[] = [];
+  if (families.has("calendar")) parts.push(CALENDAR_TOOLS_ADDENDUM);
+  if (families.has("grants")) parts.push(GRANTS_TOOLS_ADDENDUM);
+  if (families.has("crm")) parts.push(CRM_TOOLS_ADDENDUM);
+  return parts.join("");
+}
 
 // ---------------------------------------------------------------------------
 // Per-archetype tool sets

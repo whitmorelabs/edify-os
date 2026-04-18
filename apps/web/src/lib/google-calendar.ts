@@ -4,6 +4,8 @@
  * All functions accept a decrypted accessToken string (obtained via getValidGoogleAccessToken).
  */
 
+import { handleJsonResponse } from "@/lib/http";
+
 const CALENDAR_BASE = "https://www.googleapis.com/calendar/v3";
 
 // ---------------------------------------------------------------------------
@@ -47,19 +49,16 @@ function authHeaders(accessToken: string): Record<string, string> {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  if (response.ok) {
-    // 204 No Content (delete) has no body
-    if (response.status === 204) return {} as T;
-    return response.json() as Promise<T>;
-  }
-  let message = response.statusText;
-  try {
-    const body = await response.json();
-    if (body?.error?.message) message = body.error.message;
-  } catch {
-    // ignore parse errors — use statusText
-  }
-  throw new GoogleCalendarError(response.status, message);
+  // 204 No Content (DELETE) has no body — short-circuit before the shared helper tries to parse.
+  if (response.status === 204) return {} as T;
+  return handleJsonResponse<T>(response, {
+    extractMessage: (body) => {
+      const b = body as Record<string, unknown> | null;
+      const err = b?.error as Record<string, unknown> | undefined;
+      return typeof err?.message === "string" ? err.message : undefined;
+    },
+    makeError: (status, msg) => new GoogleCalendarError(status, msg),
+  });
 }
 
 // ---------------------------------------------------------------------------

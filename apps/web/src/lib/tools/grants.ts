@@ -129,6 +129,8 @@ export async function executeGrantsTool({
         });
 
         // Project to slim shape — Claude only needs what it'll surface to the user.
+        // eligibilityCategories is included so Claude can answer "am I eligible?"
+        // without N follow-up grants_get_details calls.
         const slim = {
           total: result.total,
           returned: result.grants.length,
@@ -142,6 +144,7 @@ export async function executeGrantsTool({
             awardCeiling: g.awardCeiling,
             awardFloor: g.awardFloor,
             fundingInstrumentTypes: g.fundingInstrumentTypes,
+            eligibilityCategories: g.eligibilityCategories,
           })),
         };
 

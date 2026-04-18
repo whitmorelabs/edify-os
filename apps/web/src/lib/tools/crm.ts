@@ -15,8 +15,9 @@ import {
   createDonor,
   logDonation,
   logInteraction,
+  CrmError,
 } from "@/lib/crm";
-import type { Donor } from "@/lib/crm";
+import type { Donor, Interaction } from "@/lib/crm";
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum for archetypes that have CRM tools active.
@@ -25,11 +26,12 @@ import type { Donor } from "@/lib/crm";
 export const CRM_TOOLS_ADDENDUM = `\nYou have access to the organization's donor CRM. All monetary amounts in tool inputs should be in DOLLARS (e.g. 5000 for $5,000) — the system handles the conversion. Donations require a donor_id from crm_list_donors or crm_create_donor first. Never make up donor data or donor IDs. Use crm_list_donors to find existing donors before creating a new one.`;
 
 // ---------------------------------------------------------------------------
-// Helper: convert cents → dollars for Claude-readable output
+// Helper: convert cents → formatted dollar string for Claude-readable output
 // ---------------------------------------------------------------------------
 
-function centsToDollars(cents: number): number {
-  return Math.round(cents) / 100;
+/** Returns a fixed-2-decimal string (e.g. 12350 → "123.50") to avoid "123.5" truncation. */
+function centsToDollarsString(cents: number): string {
+  return (Math.round(cents) / 100).toFixed(2);
 }
 
 /** Project donor to slim shape for list output */
@@ -39,7 +41,7 @@ function slimDonor(d: Donor) {
     name: d.name,
     email: d.email,
     donor_type: d.donor_type,
-    lifetime_giving_dollars: centsToDollars(d.lifetime_giving_cents),
+    lifetime_giving_dollars: centsToDollarsString(d.lifetime_giving_cents),
     last_gift_at: d.last_gift_at,
     tags: d.tags,
   };
@@ -240,7 +242,7 @@ export async function executeCrmTool({
     switch (name) {
       case "crm_list_donors": {
         const limit =
-          typeof input.limit === "number" ? Math.min(input.limit, 25) : 25;
+          typeof input.limit === "number" ? Math.max(1, Math.min(input.limit, 25)) : 25;
 
         const result = await listDonors({
           serviceClient,
@@ -283,11 +285,11 @@ export async function executeCrmTool({
         const output = {
           donor: {
             ...result.donor,
-            lifetime_giving_dollars: centsToDollars(result.donor.lifetime_giving_cents),
+            lifetime_giving_dollars: centsToDollarsString(result.donor.lifetime_giving_cents),
           },
           recentDonations: result.recentDonations.map((d) => ({
             ...d,
-            amount_dollars: centsToDollars(d.amount_cents),
+            amount_dollars: centsToDollarsString(d.amount_cents),
           })),
           recentInteractions: result.recentInteractions,
         };
@@ -371,7 +373,7 @@ export async function executeCrmTool({
             success: true,
             donation: {
               ...result.donation,
-              amount_dollars: centsToDollars(result.donation.amount_cents),
+              amount_dollars: centsToDollarsString(result.donation.amount_cents),
             },
           }),
         };
@@ -408,9 +410,7 @@ export async function executeCrmTool({
           orgId,
           memberId,
           donorId: input.donor_id,
-          interactionType: input.interaction_type as Donor["donor_type"] extends string
-            ? "email" | "phone" | "meeting" | "event" | "letter" | "other"
-            : never,
+          interactionType: input.interaction_type as Interaction["interaction_type"],
           occurredAt: input.occurred_at,
           summary: input.summary,
           followUpNeeded: (input.follow_up_needed as boolean | undefined) ?? false,
@@ -432,10 +432,13 @@ export async function executeCrmTool({
         };
     }
   } catch (err) {
+    if (err instanceof CrmError) {
+      // Domain error with a clean message — surface directly to Claude.
+      return { content: err.message, is_error: true };
+    }
     console.error(`[crm-tool] Unexpected error in ${name}:`, err);
-    const message = err instanceof Error ? err.message : "Unexpected error in CRM operation.";
     return {
-      content: message,
+      content: "Unexpected error in CRM operation.",
       is_error: true,
     };
   }

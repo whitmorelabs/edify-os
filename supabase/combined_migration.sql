@@ -677,18 +677,33 @@ create policy "interactions_org_select" on donor_interactions for select using (
   org_id in (select org_id from members where user_id = auth.uid())
 );
 
+-- Full lifecycle: INSERT OR UPDATE OR DELETE, single aggregation query (see migration 00017)
 create or replace function update_donor_aggregates() returns trigger as $$
+declare
+  target_donor_id uuid;
+  agg record;
 begin
+  target_donor_id := coalesce(new.donor_id, old.donor_id);
+
+  select
+    coalesce(sum(amount_cents), 0) as total_cents,
+    min(given_at) as first_gift,
+    max(given_at) as last_gift
+  into agg
+  from donations
+  where donor_id = target_donor_id;
+
   update donors set
-    lifetime_giving_cents = (select coalesce(sum(amount_cents), 0) from donations where donor_id = new.donor_id),
-    first_gift_at = (select min(given_at) from donations where donor_id = new.donor_id),
-    last_gift_at = (select max(given_at) from donations where donor_id = new.donor_id),
-    updated_at = now()
-  where id = new.donor_id;
-  return new;
+    lifetime_giving_cents = agg.total_cents,
+    first_gift_at         = agg.first_gift,
+    last_gift_at          = agg.last_gift,
+    updated_at            = now()
+  where id = target_donor_id;
+
+  return coalesce(new, old);
 end;
 $$ language plpgsql security definer;
 
 create trigger donations_update_aggregates
-  after insert on donations
+  after insert or update or delete on donations
   for each row execute function update_donor_aggregates();
