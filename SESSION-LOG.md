@@ -2,6 +2,120 @@
 
 ---
 
+## 2026-04-17 — Phase 1.5 Onboarding (coding agent)
+
+**Task:** Implement org creation + onboarding flow per PRD-phase-1-onboarding.md.
+
+### Pre-work Audit Findings
+
+**1. Encryption story:**
+`anthropic_api_key_encrypted` stores PLAINTEXT. The column name is aspirational — no pgsodium/Vault wired up. Confirmed by reading `lib/anthropic.ts` which does `new Anthropic({ apiKey: org["anthropic_api_key_encrypted"] as string })` and the PATCH handler in `/api/admin/ai-config` which stores `keyValue` (trimmed plaintext) directly. The `/api/org/create` route will store plaintext in `anthropic_api_key_encrypted` and `keyValue.slice(-4)` as `anthropic_api_key_hint` — identical to the PATCH handler pattern. **Encryption is a follow-up PRD.**
+
+**2. RLS policy audit (orgs table):**
+- SELECT: "Members can view their org" — EXISTS
+- UPDATE: "Admins can update their org" — EXISTS
+- INSERT: NONE (00012 migration must add it)
+- DELETE: NONE (not needed for this PRD)
+
+**3. RLS policy audit (members table):**
+- SELECT: "Members can view fellow members" — EXISTS
+- ALL (insert/update/delete): "Admins can manage members" — EXISTS (but requires membership, not usable by new users)
+- Self-service INSERT: NONE (00012 migration must add it)
+
+**4. Auth callback:** File exists at `apps/web/src/app/auth/callback/route.ts`. Currently always redirects to `/dashboard`. Will update to check for `members` row and route to `/onboarding` if none found.
+
+**5. Middleware:** `/dashboard` is the only protected prefix. `/onboarding` currently has no protection — will add it to PROTECTED_PREFIXES.
+
+**6. Existing (auth)/onboarding/page.tsx:** Old multi-step mock-only UI exists at `apps/web/src/app/(auth)/onboarding/page.tsx`. Not wired to any API. PRD wants a new root-level `/onboarding` page — created separately, leaving the old file in place (it's a different route under the `(auth)` group).
+
+### Files Created
+- `apps/web/src/app/onboarding/page.tsx` — New onboarding form (org name + API key, calls POST /api/org/create)
+- `apps/web/src/app/api/org/create/route.ts` — Org creation API: validates session, checks for existing member, validates Anthropic key via tiny API call, inserts orgs + members rows
+- `supabase/migrations/00012_orgs_self_create_policy.sql` — RLS INSERT policies for self-service org creation
+
+### Files Modified
+- `apps/web/src/app/auth/callback/route.ts` — After code exchange, check members table; redirect to /onboarding if no row found, /dashboard if row exists
+- `apps/web/src/middleware.ts` — Added /onboarding to PROTECTED_PREFIXES
+- `supabase/combined_migration.sql` — Appended 00012 policies
+
+### Decisions
+- Anthropic key stored as plaintext in `anthropic_api_key_encrypted` (matches existing PATCH handler pattern). Encryption flagged as follow-up.
+- Model for key validation: `claude-haiku-4-5-20251001` per PRD. `max_tokens: 1`, content `"hi"`.
+- Used `serviceClient` for all DB writes in `/api/org/create` (bypasses RLS, consistent with other API routes).
+- Org `slug` auto-generated from org name (lowercase, non-alphanum → hyphens, max 50 chars + UUID suffix for uniqueness).
+- `/onboarding` page uses same dark theme as `(auth)` layout (standalone page with matching CSS).
+- `(auth)/onboarding/page.tsx` left untouched — different route, different purpose (old mock content).
+
+### Build
+(To be filled after build)
+
+### Commit
+(To be filled after commit)
+
+---
+
+## 2026-04-17 — /simplify pass (coding agent)
+
+**Task:** Apply /simplify pass on Phase 1 Foundation commits. One clean commit on main.
+
+### Fixes Applied
+
+**H1 — Cross-tenant data leak in admin/usage (FIXED)**
+- `messages` count now joins through `conversations!inner(org_id)` with `.eq("conversations.org_id", orgId)`
+- `heartbeat_runs` count now joins through `heartbeat_jobs!inner(org_id)` with `.eq("heartbeat_jobs.org_id", orgId)`
+- All 5 count queries now run via `Promise.all` (was sequential).
+- Per-archetype breakdown now maps from `ARCHETYPE_SLUGS` constant instead of `Object.entries(ARCHETYPE_LABELS)`.
+
+**H2 — N+1 auth lookup in admin/members GET (FIXED)**
+- Replaced per-member `getUserById` calls with a single `listUsers({ perPage: 200 })`, built a `Map<user_id, userData>`, mapped locally.
+
+**H3 — Archetype slug list consolidation (FIXED)**
+- Created `apps/web/src/lib/archetypes.ts` (server-safe, no React imports) exporting `ARCHETYPE_SLUGS`, `ArchetypeSlug`, `ARCHETYPE_LABELS`, `ARCHETYPE_COLORS`.
+- Updated all 6 routes to import from there: `admin/usage`, `admin/ai-config`, `admin/members` (indirectly via labels), `team/[slug]/chat`, `team/[slug]/conversations`, `api/heartbeat`, `api/decision-lab`.
+- `lib/archetype-config.ts` (client-side, Lucide icons) left untouched.
+
+**M1 — heartbeat_jobs UNIQUE constraint (FIXED)**
+- New migration `supabase/migrations/00011_heartbeat_jobs_unique_and_indexes.sql` adds `UNIQUE(org_id, name)`.
+- Also appended to `supabase/combined_migration.sql`.
+
+**M2 — members.user_id index (FIXED)**
+- `CREATE INDEX IF NOT EXISTS idx_members_user_id ON members(user_id)` added to same migration file and combined_migration.
+
+**M3 — Anthropic client extraction (FIXED)**
+- Created `apps/web/src/lib/anthropic.ts` exporting `getAnthropicClientForOrg(serviceClient, orgId, extraFields?)`.
+- Used in `team/[slug]/chat`, `support/chat`, `decision-lab`. Error message wording preserved identically.
+
+**M4 — API key preview leaks encrypted blob suffix (FIXED)**
+- Added `anthropic_api_key_hint TEXT` column to `orgs` via migration 00011.
+- `ai-config PATCH` now stores `keyValue.slice(-4)` as hint at save time.
+- `ai-config GET` now returns `anthropic_api_key_hint` instead of `encrypted.slice(-8)`.
+- Column is nullable — orgs that haven't re-saved their key get `accessKeyPreview: null` (not the encrypted blob).
+
+**M5 — requestingMemberId null guard (FIXED)**
+- Added `if (!requestingMemberId) return 403` at top of POST, PATCH, and DELETE in `admin/members` before any role check.
+
+**M6 — Parallelize post-Claude writes in team/chat (FIXED)**
+- `messages.insert` and `conversations.update` now run via `Promise.all`.
+
+**L1 — User-visible "Phase 2" string (FIXED)**
+- Removed `(Email delivery wired in Phase 2)` from POST success message in `admin/members`.
+
+**L2 — integrations/callback silently swallows real OAuth codes (FIXED)**
+- When a real `code` param is present (non-mock path), now returns `{ error: "OAuth token exchange not yet implemented..." }` with status 501.
+- Mock path (`?mock=true`) still returns success HTML as before.
+- TODO comment updated to note Phase 2 / Google Workspace as first target.
+
+### Fixes Skipped
+None — all HIGH, MEDIUM, and LOW fixes from the spec were applied.
+
+### Build
+`npm run build` in `apps/web/` passed cleanly. 74 routes generated.
+
+### Commit
+`simplify: cross-tenant fixes, slug consolidation, perf + safety polish` — pushed to origin/main. Vercel deploy triggered.
+
+---
+
 ## 2026-04-10 — Proactive Heartbeat Backend
 
 **Task:** Build the scheduling and execution system for proactive archetype heartbeats.

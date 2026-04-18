@@ -540,3 +540,19 @@ CREATE INDEX IF NOT EXISTS idx_members_user_id ON members(user_id);
 -- M4: Store last-4-chars hint of plaintext Anthropic key (safe to display)
 ALTER TABLE orgs
   ADD COLUMN IF NOT EXISTS anthropic_api_key_hint TEXT;
+
+-- 00012: Self-service org creation RLS policies
+-- Allows a new authenticated user (with no existing org/member row) to create
+-- their own org and claim it as owner during onboarding.
+CREATE POLICY "Authenticated users can create orgs"
+  ON orgs FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Users can insert their own first member row"
+  ON members FOR INSERT
+  WITH CHECK (
+    user_id = auth.uid()
+    AND NOT EXISTS (
+      SELECT 1 FROM members WHERE user_id = auth.uid()
+    )
+  );

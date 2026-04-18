@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-// Routes that require authentication
-const PROTECTED_PREFIXES = ["/dashboard"];
+// Routes that require authentication (but do NOT require a member row).
+// /onboarding is intentionally here — new users need to be signed in but haven't
+// created an org yet, so they must not be bounced for lacking a member row.
+const PROTECTED_PREFIXES = ["/dashboard", "/onboarding"];
 
 // Auth routes that logged-in users should be redirected away from
 const AUTH_PATHS = ["/login", "/signup"];
