@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
+import { getAnthropicClientForOrg } from '@/lib/anthropic';
 
 const SUPPORT_SYSTEM_PROMPT = `You are the Edify OS support assistant. You help nonprofit organizations navigate the Edify OS platform.
 
@@ -52,20 +52,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Get org's Claude API key
-  const { data: org } = await serviceClient
-    .from('orgs')
-    .select('anthropic_api_key_encrypted')
-    .eq('id', orgId)
-    .single();
-
-  if (!org?.anthropic_api_key_encrypted) {
-    return NextResponse.json(
-      { error: 'No Claude API key configured. Add your Anthropic API key in Settings.' },
-      { status: 402 }
-    );
-  }
-
-  const anthropic = new Anthropic({ apiKey: org.anthropic_api_key_encrypted });
+  const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId);
+  if ('error' in anthropicResult) return anthropicResult.error;
+  const { client: anthropic } = anthropicResult;
 
   try {
     const response = await anthropic.messages.create({

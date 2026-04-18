@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
 import { ARCHETYPE_PROMPTS } from '@/lib/archetype-prompts';
+import { ARCHETYPE_LABELS } from '@/lib/archetypes';
+import { getAnthropicClientForOrg } from '@/lib/anthropic';
 
 export interface ArchetypeResponse {
   role_slug: string;
@@ -27,13 +28,14 @@ export interface ScenarioResult {
   synthesis: SynthesisResult;
 }
 
-const ARCHETYPE_META: Record<string, { display_name: string; icon: string }> = {
-  executive_assistant:      { display_name: 'Executive Assistant',       icon: 'Star' },
-  development_director:     { display_name: 'Development Director',      icon: 'Landmark' },
-  marketing_director:       { display_name: 'Marketing Director',        icon: 'Megaphone' },
-  programs_director:        { display_name: 'Programs Director',         icon: 'Heart' },
-  hr_volunteer_coordinator: { display_name: 'HR & Volunteer Coordinator', icon: 'Users' },
-  events_director:          { display_name: 'Events Director',           icon: 'Calendar' },
+// Icons are UI-only strings (not Lucide components) — safe to keep here
+const ARCHETYPE_META: Record<string, { icon: string }> = {
+  executive_assistant:      { icon: 'Star' },
+  development_director:     { icon: 'Landmark' },
+  marketing_director:       { icon: 'Megaphone' },
+  programs_director:        { icon: 'Heart' },
+  hr_volunteer_coordinator: { icon: 'Users' },
+  events_director:          { icon: 'Calendar' },
 };
 
 const DECISION_LAB_SUFFIX = `
@@ -94,21 +96,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Get org's Claude API key
-    const { data: org } = await serviceClient
-      .from('orgs')
-      .select('name, anthropic_api_key_encrypted')
-      .eq('id', orgId)
-      .single();
-
-    if (!org?.anthropic_api_key_encrypted) {
-      return NextResponse.json(
-        { error: 'No Claude API key configured. Add your Anthropic API key in Settings.' },
-        { status: 402 }
-      );
-    }
-
-    const anthropic = new Anthropic({ apiKey: org.anthropic_api_key_encrypted });
-    const orgName = org.name || 'your organization';
+    const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId);
+    if ('error' in anthropicResult) return anthropicResult.error;
+    const { client: anthropic, orgName } = anthropicResult;
 
     // Determine which archetypes to query
     const allSlugs = Object.keys(ARCHETYPE_META);
@@ -136,8 +126,8 @@ export async function POST(req: NextRequest) {
 
         return {
           role_slug: slug,
-          display_name: meta.display_name,
-          icon: meta.icon,
+          display_name: ARCHETYPE_LABELS[slug as keyof typeof ARCHETYPE_LABELS] ?? slug,
+          icon: meta?.icon ?? 'Star',
           stance: parsed.stance as 'Support' | 'Caution' | 'Oppose',
           confidence: parsed.confidence as 'Low' | 'Medium' | 'High',
           response_text: parsed.response_text,
@@ -152,8 +142,8 @@ export async function POST(req: NextRequest) {
         const meta = ARCHETYPE_META[slug];
         return {
           role_slug: slug,
-          display_name: meta.display_name,
-          icon: meta.icon,
+          display_name: ARCHETYPE_LABELS[slug as keyof typeof ARCHETYPE_LABELS] ?? slug,
+          icon: meta?.icon ?? 'Star',
           stance: 'Caution' as const,
           confidence: 'Low' as const,
           response_text: 'Could not retrieve response from this team member.',

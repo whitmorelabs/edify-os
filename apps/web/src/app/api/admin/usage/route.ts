@@ -1,23 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
-
-const ARCHETYPE_COLORS: Record<string, string> = {
-  development_director: "bg-emerald-500",
-  executive_assistant: "bg-sky-500",
-  marketing_director: "bg-amber-500",
-  programs_director: "bg-violet-500",
-  hr_volunteer_coordinator: "bg-indigo-500",
-  events_director: "bg-rose-500",
-};
-
-const ARCHETYPE_LABELS: Record<string, string> = {
-  development_director: "Director of Development",
-  marketing_director: "Marketing Director",
-  executive_assistant: "Executive Assistant",
-  programs_director: "Programs Director",
-  hr_volunteer_coordinator: "HR & Volunteer Coordinator",
-  events_director: "Events Director",
-};
+import { ARCHETYPE_LABELS, ARCHETYPE_COLORS, ARCHETYPE_SLUGS } from "@/lib/archetypes";
 
 export async function GET(req: NextRequest) {
   const { user, orgId } = await getAuthContext();
@@ -35,42 +18,52 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
-  // Count conversations
-  const { count: totalConversations } = await serviceClient
-    .from("conversations")
-    .select("*", { count: "exact", head: true })
-    .eq("org_id", orgId)
-    .gte("created_at", since);
+  // Run all independent count queries in parallel
+  const [
+    { count: totalConversations },
+    { count: totalMessages },
+    { count: tasksCreated },
+    { count: heartbeatsDelivered },
+    { count: documentsUploaded },
+  ] = await Promise.all([
+    // Conversations — org_id direct
+    serviceClient
+      .from("conversations")
+      .select("*", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .gte("created_at", since),
 
-  // Count messages
-  const { count: totalMessages } = await serviceClient
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", since);
+    // Messages — join through conversations to filter by org_id
+    serviceClient
+      .from("messages")
+      .select("conversation_id, conversations!inner(org_id)", { count: "exact", head: true })
+      .eq("conversations.org_id", orgId)
+      .gte("created_at", since),
 
-  // Count tasks
-  const { count: tasksCreated } = await serviceClient
-    .from("tasks")
-    .select("*", { count: "exact", head: true })
-    .eq("org_id", orgId)
-    .gte("created_at", since);
+    // Tasks — org_id direct
+    serviceClient
+      .from("tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .gte("created_at", since),
 
-  // Count heartbeat runs
-  const { count: heartbeatsDelivered } = await serviceClient
-    .from("heartbeat_runs")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "completed")
-    .gte("started_at", since);
+    // Heartbeat runs — join through heartbeat_jobs to filter by org_id
+    serviceClient
+      .from("heartbeat_runs")
+      .select("job_id, heartbeat_jobs!inner(org_id)", { count: "exact", head: true })
+      .eq("heartbeat_jobs.org_id", orgId)
+      .eq("status", "completed")
+      .gte("started_at", since),
 
-  // Count documents
-  const { count: documentsUploaded } = await serviceClient
-    .from("documents")
-    .select("*", { count: "exact", head: true })
-    .eq("org_id", orgId)
-    .gte("created_at", since);
+    // Documents — org_id direct
+    serviceClient
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .gte("created_at", since),
+  ]);
 
-  // Per-archetype breakdown via conversations
-  // Conversations store agent_config_id; join to agent_configs for role_slug
+  // Per-archetype breakdown via conversations join to agent_configs
   const { data: convByAgent } = await serviceClient
     .from("conversations")
     .select("agent_config_id, agent_configs(role_slug)")
@@ -83,13 +76,13 @@ export async function GET(req: NextRequest) {
     slugCounts[slug] = (slugCounts[slug] ?? 0) + 1;
   }
 
-  const byArchetype = Object.entries(ARCHETYPE_LABELS).map(([slug, label]) => ({
+  const byArchetype = ARCHETYPE_SLUGS.map((slug) => ({
     slug,
-    label,
+    label: ARCHETYPE_LABELS[slug],
     conversations: slugCounts[slug] ?? 0,
-    messages: 0, // Phase 1: leave as 0 — message-per-archetype requires a join
+    messages: 0, // message-per-archetype requires a join — deferred
     tasks: 0,
-    color: ARCHETYPE_COLORS[slug] ?? "bg-gray-500",
+    color: ARCHETYPE_COLORS[slug],
   }));
 
   return NextResponse.json({
@@ -102,6 +95,6 @@ export async function GET(req: NextRequest) {
       documentsUploaded: documentsUploaded ?? 0,
     },
     byArchetype,
-    hourlyDistribution: [], // Phase 2: compute from messages.created_at
+    hourlyDistribution: [],
   });
 }

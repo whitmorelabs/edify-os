@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
+import { ARCHETYPE_LABELS } from "@/lib/archetypes";
 
 const DEFAULT_ARCHETYPES = [
-  { role_slug: "development_director", display_name: "Director of Development", enabled: true, autonomy_level: "assisted" },
-  { role_slug: "marketing_director", display_name: "Marketing Director", enabled: true, autonomy_level: "suggestion" },
-  { role_slug: "executive_assistant", display_name: "Executive Assistant", enabled: true, autonomy_level: "assisted" },
-  { role_slug: "programs_director", display_name: "Programs Director", enabled: true, autonomy_level: "suggestion" },
-  { role_slug: "hr_volunteer_coordinator", display_name: "HR & Volunteer Coordinator", enabled: false, autonomy_level: "suggestion" },
-  { role_slug: "events_director", display_name: "Events Director", enabled: true, autonomy_level: "suggestion" },
+  { role_slug: "development_director", display_name: ARCHETYPE_LABELS.development_director, enabled: true, autonomy_level: "assisted" },
+  { role_slug: "marketing_director", display_name: ARCHETYPE_LABELS.marketing_director, enabled: true, autonomy_level: "suggestion" },
+  { role_slug: "executive_assistant", display_name: ARCHETYPE_LABELS.executive_assistant, enabled: true, autonomy_level: "assisted" },
+  { role_slug: "programs_director", display_name: ARCHETYPE_LABELS.programs_director, enabled: true, autonomy_level: "suggestion" },
+  { role_slug: "hr_volunteer_coordinator", display_name: ARCHETYPE_LABELS.hr_volunteer_coordinator, enabled: false, autonomy_level: "suggestion" },
+  { role_slug: "events_director", display_name: ARCHETYPE_LABELS.events_director, enabled: true, autonomy_level: "suggestion" },
 ];
 
 export async function GET() {
@@ -35,7 +36,7 @@ export async function GET() {
   // Get org's Claude API key status
   const { data: org } = await serviceClient
     .from("orgs")
-    .select("anthropic_api_key_encrypted, anthropic_api_key_set_at, anthropic_api_key_valid")
+    .select("anthropic_api_key_encrypted, anthropic_api_key_set_at, anthropic_api_key_valid, anthropic_api_key_hint")
     .eq("id", orgId)
     .single();
 
@@ -54,12 +55,12 @@ export async function GET() {
   });
 
   const hasKey = Boolean(org?.anthropic_api_key_encrypted);
+  // Use stored hint (last 4 chars of real key) if available — never slice the encrypted blob
+  const keyHint = (org as { anthropic_api_key_hint?: string | null } | null)?.anthropic_api_key_hint ?? null;
   const provider = {
     provider: "Claude (Anthropic)",
     accessKeySet: hasKey,
-    accessKeyPreview: hasKey
-      ? `sk-ant-...${org!.anthropic_api_key_encrypted!.slice(-8)}`
-      : null,
+    accessKeyPreview: hasKey && keyHint ? `sk-ant-...${keyHint}` : null,
     keySetAt: org?.anthropic_api_key_set_at ?? null,
     keyValid: org?.anthropic_api_key_valid ?? false,
   };
@@ -82,12 +83,15 @@ export async function PATCH(req: NextRequest) {
   // Handle updating the Claude API key
   if (body.anthropicApiKey !== undefined) {
     const keyValue = body.anthropicApiKey?.trim();
+    // Store the last 4 chars of the plaintext key as a safe display hint
+    const keyHint = keyValue ? keyValue.slice(-4) : null;
     const { error } = await serviceClient
       .from("orgs")
       .update({
         anthropic_api_key_encrypted: keyValue || null,
         anthropic_api_key_set_at: keyValue ? new Date().toISOString() : null,
         anthropic_api_key_valid: false, // will be validated on first use
+        anthropic_api_key_hint: keyHint,
       })
       .eq("id", orgId);
 

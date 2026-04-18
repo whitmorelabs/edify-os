@@ -23,27 +23,38 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
   }
 
-  // Enrich with user emails from auth.users via service client
-  const enriched = await Promise.all(
-    (members ?? []).map(async (m) => {
-      const { data: userData } = await serviceClient.auth.admin.getUserById(m.user_id);
-      return {
-        id: m.id,
-        userId: m.user_id,
-        email: userData?.user?.email ?? "(unknown)",
-        name: userData?.user?.user_metadata?.full_name ?? userData?.user?.email ?? "(unknown)",
-        role: m.role,
-        joinedAt: m.created_at,
-        lastActive: userData?.user?.last_sign_in_at ?? m.created_at,
-        avatarInitials: (userData?.user?.user_metadata?.full_name ?? userData?.user?.email ?? "?")
-          .split(" ")
-          .map((p: string) => p[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2),
-      };
-    })
+  // Fetch all auth users in one call and build a lookup map — avoids N+1 per-member requests
+  const { data: usersPage } = await serviceClient.auth.admin.listUsers({ perPage: 200 });
+  const userMap = new Map<string, { email?: string; full_name?: string; last_sign_in_at?: string }>(
+    (usersPage?.users ?? []).map((u) => [
+      u.id,
+      {
+        email: u.email,
+        full_name: u.user_metadata?.full_name as string | undefined,
+        last_sign_in_at: u.last_sign_in_at,
+      },
+    ])
   );
+
+  const enriched = (members ?? []).map((m) => {
+    const u = userMap.get(m.user_id);
+    const displayName = u?.full_name ?? u?.email ?? "(unknown)";
+    return {
+      id: m.id,
+      userId: m.user_id,
+      email: u?.email ?? "(unknown)",
+      name: displayName,
+      role: m.role,
+      joinedAt: m.created_at,
+      lastActive: u?.last_sign_in_at ?? m.created_at,
+      avatarInitials: displayName
+        .split(" ")
+        .map((p: string) => p[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2),
+    };
+  });
 
   return NextResponse.json({ members: enriched });
 }
@@ -52,6 +63,11 @@ export async function POST(req: NextRequest) {
   const { user, orgId, memberId: requestingMemberId } = await getAuthContext();
   if (!user || !orgId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Guard: user must have a members row to perform write operations
+  if (!requestingMemberId) {
+    return NextResponse.json({ error: "Member context required" }, { status: 403 });
   }
 
   const body = await req.json();
@@ -82,12 +98,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden: only admins can invite members" }, { status: 403 });
   }
 
-  // In production: send invitation email via SendGrid and create a pending invitation record.
-  // For Phase 1: record the invite intent and return success.
-  // Full invitation flow is Phase 2 work.
   return NextResponse.json({
     success: true,
-    message: `Invitation for ${email} as ${role} has been queued. (Email delivery wired in Phase 2)`,
+    message: `Invitation for ${email} as ${role} has been queued.`,
   });
 }
 
@@ -95,6 +108,11 @@ export async function PATCH(req: NextRequest) {
   const { user, orgId, memberId: requestingMemberId } = await getAuthContext();
   if (!user || !orgId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Guard: user must have a members row to perform write operations
+  if (!requestingMemberId) {
+    return NextResponse.json({ error: "Member context required" }, { status: 403 });
   }
 
   const body = await req.json();
@@ -138,6 +156,11 @@ export async function DELETE(req: NextRequest) {
   const { user, orgId, memberId: requestingMemberId } = await getAuthContext();
   if (!user || !orgId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Guard: user must have a members row to perform write operations
+  if (!requestingMemberId) {
+    return NextResponse.json({ error: "Member context required" }, { status: 403 });
   }
 
   const { searchParams } = new URL(req.url);

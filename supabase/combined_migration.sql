@@ -528,3 +528,15 @@ create policy "Members see their own support messages" on support_messages
   for all using (
     member_id in (select id from members where user_id = auth.uid())
   );
+
+-- 00011: heartbeat_jobs UNIQUE, members index, orgs key hint
+-- M1: UNIQUE on heartbeat_jobs(org_id, name) for upsert correctness
+ALTER TABLE heartbeat_jobs
+  ADD CONSTRAINT heartbeat_jobs_org_name_unique UNIQUE (org_id, name);
+
+-- M2: Index on members(user_id) for fast single-column lookups (getAuthContext)
+CREATE INDEX IF NOT EXISTS idx_members_user_id ON members(user_id);
+
+-- M4: Store last-4-chars hint of plaintext Anthropic key (safe to display)
+ALTER TABLE orgs
+  ADD COLUMN IF NOT EXISTS anthropic_api_key_hint TEXT;

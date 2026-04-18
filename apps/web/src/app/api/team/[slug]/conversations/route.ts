@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
-
-const VALID_SLUGS = [
-  "development_director",
-  "marketing_director",
-  "executive_assistant",
-  "programs_director",
-  "hr_volunteer_coordinator",
-  "events_director",
-];
+import { ARCHETYPE_SLUGS } from "@/lib/archetypes";
 
 export async function GET(
   _request: Request,
@@ -16,7 +8,7 @@ export async function GET(
 ) {
   const { slug } = params;
 
-  if (!VALID_SLUGS.includes(slug)) {
+  if (!(ARCHETYPE_SLUGS as readonly string[]).includes(slug)) {
     return NextResponse.json({ error: "Unknown team member" }, { status: 404 });
   }
 
@@ -55,7 +47,7 @@ export async function POST(
 ) {
   const { slug } = params;
 
-  if (!VALID_SLUGS.includes(slug)) {
+  if (!(ARCHETYPE_SLUGS as readonly string[]).includes(slug)) {
     return NextResponse.json({ error: "Unknown team member" }, { status: 404 });
   }
 

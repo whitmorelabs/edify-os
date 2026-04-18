@@ -48,21 +48,12 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  try {
-    // TODO: replace with real token exchange logic per integration type
-    // const tokens = await exchangeCodeForTokens(integrationId, code);
-    // await storeEncryptedTokens(orgId, integrationId, tokens);
-
-    return new NextResponse(closePopupHtml(integrationId, true), {
-      headers: { 'Content-Type': 'text/html' },
-    });
-  } catch (err) {
-    console.error('[GET /api/integrations/callback] token exchange failed', err);
-    return new NextResponse(
-      closePopupHtml(integrationId, false, 'Could not finish linking your account.'),
-      { headers: { 'Content-Type': 'text/html' } }
-    );
-  }
+  // TODO: Returns 501 until per-integration token exchange is implemented (Phase 2 — Google Workspace OAuth first).
+  // When implemented: exchange code for tokens, encrypt, store in integrations table.
+  return NextResponse.json(
+    { error: "OAuth token exchange not yet implemented for this integration type" },
+    { status: 501 }
+  );
 }
 
 /**

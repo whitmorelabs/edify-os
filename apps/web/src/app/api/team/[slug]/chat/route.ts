@@ -1,18 +1,8 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 import { ARCHETYPE_PROMPTS } from "@/lib/archetype-prompts";
-
-const VALID_SLUGS = [
-  "development_director",
-  "marketing_director",
-  "executive_assistant",
-  "programs_director",
-  "hr_volunteer_coordinator",
-  "events_director",
-] as const;
-
-type ArchetypeSlug = (typeof VALID_SLUGS)[number];
+import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
+import { getAnthropicClientForOrg } from "@/lib/anthropic";
 
 export async function POST(
   request: Request,
@@ -21,7 +11,7 @@ export async function POST(
   const { slug } = params;
 
   // Validate slug first
-  if (!VALID_SLUGS.includes(slug as ArchetypeSlug)) {
+  if (!(ARCHETYPE_SLUGS as readonly string[]).includes(slug)) {
     return NextResponse.json({ error: "Unknown team member" }, { status: 404 });
   }
 
@@ -46,23 +36,11 @@ export async function POST(
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
-  // Get the org's Claude API key (stored encrypted on the orgs row)
-  const { data: org, error: orgError } = await serviceClient
-    .from("orgs")
-    .select("name, mission, anthropic_api_key_encrypted")
-    .eq("id", orgId)
-    .single();
-
-  if (orgError || !org) {
-    return NextResponse.json({ error: "Org not found" }, { status: 404 });
-  }
-
-  if (!org.anthropic_api_key_encrypted) {
-    return NextResponse.json(
-      { error: "No Claude API key configured for this org. Add your Anthropic API key in Settings." },
-      { status: 402 }
-    );
-  }
+  // Get org's Claude API key — also fetch mission for system prompt context
+  const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId, ["mission"]);
+  if ("error" in anthropicResult) return anthropicResult.error;
+  const { client: anthropic, orgName, org } = anthropicResult;
+  const mission = org.mission as string | null;
 
   // Get or create conversation
   let activeConversationId = conversationId;
@@ -122,19 +100,15 @@ export async function POST(
   }
 
   // Build system prompt for this archetype
-  const orgName = org.name || "your organization";
   const basePrompt = ARCHETYPE_PROMPTS[slug] || "";
   const systemPrompt = basePrompt.replace(/\{org_name\}/g, orgName);
 
   // Add org context if available
-  const orgContext = org.mission
-    ? `\n\n## Organization Context\nOrg name: ${orgName}\nMission: ${org.mission}`
+  const orgContext = mission
+    ? `\n\n## Organization Context\nOrg name: ${orgName}\nMission: ${mission}`
     : `\n\n## Organization Context\nOrg name: ${orgName}`;
 
   const fullSystemPrompt = systemPrompt + orgContext;
-
-  // Call Claude
-  const anthropic = new Anthropic({ apiKey: org.anthropic_api_key_encrypted });
 
   let assistantContent: string;
 
@@ -158,25 +132,25 @@ export async function POST(
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  // Persist both messages to the conversation
-  await serviceClient.from("messages").insert([
-    {
-      conversation_id: activeConversationId,
-      role: "user",
-      content: message,
-    },
-    {
-      conversation_id: activeConversationId,
-      role: "assistant",
-      content: assistantContent,
-    },
+  // Persist messages and update conversation timestamp in parallel (independent writes)
+  await Promise.all([
+    serviceClient.from("messages").insert([
+      {
+        conversation_id: activeConversationId,
+        role: "user",
+        content: message,
+      },
+      {
+        conversation_id: activeConversationId,
+        role: "assistant",
+        content: assistantContent,
+      },
+    ]),
+    serviceClient
+      .from("conversations")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", activeConversationId),
   ]);
-
-  // Update conversation updated_at
-  await serviceClient
-    .from("conversations")
-    .update({ updated_at: new Date().toISOString() })
-    .eq("id", activeConversationId);
 
   return NextResponse.json({
     id: crypto.randomUUID(),

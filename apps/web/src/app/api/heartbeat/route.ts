@@ -1,15 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
-
-// Canonical archetype slugs
-const ARCHETYPE_SLUGS = [
-  "development_director",
-  "marketing_director",
-  "executive_assistant",
-  "programs_director",
-  "hr_volunteer_coordinator",
-  "events_director",
-] as const;
+import { ARCHETYPE_SLUGS } from "@/lib/archetypes";
 
 // Default heartbeat job configs per archetype (used when no DB row exists yet)
 const ARCHETYPE_DEFAULTS: Record<string, { frequencyHours: number; activeStart: number; activeEnd: number }> = {
