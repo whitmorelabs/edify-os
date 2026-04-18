@@ -5,6 +5,13 @@
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
+
+// ---------------------------------------------------------------------------
+// System-prompt addendum for archetypes that have calendar tools active.
+// Kept here so it stays co-located with the tool definitions it describes.
+// ---------------------------------------------------------------------------
+
+export const CALENDAR_TOOLS_ADDENDUM = `\nYou have access to the user's Google Calendar via tools. Always use them when the user asks about calendar events, scheduling, or availability. Never make up event details — if you don't know, call calendar_list_events or calendar_get_event. Times in your responses should match the timezone the user used in their question.`;
 import {
   listEvents,
   getEvent,
@@ -235,37 +242,65 @@ export async function executeCalendarTool({
           maxResults:
             typeof input.maxResults === "number" ? input.maxResults : 25,
         });
-        return { content: JSON.stringify(result, null, 2) };
+        // Project to slim shape — drop htmlLink, verbose description, per-attendee responseStatus.
+        // Claude can call calendar_get_event for full details if needed.
+        const slim = {
+          ...result,
+          events: result.events?.map((e: Record<string, unknown>) => ({
+            id: e.id,
+            summary: e.summary,
+            start: e.start,
+            end: e.end,
+            location: e.location,
+            attendees: (e.attendees as { email: string }[] | undefined)?.map((a) => a.email),
+          })),
+        };
+        return { content: JSON.stringify(slim) };
       }
 
       case "calendar_get_event": {
+        if (!input.eventId || typeof input.eventId !== "string") {
+          return { content: "eventId is required and must be a string.", is_error: true };
+        }
         const result = await getEvent({
           accessToken,
           calendarId: (input.calendarId as string | undefined) ?? "primary",
-          eventId: input.eventId as string,
+          eventId: input.eventId,
         });
-        return { content: JSON.stringify(result, null, 2) };
+        return { content: JSON.stringify(result) };
       }
 
       case "calendar_create_event": {
+        if (!input.summary || typeof input.summary !== "string") {
+          return { content: "summary is required and must be a string.", is_error: true };
+        }
+        if (!input.start || typeof input.start !== "object") {
+          return { content: "start is required and must be an object with dateTime or date.", is_error: true };
+        }
+        if (!input.end || typeof input.end !== "object") {
+          return { content: "end is required and must be an object with dateTime or date.", is_error: true };
+        }
         const result = await createEvent({
           accessToken,
           calendarId: (input.calendarId as string | undefined) ?? "primary",
-          summary: input.summary as string,
+          summary: input.summary,
           start: input.start as { dateTime?: string; date?: string; timeZone?: string },
           end: input.end as { dateTime?: string; date?: string; timeZone?: string },
           description: input.description as string | undefined,
           location: input.location as string | undefined,
           attendees: input.attendees as { email: string }[] | undefined,
         });
-        return { content: JSON.stringify(result, null, 2) };
+        return { content: JSON.stringify(result) };
       }
 
       case "calendar_update_event": {
+        if (!input.eventId || typeof input.eventId !== "string") {
+          return { content: "eventId is required and must be a string.", is_error: true };
+        }
         const result = await updateEvent({
           accessToken,
           calendarId: (input.calendarId as string | undefined) ?? "primary",
-          eventId: input.eventId as string,
+          eventId: input.eventId,
           summary: input.summary as string | undefined,
           start: input.start as { dateTime?: string; date?: string; timeZone?: string } | undefined,
           end: input.end as { dateTime?: string; date?: string; timeZone?: string } | undefined,
@@ -273,16 +308,19 @@ export async function executeCalendarTool({
           location: input.location as string | undefined,
           attendees: input.attendees as { email: string }[] | undefined,
         });
-        return { content: JSON.stringify(result, null, 2) };
+        return { content: JSON.stringify(result) };
       }
 
       case "calendar_delete_event": {
+        if (!input.eventId || typeof input.eventId !== "string") {
+          return { content: "eventId is required and must be a string.", is_error: true };
+        }
         const result = await deleteEvent({
           accessToken,
           calendarId: (input.calendarId as string | undefined) ?? "primary",
-          eventId: input.eventId as string,
+          eventId: input.eventId,
         });
-        return { content: JSON.stringify(result, null, 2) };
+        return { content: JSON.stringify(result) };
       }
 
       default:

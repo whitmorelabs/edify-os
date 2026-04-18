@@ -51,11 +51,12 @@
 
 ### Build
 
-- `npm run build` in `apps/web/` — [result pending]
+- `npm run build` in `apps/web/` passed cleanly (79 static pages, no TypeScript errors, no warnings beyond CRLF line endings from Git on Windows).
 
 ### Commit
 
-- [pending]
+- `feat: Calendar tools + Anthropic tool-use loop (Phase 2b)` — commit `777ec0c`
+- Pushed to origin/main (9476a8b → 777ec0c). 5 files changed, 772 insertions.
 
 ---
 
@@ -2279,3 +2280,64 @@ Check at: https://vercel.com/whitmorelabs/edify-os/settings/environment-variable
 
 ### Build Result
 `npm run build` in `apps/web/` — SUCCESS (all 75 static pages generated, no type errors)
+
+## 2026-04-17 — /simplify pass on Phase 2b (coding agent)
+
+### Task
+Apply /simplify findings to commit `777ec0c` (Phase 2b Calendar tools). All HIGH + MEDIUM items from the findings document.
+
+### Files Changed
+- `apps/web/src/app/api/team/[slug]/chat/route.ts`
+- `apps/web/src/lib/tools/registry.ts`
+- `apps/web/src/lib/tools/calendar.ts`
+
+### Fixes Applied
+
+**H1 — Persist user message before loop**
+- Inserted `serviceClient.from("messages").insert(...)` for user message immediately after conversation row is created/verified, before the tool-use loop begins.
+- End of function now only persists the assistant message (+ conversation updated_at).
+
+**H2 — Track lastAssistantText across rounds**
+- Added `let lastAssistantText = ""` outside loop.
+- Each round: extract `textInThisResponse`; update `lastAssistantText` if non-empty.
+- Cap-hit fallback now uses `lastAssistantText || canned_message`.
+- `end_turn`/`max_tokens`/`stop_sequence` all use `textInThisResponse` (same variable).
+
+**H3 — Pre-fetch Google access token once per round**
+- In `route.ts`: before `Promise.all` over tool blocks, scan for any `calendar_*` tool; if found, fetch token once, store in `Map<string, string>`.
+- In `registry.ts`: `executeTool` accepts optional `preFetchedTokens?: Map<string, string>`; uses pre-fetched token if present, falls back to own fetch if not.
+
+**M1 — Drop pretty-print + project listEvents to slim shape**
+- All `JSON.stringify(result, null, 2)` → `JSON.stringify(result)` in `calendar.ts`.
+- `calendar_list_events` maps events to `{id, summary, start, end, location, attendees[].email}` only; drops `htmlLink`, verbose `description`, per-attendee `responseStatus`.
+- `calendar_get_event` returns full detail (full detail is the point).
+
+**M2 — Required-field guards in executeCalendarTool**
+- `eventId` guarded in `get`, `update`, `delete`: returns `is_error` if missing or not a string.
+- `summary`, `start`, `end` guarded in `createEvent`.
+
+**M3 — Per-block try/catch in Promise.all**
+- Each block in the `Promise.all` now has its own try/catch; thrown errors become `is_error: true` tool_result instead of rejecting the whole Promise.all.
+
+**M4 — Explicit stop_reason handling**
+- Added `refusal` → `"I can't help with that request."` branch.
+- `end_turn | max_tokens | stop_sequence` → extract text and break.
+- Unknown stop_reason → `console.warn` + break with current text.
+
+**M5 — Relocate CALENDAR_TOOLS_ADDENDUM to calendar.ts**
+- Moved constant from `route.ts` to `calendar.ts`, exported.
+- `route.ts` imports it from `@/lib/tools/calendar`.
+
+**M6 — Named constant MAX_RESPONSE_TOKENS = 4096**
+- Added alongside `TOOL_USE_LOOP_MAX`; used in `anthropic.messages.create`.
+
+### Skipped (per instructions)
+- Prefix-dispatch refactor in executeTool (Phase 2c)
+- for-loop → while-loop conversion (cosmetic)
+- Streaming
+- Model change
+- Shared parseGoogleApiError helper
+
+### Build Result
+`npx turbo run build --filter=@edify/web` — SUCCESS (79 static pages, no type errors).
+Note: `@edify/slack` has pre-existing `@slack/types` import error unrelated to these changes.

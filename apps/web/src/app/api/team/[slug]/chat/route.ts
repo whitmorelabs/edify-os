@@ -5,10 +5,11 @@ import { ARCHETYPE_PROMPTS } from "@/lib/archetype-prompts";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import { ARCHETYPE_TOOLS, executeTool } from "@/lib/tools/registry";
+import { CALENDAR_TOOLS_ADDENDUM } from "@/lib/tools/calendar";
+import { getValidGoogleAccessToken } from "@/lib/google";
 
 const TOOL_USE_LOOP_MAX = 8;
-
-const CALENDAR_TOOLS_ADDENDUM = `\nYou have access to the user's Google Calendar via tools. Always use them when the user asks about calendar events, scheduling, or availability. Never make up event details — if you don't know, call calendar_list_events or calendar_get_event. Times in your responses should match the timezone the user used in their question.`;
+const MAX_RESPONSE_TOKENS = 4096;
 
 export async function POST(
   request: Request,
@@ -122,6 +123,15 @@ export async function POST(
 
   const fullSystemPrompt = systemPrompt + orgContext + toolsAddendum;
 
+  // H1: Persist user message immediately — before entering the tool-use loop.
+  // This ensures that if Claude's API errors mid-loop, the user's message is
+  // not lost from the conversation. The assistant message is saved after the loop.
+  await serviceClient.from("messages").insert({
+    conversation_id: activeConversationId,
+    role: "user",
+    content: message,
+  });
+
   // Build the message list for the tool-use loop
   const loopMessages: Anthropic.MessageParam[] = [
     ...history,
@@ -129,17 +139,27 @@ export async function POST(
   ];
 
   let finalAssistantText = "";
+  // H2: Track the last assistant text seen across rounds so cap-hit can prefer
+  // real partial output over the canned fallback message.
+  let lastAssistantText = "";
 
   try {
     for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
+        max_tokens: MAX_RESPONSE_TOKENS,
         temperature: 0.3,
         system: fullSystemPrompt,
         messages: loopMessages,
         ...(tools.length > 0 ? { tools } : {}),
       });
+
+      // H2: Capture any text in this response before deciding what to do with it.
+      const textInThisResponse = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n\n");
+      if (textInThisResponse) lastAssistantText = textInThisResponse;
 
       if (response.stop_reason === "tool_use") {
         // Append the assistant turn (may contain text + tool_use blocks)
@@ -150,20 +170,50 @@ export async function POST(
           (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
         );
 
+        // H3: Pre-fetch the Google access token once per round if any calendar
+        // tool is being called — avoids N DB selects for N parallel tool calls.
+        const needsCalendarToken = toolUseBlocks.some((b) =>
+          b.name.startsWith("calendar_")
+        );
+        const preFetchedTokens = new Map<string, string>();
+        if (needsCalendarToken) {
+          const tokenResult = await getValidGoogleAccessToken(
+            serviceClient,
+            orgId,
+            "google_calendar"
+          );
+          if (!("error" in tokenResult)) {
+            preFetchedTokens.set("google_calendar", tokenResult.accessToken);
+          }
+          // If token fetch fails, executeTool will handle it per-block and return is_error.
+        }
+
+        // M3: Per-block try/catch so a single tool throw doesn't abort the whole round.
         const toolResults = await Promise.all(
           toolUseBlocks.map(async (block) => {
-            const result = await executeTool({
-              name: block.name,
-              input: block.input as Record<string, unknown>,
-              orgId,
-              serviceClient,
-            });
-            return {
-              type: "tool_result" as const,
-              tool_use_id: block.id,
-              content: result.content,
-              ...(result.is_error ? { is_error: true as const } : {}),
-            };
+            try {
+              const result = await executeTool({
+                name: block.name,
+                input: block.input as Record<string, unknown>,
+                orgId,
+                serviceClient,
+                preFetchedTokens,
+              });
+              return {
+                type: "tool_result" as const,
+                tool_use_id: block.id,
+                content: result.content,
+                ...(result.is_error ? { is_error: true as const } : {}),
+              };
+            } catch (err) {
+              console.error("[chat] Tool execution threw", { name: block.name, error: err });
+              return {
+                type: "tool_result" as const,
+                tool_use_id: block.id,
+                content: "Tool execution failed unexpectedly.",
+                is_error: true as const,
+              };
+            }
           })
         );
 
@@ -171,11 +221,24 @@ export async function POST(
         continue;
       }
 
-      // end_turn or any other stop_reason — extract text and break
-      finalAssistantText = response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === "text")
-        .map((b) => b.text)
-        .join("\n\n");
+      // M4: Handle non-tool_use stop reasons explicitly.
+      if (response.stop_reason === "refusal") {
+        finalAssistantText = "I can't help with that request.";
+        break;
+      }
+
+      if (
+        response.stop_reason === "end_turn" ||
+        response.stop_reason === "max_tokens" ||
+        response.stop_reason === "stop_sequence"
+      ) {
+        finalAssistantText = textInThisResponse;
+        break;
+      }
+
+      // Any other stop_reason — log and break with whatever text we have.
+      console.warn("[chat] Unexpected stop_reason", { stop_reason: response.stop_reason });
+      finalAssistantText = textInThisResponse;
       break;
     }
   } catch (err) {
@@ -184,26 +247,20 @@ export async function POST(
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  // Loop cap hit — Claude ran 8 tool rounds without an end_turn
+  // H2: Loop cap hit — prefer any real assistant text seen over the canned fallback.
   if (!finalAssistantText) {
     finalAssistantText =
+      lastAssistantText ||
       "I've used too many tools — let me try a simpler approach. Could you rephrase your question?";
   }
 
-  // Persist ONLY the user message and final assistant text (not intermediate tool rounds)
+  // Persist ONLY the final assistant text (user message was already saved above).
   await Promise.all([
-    serviceClient.from("messages").insert([
-      {
-        conversation_id: activeConversationId,
-        role: "user",
-        content: message,
-      },
-      {
-        conversation_id: activeConversationId,
-        role: "assistant",
-        content: finalAssistantText,
-      },
-    ]),
+    serviceClient.from("messages").insert({
+      conversation_id: activeConversationId,
+      role: "assistant",
+      content: finalAssistantText,
+    }),
     serviceClient
       .from("conversations")
       .update({ updated_at: new Date().toISOString() })

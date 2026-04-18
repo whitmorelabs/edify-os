@@ -39,12 +39,17 @@ void _exhaustCheck;
  * Execute a tool call by name. Called from the chat route tool-use loop.
  * Handles Google token retrieval and translates NextResponse errors into
  * string-form tool errors (so Claude can explain the failure to the user).
+ *
+ * Pass `preFetchedTokens` to skip redundant DB lookups when multiple calendar
+ * tools are called in the same round (token is fetched once in route.ts and
+ * shared across the parallel Promise.all).
  */
 export async function executeTool({
   name,
   input,
   orgId,
   serviceClient,
+  preFetchedTokens,
 }: {
   name: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,26 +57,32 @@ export async function executeTool({
   orgId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serviceClient: SupabaseClient<any>;
+  preFetchedTokens?: Map<string, string>;
 }): Promise<{ content: string; is_error?: boolean }> {
   if (name.startsWith("calendar_")) {
-    const tokenResult = await getValidGoogleAccessToken(
-      serviceClient,
-      orgId,
-      "google_calendar"
-    );
-    if ("error" in tokenResult) {
-      // Translate the NextResponse error into a user-friendly tool error string.
-      // Claude will explain this to the user instead of pretending to access a calendar.
-      return {
-        content:
-          "Google Workspace is not connected for this organization. Please visit Settings → Integrations to connect a Google account.",
-        is_error: true,
-      };
+    // Use pre-fetched token if available; otherwise fetch now.
+    let accessToken = preFetchedTokens?.get("google_calendar");
+    if (!accessToken) {
+      const tokenResult = await getValidGoogleAccessToken(
+        serviceClient,
+        orgId,
+        "google_calendar"
+      );
+      if ("error" in tokenResult) {
+        // Translate the NextResponse error into a user-friendly tool error string.
+        // Claude will explain this to the user instead of pretending to access a calendar.
+        return {
+          content:
+            "Google Workspace is not connected for this organization. Please visit Settings → Integrations to connect a Google account.",
+          is_error: true,
+        };
+      }
+      accessToken = tokenResult.accessToken;
     }
     return executeCalendarTool({
       name,
       input,
-      accessToken: tokenResult.accessToken,
+      accessToken,
     });
   }
 
