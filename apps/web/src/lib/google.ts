@@ -27,6 +27,143 @@ export const SCOPES_BY_TYPE: Record<GoogleIntegrationType, string[]> = {
   google_drive: [GOOGLE_SCOPES.drive],
 };
 
+/** Cookie name for CSRF state token — shared by connect + callback routes. */
+export const STATE_COOKIE = "google_oauth_state";
+
+/** Typed shape of the config column for Google integration rows. */
+export type GoogleIntegrationConfig = { google_email: string | null };
+
+// ---------------------------------------------------------------------------
+// Origin helper (H1 / M1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the canonical app origin, pinned from env vars rather than
+ * request headers (which are user-controllable and open-redirect-vulnerable).
+ *
+ * Priority:
+ *   1. NEXT_PUBLIC_APP_URL  (set explicitly in Vercel — preferred)
+ *   2. VERCEL_URL           (Vercel auto-sets this, no protocol — server-only fallback)
+ *   3. http://localhost:3000 (local dev)
+ *
+ * ACTION REQUIRED for Citlali: Set NEXT_PUBLIC_APP_URL=https://edifyos.vercel.app
+ * in the Vercel project environment variables (Production + Preview).
+ */
+export function getAppOrigin(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL;
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+// ---------------------------------------------------------------------------
+// In-process token-refresh dedup (H4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Deduplicates concurrent token refresh calls within a single Node process.
+ * Keyed on `${orgId}:refresh`. Prevents Google from revoking the refresh token
+ * when multiple requests race to use it simultaneously.
+ *
+ * Cross-instance dedup (multiple Vercel function instances) is out of scope here —
+ * that requires a Postgres advisory lock or RPC. Deferred to a follow-up.
+ */
+const refreshInFlight = new Map<
+  string,
+  Promise<{ accessToken: string } | { error: NextResponse }>
+>();
+
+async function doRefreshToken(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serviceClient: SupabaseClient<any>,
+  orgId: string,
+  refreshToken: string
+): Promise<{ accessToken: string } | { error: NextResponse }> {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return {
+      error: NextResponse.json(
+        { error: "Google OAuth credentials not configured on server" },
+        { status: 500 }
+      ),
+    };
+  }
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }).toString(),
+  });
+
+  if (!tokenRes.ok) {
+    const errBody = await tokenRes.text();
+    console.error("[google] Token refresh failed:", errBody);
+    return {
+      error: NextResponse.json(
+        { error: "Google token refresh failed. Please reconnect Google." },
+        { status: 401 }
+      ),
+    };
+  }
+
+  const tokens = (await tokenRes.json()) as {
+    access_token: string;
+    expires_in?: number;
+  };
+
+  const newAccessToken = tokens.access_token;
+  const newExpiresAt = tokens.expires_in
+    ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+    : null;
+
+  // Update ALL 3 Google integration rows for this org (they share a token set)
+  const updatePayload: Record<string, unknown> = {
+    access_token_encrypted: newAccessToken,
+    updated_at: new Date().toISOString(),
+  };
+  if (newExpiresAt) updatePayload.token_expires_at = newExpiresAt;
+
+  const { error: updateError } = await serviceClient
+    .from("integrations")
+    .update(updatePayload)
+    .eq("org_id", orgId)
+    .in("type", GOOGLE_INTEGRATION_TYPES);
+
+  if (updateError) {
+    console.error("[google] Failed to update refreshed token:", updateError);
+    // Non-fatal — return the fresh token even if the DB update failed
+  }
+
+  return { accessToken: newAccessToken };
+}
+
+/**
+ * Refresh the Google token for an org, deduplicating concurrent calls within
+ * this Node process so only one POST hits Google's /token endpoint at a time.
+ */
+function refreshTokenDeduped(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serviceClient: SupabaseClient<any>,
+  orgId: string,
+  refreshToken: string
+): Promise<{ accessToken: string } | { error: NextResponse }> {
+  const key = `${orgId}:refresh`;
+  const existing = refreshInFlight.get(key);
+  if (existing) return existing;
+
+  const promise = doRefreshToken(serviceClient, orgId, refreshToken);
+  refreshInFlight.set(key, promise);
+  promise.finally(() => refreshInFlight.delete(key));
+  return promise;
+}
+
 // ---------------------------------------------------------------------------
 // Token refresh helper
 // ---------------------------------------------------------------------------
@@ -114,68 +251,5 @@ export async function getValidGoogleAccessToken(
     };
   }
 
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    return {
-      error: NextResponse.json(
-        { error: "Google OAuth credentials not configured on server" },
-        { status: 500 }
-      ),
-    };
-  }
-
-  // POST to Google's token endpoint with form-urlencoded body
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }).toString(),
-  });
-
-  if (!tokenRes.ok) {
-    const errBody = await tokenRes.text();
-    console.error("[google] Token refresh failed:", errBody);
-    return {
-      error: NextResponse.json(
-        { error: "Google token refresh failed. Please reconnect Google." },
-        { status: 401 }
-      ),
-    };
-  }
-
-  const tokens = (await tokenRes.json()) as {
-    access_token: string;
-    expires_in?: number;
-  };
-
-  const newAccessToken = tokens.access_token;
-  const newExpiresAt = tokens.expires_in
-    ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
-    : null;
-
-  // Update ALL 3 Google integration rows for this org (they share a token set)
-  const updatePayload: Record<string, unknown> = {
-    access_token_encrypted: newAccessToken,
-    updated_at: new Date().toISOString(),
-  };
-  if (newExpiresAt) updatePayload.token_expires_at = newExpiresAt;
-
-  const { error: updateError } = await serviceClient
-    .from("integrations")
-    .update(updatePayload)
-    .eq("org_id", orgId)
-    .in("type", GOOGLE_INTEGRATION_TYPES);
-
-  if (updateError) {
-    console.error("[google] Failed to update refreshed token:", updateError);
-    // Non-fatal — return the fresh token even if the DB update failed
-  }
-
-  return { accessToken: newAccessToken };
+  return refreshTokenDeduped(serviceClient, orgId, refreshToken);
 }

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
+import { OAuth2Client } from "google-auth-library";
 import { cookies } from "next/headers";
 import { getAuthContext, createServiceRoleClient } from "@/lib/supabase/server";
-import { GOOGLE_SCOPES, GOOGLE_INTEGRATION_TYPES, SCOPES_BY_TYPE } from "@/lib/google";
-
-/** Cookie name for CSRF state token (must match connect/route.ts). */
-const STATE_COOKIE = "google_oauth_state";
+import {
+  GOOGLE_INTEGRATION_TYPES,
+  SCOPES_BY_TYPE,
+  STATE_COOKIE,
+  getAppOrigin,
+} from "@/lib/google";
 
 /** GET /api/integrations/google/callback — receives code from Google, stores tokens */
 export async function GET(req: NextRequest) {
@@ -15,21 +17,19 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get("state");
   const errorParam = searchParams.get("error");
 
-  // Determine origin for redirect_uri (must match what connect/ used exactly)
-  const forwardedProto =
-    req.headers.get("x-forwarded-proto") ?? req.headers.get("x-forwarded-protocol");
-  const forwardedHost = req.headers.get("x-forwarded-host");
-  const host = forwardedHost ?? req.headers.get("host") ?? "localhost:3000";
-  const proto = forwardedProto
-    ? forwardedProto.split(",")[0].trim()
-    : host.startsWith("localhost")
-    ? "http"
-    : "https";
-  const origin = `${proto}://${host}`;
+  // Pin origin from env — never derive from request headers (open-redirect risk)
+  const origin = getAppOrigin();
+
+  // Helper: clear state cookie and redirect
+  async function clearAndRedirect(target: string): Promise<NextResponse> {
+    const cookieStore = await cookies();
+    cookieStore.delete(STATE_COOKIE);
+    return NextResponse.redirect(target);
+  }
 
   // --- User denied access ---
   if (errorParam) {
-    return NextResponse.redirect(
+    return clearAndRedirect(
       `${origin}/dashboard/integrations?google=denied&reason=${encodeURIComponent(errorParam)}`
     );
   }
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
   const storedState = cookieStore.get(STATE_COOKIE)?.value;
 
   if (!storedState || storedState !== state) {
+    // Don't clear the cookie here — it's either already absent (replay) or mismatched
     return NextResponse.json(
       { error: "OAuth state mismatch (possible CSRF attempt)" },
       { status: 400 }
@@ -46,31 +47,31 @@ export async function GET(req: NextRequest) {
   }
 
   if (!code) {
-    return NextResponse.json(
-      { error: "No authorization code returned from Google" },
-      { status: 400 }
+    return clearAndRedirect(
+      `${origin}/dashboard/integrations?google=denied&reason=no_code`
     );
   }
 
   // --- Auth gate ---
   const { user, memberId, orgId } = await getAuthContext();
   if (!user || !memberId || !orgId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return clearAndRedirect(
+      `${origin}/dashboard/integrations?google=denied&reason=unauthorized`
+    );
   }
 
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    return NextResponse.json(
-      { error: "Google OAuth credentials not configured on server" },
-      { status: 500 }
+    return clearAndRedirect(
+      `${origin}/dashboard/integrations?google=denied&reason=server_config_error`
     );
   }
 
   const redirectUri = `${origin}/api/integrations/google/callback`;
 
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
 
   // Exchange code for tokens
   let tokens: {
@@ -85,18 +86,18 @@ export async function GET(req: NextRequest) {
     tokens = rawTokens;
   } catch (err) {
     console.error("[google/callback] Token exchange failed:", err);
-    return NextResponse.redirect(
+    return clearAndRedirect(
       `${origin}/dashboard/integrations?google=denied&reason=token_exchange_failed`
     );
   }
 
   if (!tokens.access_token) {
-    return NextResponse.redirect(
+    return clearAndRedirect(
       `${origin}/dashboard/integrations?google=denied&reason=no_access_token`
     );
   }
 
-  // Fetch the connected Google account email
+  // Fetch the connected Google account email — hard-fail if non-200 (M3)
   let googleEmail: string | null = null;
   try {
     const userInfoRes = await fetch(
@@ -105,13 +106,22 @@ export async function GET(req: NextRequest) {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       }
     );
-    if (userInfoRes.ok) {
-      const userInfo = (await userInfoRes.json()) as { email?: string };
-      googleEmail = userInfo.email ?? null;
+    if (userInfoRes.status !== 200) {
+      console.error(
+        "[google/callback] Userinfo returned non-200:",
+        userInfoRes.status
+      );
+      return clearAndRedirect(
+        `${origin}/dashboard/integrations?google=denied&reason=userinfo_failed`
+      );
     }
+    const userInfo = (await userInfoRes.json()) as { email?: string };
+    googleEmail = userInfo.email ?? null;
   } catch (err) {
     console.error("[google/callback] Failed to fetch userinfo:", err);
-    // Non-fatal — we'll store tokens without email
+    return clearAndRedirect(
+      `${origin}/dashboard/integrations?google=denied&reason=userinfo_failed`
+    );
   }
 
   // Compute expiry timestamp
@@ -121,48 +131,44 @@ export async function GET(req: NextRequest) {
 
   const serviceClient = createServiceRoleClient();
   if (!serviceClient) {
-    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+    return clearAndRedirect(
+      `${origin}/dashboard/integrations?google=denied&reason=db_unavailable`
+    );
   }
 
-  // Upsert 3 rows — one per Google integration type
+  // Batch upsert all 3 rows in one call (H3)
   // They share the same access+refresh token set; scopes split by service type
-  const upsertRows = GOOGLE_INTEGRATION_TYPES.map((type) => {
-    const row: Record<string, unknown> = {
-      org_id: orgId,
-      type,
-      access_token_encrypted: tokens.access_token,
-      scopes: SCOPES_BY_TYPE[type],
-      config: { google_email: googleEmail },
-      connected_by: memberId,
-      status: "active",
-      updated_at: new Date().toISOString(),
-    };
-    // Only set refresh_token if present (Google reuses old token if user was already consented;
-    // prompt:consent should force a new one, but be defensive)
-    if (tokens.refresh_token) {
-      row.refresh_token_encrypted = tokens.refresh_token;
-    }
-    if (tokenExpiresAt) {
-      row.token_expires_at = tokenExpiresAt;
-    }
-    return row;
-  });
-
-  for (const row of upsertRows) {
-    const { error: upsertError } = await serviceClient
-      .from("integrations")
-      .upsert(row, { onConflict: "org_id,type" });
-
-    if (upsertError) {
-      console.error(`[google/callback] Failed to upsert ${row.type}:`, upsertError);
-      return NextResponse.redirect(
-        `${origin}/dashboard/integrations?google=denied&reason=db_error`
-      );
-    }
+  const sharedFields: Record<string, unknown> = {
+    org_id: orgId,
+    access_token_encrypted: tokens.access_token,
+    config: { google_email: googleEmail },
+    connected_by: memberId,
+    status: "active",
+    updated_at: new Date().toISOString(),
+  };
+  if (tokens.refresh_token) {
+    sharedFields.refresh_token_encrypted = tokens.refresh_token;
+  }
+  if (tokenExpiresAt) {
+    sharedFields.token_expires_at = tokenExpiresAt;
   }
 
-  // Clear the state cookie
-  cookieStore.delete(STATE_COOKIE);
+  const upsertRows = GOOGLE_INTEGRATION_TYPES.map((type) => ({
+    ...sharedFields,
+    type,
+    scopes: SCOPES_BY_TYPE[type],
+  }));
 
-  return NextResponse.redirect(`${origin}/dashboard/integrations?google=connected`);
+  const { error: upsertError } = await serviceClient
+    .from("integrations")
+    .upsert(upsertRows, { onConflict: "org_id,type" });
+
+  if (upsertError) {
+    console.error("[google/callback] Failed to upsert integrations:", upsertError);
+    return clearAndRedirect(
+      `${origin}/dashboard/integrations?google=denied&reason=db_error`
+    );
+  }
+
+  return clearAndRedirect(`${origin}/dashboard/integrations?google=connected`);
 }

@@ -14,7 +14,7 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.0",
     "clsx": "^2.1.1",
-    "googleapis": "^171.4.0",
+    "google-auth-library": "^10.6.2",
     "lucide-react": "^0.460.0",
     "next": "^14.2.21",
     "react": "^18.3.1",

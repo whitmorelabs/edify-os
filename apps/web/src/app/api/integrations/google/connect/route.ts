@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
+import { NextResponse } from "next/server";
+import { OAuth2Client } from "google-auth-library";
 import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 import { getAuthContext } from "@/lib/supabase/server";
-import { GOOGLE_SCOPES } from "@/lib/google";
-
-/** Cookie name for CSRF state token. */
-const STATE_COOKIE = "google_oauth_state";
+import { GOOGLE_SCOPES, STATE_COOKIE, getAppOrigin } from "@/lib/google";
 
 /** GET /api/integrations/google/connect — redirect to Google's OAuth consent screen */
-export async function GET(req: NextRequest) {
+export async function GET() {
   const { user, memberId, orgId } = await getAuthContext();
 
   if (!user || !memberId || !orgId) {
@@ -26,24 +23,15 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Determine the origin for redirect_uri — respect Vercel proxy headers
-  const forwardedProto =
-    req.headers.get("x-forwarded-proto") ?? req.headers.get("x-forwarded-protocol");
-  const forwardedHost = req.headers.get("x-forwarded-host");
-  const host = forwardedHost ?? req.headers.get("host") ?? "localhost:3000";
-  const proto = forwardedProto
-    ? forwardedProto.split(",")[0].trim()
-    : host.startsWith("localhost")
-    ? "http"
-    : "https";
-  const origin = `${proto}://${host}`;
+  // Pin redirect_uri from env — never derive from request headers (open-redirect risk)
+  const origin = getAppOrigin();
   const redirectUri = `${origin}/api/integrations/google/callback`;
 
   // Generate CSRF state token
   const state = randomBytes(32).toString("hex");
 
-  // Build authorization URL via googleapis OAuth2 client
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  // Build authorization URL via google-auth-library OAuth2Client (~50KB vs 4MB googleapis)
+  const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
 
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: "offline",

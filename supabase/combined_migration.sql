@@ -594,3 +594,13 @@ create policy "Members can delete org integrations"
   using (
     org_id in (select org_id from members where user_id = auth.uid())
   );
+
+-- 00015: Tighten integrations RLS — drop INSERT/UPDATE/DELETE policies
+-- All writes go through service-role client (bypasses RLS). The policies are dead
+-- code and their WITH CHECK clauses would allow forging connected_by on user-client
+-- writes. To re-enable user-client writes: add explicit WITH CHECK policies that
+-- constrain both org_id (caller's org) and connected_by (caller's member id).
+-- SELECT policy is retained.
+drop policy if exists "Members can insert org integrations" on integrations;
+drop policy if exists "Members can update org integrations" on integrations;
+drop policy if exists "Members can delete org integrations" on integrations;

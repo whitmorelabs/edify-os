@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { google } from "googleapis";
 import { getAuthContext, createServiceRoleClient } from "@/lib/supabase/server";
 import { getValidGoogleAccessToken } from "@/lib/google";
 
@@ -27,15 +26,28 @@ export async function GET() {
 
   const { accessToken } = tokenResult;
 
-  // Build a Calendar client using the access token directly
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: accessToken });
-
-  const calendar = google.calendar({ version: "v3", auth });
-
+  // Direct REST fetch — avoids importing the 4MB googleapis bundle
   try {
-    const response = await calendar.calendarList.list();
-    const items = response.data.items ?? [];
+    const response = await fetch(
+      "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error("[test-calendars] Calendar API error:", response.status, errBody);
+      return NextResponse.json(
+        { error: "Failed to fetch calendars from Google" },
+        { status: 502 }
+      );
+    }
+
+    const data = (await response.json()) as {
+      items?: { id?: string; summary?: string; primary?: boolean }[];
+    };
+    const items = data.items ?? [];
 
     const calendars = items.map((c) => ({
       id: c.id,

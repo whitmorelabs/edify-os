@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAuthContext, createServiceRoleClient } from "@/lib/supabase/server";
-import { GOOGLE_INTEGRATION_TYPES } from "@/lib/google";
+import {
+  GOOGLE_INTEGRATION_TYPES,
+  type GoogleIntegrationConfig,
+} from "@/lib/google";
 
 /** GET /api/integrations/google — current Google connection status for the org */
 export async function GET() {
@@ -28,13 +31,18 @@ export async function GET() {
   }
 
   const connected = (data ?? []).length > 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const googleEmail = connected ? ((data![0].config as any)?.google_email ?? null) : null;
+  const googleEmail = connected
+    ? ((data![0].config as GoogleIntegrationConfig)?.google_email ?? null)
+    : null;
 
   return NextResponse.json({ connected, email: googleEmail });
 }
 
-/** DELETE /api/integrations/google — disconnect Google (removes all 3 rows) */
+/**
+ * DELETE /api/integrations/google — soft-disconnect Google (marks all 3 rows revoked).
+ * Soft-delete matches the pattern in /api/integrations (DELETE handler) which uses
+ * status='revoked'. Hard-delete is avoided so audit history is preserved.
+ */
 export async function DELETE() {
   const { user, orgId } = await getAuthContext();
   if (!user || !orgId) {
@@ -48,7 +56,7 @@ export async function DELETE() {
 
   const { error } = await serviceClient
     .from("integrations")
-    .delete()
+    .update({ status: "revoked", updated_at: new Date().toISOString() })
     .eq("org_id", orgId)
     .in("type", GOOGLE_INTEGRATION_TYPES);
 

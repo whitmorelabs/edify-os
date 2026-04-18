@@ -2,6 +2,65 @@
 
 ---
 
+## 2026-04-17 — /simplify pass on Phase 2a (coding agent)
+
+**Task:** Apply /simplify findings from commit `23ad4bb` (Phase 2a Google Workspace OAuth). All HIGH + MEDIUM + LOW fixes applied. Build verified before push.
+
+### What Was Fixed
+
+**H1 — Pinned redirect_uri and post-callback redirects via `getAppOrigin()`**
+- Added `getAppOrigin()` to `lib/google.ts`. Priority: `NEXT_PUBLIC_APP_URL` → `VERCEL_URL` → `localhost:3000`.
+- Both `connect/route.ts` and `callback/route.ts` now use `getAppOrigin()` — headers no longer control the redirect target. Open-redirect vulnerability closed.
+- ACTION FOR CITLALI: Set `NEXT_PUBLIC_APP_URL=https://edifyos.vercel.app` in Vercel project environment variables (Production + Preview).
+
+**H2 — State cookie cleared on every callback exit path**
+- Extracted `clearAndRedirect()` helper inside callback route. All exit paths (error from Google, token exchange failure, auth gate failure, server config error, DB error, userinfo failure, success) now call it, ensuring the state cookie is always deleted before redirecting.
+- CSRF mismatch path intentionally does NOT clear the cookie (it's either absent or mismatched — clearing would be meaningless and slightly less informative).
+
+**H3 — Batched 3 upserts into one call**
+- `callback/route.ts` now builds `upsertRows` array and calls `.upsert(upsertRows, ...)` once instead of 3 sequential calls in a `for...of` loop.
+
+**H4 — In-process token-refresh dedup**
+- Added `refreshInFlight` Map in `lib/google.ts`. Concurrent refresh calls for the same org share the same Promise. Entry is deleted via `.finally()` when resolved or rejected.
+- Cross-instance dedup (multiple Vercel function instances) is out of scope — that requires a Postgres advisory lock or RPC. In-process dedup is the right level for serverless functions.
+
+**M1 — Centralized `STATE_COOKIE` constant**
+- `STATE_COOKIE = "google_oauth_state"` now exported from `lib/google.ts`. Both routes import from there — no more duplicated declaration.
+
+**M2 — Soft-delete Google integration (status='revoked')**
+- `route.ts` DELETE handler now uses `.update({ status: 'revoked', updated_at: ... })` instead of `.delete()`. Matches the pattern in `/api/integrations` DELETE. Audit history preserved.
+- GET handler already had `.eq('status', 'active')` filter, so revoked rows won't appear as connected.
+
+**M3 — Hard-fail on userinfo non-200 in callback**
+- If userinfo fetch returns non-200, callback now redirects with `?google=denied&reason=userinfo_failed` and clears the cookie. No tokens are upserted. Previous behavior (upsert with `google_email: null`) removed.
+
+**M4 — Lighter Google SDK imports**
+- Replaced `import { google } from 'googleapis'` (~4MB bundle) with `import { OAuth2Client } from 'google-auth-library'` (~50KB) in connect and callback routes.
+- `test-calendars` route switched from `google.calendar()` client to direct `fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', ...)`. No googleapis import needed.
+- `googleapis` removed from `apps/web/package.json`. `google-auth-library` added as direct dependency.
+
+**M5 — Dropped dead INSERT/UPDATE/DELETE RLS policies**
+- Created `supabase/migrations/00015_tighten_integrations_policies.sql`. Drops the INSERT/UPDATE/DELETE policies added in 00014 (dead code — all writes use service-role client which bypasses RLS).
+- SELECT policy retained. Migration 00015 appended to `combined_migration.sql`.
+
+**M6 — Typed `config` column**
+- `GoogleIntegrationConfig = { google_email: string | null }` exported from `lib/google.ts`.
+- `route.ts` GET handler casts as `(data![0].config as GoogleIntegrationConfig)?.google_email` — no more `as any`.
+
+**L1 — Trim `reason` query param in toast**
+- `integrations/page.tsx`: `const reason = rawReason.slice(0, 100)` before rendering toast. Prevents oversized UI from a crafted URL.
+
+### Skipped (per instructions)
+- NODE_ENV gate on test-calendars — intentional PRD smoke test, replaced in Phase 2b
+- UI useEffect consolidation — cosmetic
+- `select("config")` column trim — micro-optimization
+- Cross-instance Postgres advisory lock for refresh dedup — explicitly out of scope
+
+### Build
+- `npm run build` passed cleanly in `apps/web/`. All 79 static pages generated, no type errors.
+
+---
+
 ## 2026-04-17 — Phase 2a Google OAuth (coding agent)
 
 **Task:** Implement Google Workspace OAuth foundation per PRD-phase-2a-google-oauth.md.

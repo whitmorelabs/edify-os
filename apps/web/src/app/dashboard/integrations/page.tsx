@@ -541,7 +541,8 @@ function IntegrationsPageInner() {
       // Remove query param from URL without navigation
       router.replace('/dashboard/integrations', { scroll: false });
     } else if (googleParam === 'denied') {
-      const reason = searchParams.get('reason') ?? 'access_denied';
+      const rawReason = searchParams.get('reason') ?? 'access_denied';
+      const reason = rawReason.slice(0, 100); // clamp to prevent oversized toast (L1)
       setToast({
         message: `Google connection was not completed (${reason}). Please try again.`,
         kind: 'error',
