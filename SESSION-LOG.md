@@ -2,6 +2,97 @@
 
 ---
 
+## 2026-04-17 — Phase 2b Calendar tools (coding agent)
+
+**Task:** Implement Phase 2b — Calendar tools + Anthropic tool-use loop per PRD-phase-2b-calendar-tools.md.
+
+### Pre-work Findings
+
+**Chat route (`team/[slug]/chat/route.ts`):**
+- Single `messages.create` call, no tool-use loop
+- System prompt built inline: `basePrompt + orgContext` — system prompt addendum goes here
+- Model: `claude-sonnet-4-20250514` (kept unchanged)
+- Post-Claude persistence uses `Promise.all` pattern (from Phase 1 /simplify)
+
+**`lib/anthropic.ts`:**
+- `getAnthropicClientForOrg` returns `{ client: Anthropic; orgName; org }` or `{ error: NextResponse }`
+- `client` is a full `Anthropic` instance — call `.messages.create()` on it
+
+**`lib/google.ts`:**
+- `getValidGoogleAccessToken(serviceClient, orgId, integrationType)` returns `{ accessToken: string } | { error: NextResponse }`
+- Error path translated in `executeTool` by returning a string-form tool error (approach (a) from PRD — simpler)
+
+**SDK version:** `@anthropic-ai/sdk ^0.90.0` — fully supports tool use
+
+**Archetype slugs:** underscores, not hyphens: `executive_assistant`, `events_director`, etc. Registry keys must match.
+
+### What Was Built
+
+**Step 1 — `apps/web/src/lib/google-calendar.ts` (NEW)**
+- `CalendarEvent` type + `GoogleCalendarError` class
+- 5 typed REST wrappers: `listEvents`, `getEvent`, `createEvent`, `updateEvent`, `deleteEvent`
+- All use `fetch` to `https://www.googleapis.com/calendar/v3`, Bearer auth, throw `GoogleCalendarError` on non-2xx
+
+**Step 2 — `apps/web/src/lib/tools/calendar.ts` (NEW)**
+- 5 `Anthropic.Tool` objects with carefully written model-facing descriptions
+- `executeCalendarTool({ name, input, accessToken })` dispatcher
+
+**Step 3 — `apps/web/src/lib/tools/registry.ts` (NEW)**
+- `ARCHETYPE_TOOLS` map keyed on underscore slugs (matching `ARCHETYPE_SLUGS`)
+- `executeTool({ name, input, orgId, serviceClient })` dispatches on `calendar_` prefix
+
+**Step 4 — `team/[slug]/chat/route.ts` refactored**
+- Tool-use loop, max 8 rounds
+- Parallel `Promise.all` for tool results within each round
+- Only final user+assistant turn persisted; intermediate tool rounds not stored
+
+**Step 5 — System prompt addendum**
+- Appended calendar tools instruction when `tools.length > 0`
+
+### Build
+
+- `npm run build` in `apps/web/` — [result pending]
+
+### Commit
+
+- [pending]
+
+---
+
+## 2026-04-17 — /simplify pass on encryption (coding agent)
+
+**Task:** Apply /simplify findings to commit d88aa0b (encryption). Hardening call sites, key caching, label constants.
+
+### What Was Done
+
+**H1 — Try/catch around `decrypt()` calls**
+- `apps/web/src/lib/anthropic.ts`: wrapped `decryptIfEncrypted` call in try/catch; logs `[anthropic] Failed to decrypt API key` with orgId context; returns clean 500 NextResponse to caller.
+- `apps/web/src/lib/google.ts`: wrapped both `decryptIfEncrypted` calls (access token + refresh token) in separate try/catch blocks; logs `[google] Failed to decrypt access/refresh token` with orgId + integrationType; returns clean 500 NextResponse.
+
+**H2 — Null narrowing, removed as-string casts**
+- Removed `apiKey as string` cast in `anthropic.ts`; used explicit `const safeKey: string = apiKey` after the null check instead.
+- `google.ts`: no `as string` casts existed after null checks — TypeScript narrows correctly via control flow.
+
+**M1 — Key caching singleton in `crypto.ts`**
+- Added `let _cachedKey: Buffer | null = null` module-level variable.
+- `getKey()` now returns cached key on subsequent calls instead of re-parsing `process.env.ENCRYPTION_KEY` every time.
+
+**M2 — Label constants exported from `crypto.ts`**
+- Added `CRYPTO_LABEL_ANTHROPIC_KEY`, `CRYPTO_LABEL_GOOGLE_ACCESS_TOKEN`, `CRYPTO_LABEL_GOOGLE_REFRESH_TOKEN`.
+- `anthropic.ts` and `google.ts` now import and use these instead of inline strings.
+
+**L1 — JSDoc on `doRefreshToken` refreshToken parameter**
+- Added note: "must be DECRYPTED plaintext, not the raw DB value".
+
+### Build
+- `npm run build` in `apps/web/` passed cleanly (79 static pages, no TypeScript errors).
+
+### Commit
+- `simplify: encryption error handling, key caching, label constants` — commit `9476a8b`
+- Pushed to origin/main (d88aa0b → 9476a8b).
+
+---
+
 ## 2026-04-17 — Encryption (coding agent)
 
 **Task:** Implement real AES-256-GCM encryption for sensitive columns per PRD-encryption.md.

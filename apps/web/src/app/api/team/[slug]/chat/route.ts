@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 import { ARCHETYPE_PROMPTS } from "@/lib/archetype-prompts";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
+import { ARCHETYPE_TOOLS, executeTool } from "@/lib/tools/registry";
+
+const TOOL_USE_LOOP_MAX = 8;
+
+const CALENDAR_TOOLS_ADDENDUM = `\nYou have access to the user's Google Calendar via tools. Always use them when the user asks about calendar events, scheduling, or availability. Never make up event details — if you don't know, call calendar_list_events or calendar_get_event. Times in your responses should match the timezone the user used in their question.`;
 
 export async function POST(
   request: Request,
@@ -108,31 +114,83 @@ export async function POST(
     ? `\n\n## Organization Context\nOrg name: ${orgName}\nMission: ${mission}`
     : `\n\n## Organization Context\nOrg name: ${orgName}`;
 
-  const fullSystemPrompt = systemPrompt + orgContext;
+  // Look up tools for this archetype
+  const tools = ARCHETYPE_TOOLS[slug as ArchetypeSlug] ?? [];
 
-  let assistantContent: string;
+  // Append calendar tools addendum when tools are active
+  const toolsAddendum = tools.length > 0 ? CALENDAR_TOOLS_ADDENDUM : "";
+
+  const fullSystemPrompt = systemPrompt + orgContext + toolsAddendum;
+
+  // Build the message list for the tool-use loop
+  const loopMessages: Anthropic.MessageParam[] = [
+    ...history,
+    { role: "user", content: message },
+  ];
+
+  let finalAssistantText = "";
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      temperature: 0.3,
-      system: fullSystemPrompt,
-      messages: [
-        ...history,
-        { role: "user", content: message },
-      ],
-    });
+    for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
+      const response = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        temperature: 0.3,
+        system: fullSystemPrompt,
+        messages: loopMessages,
+        ...(tools.length > 0 ? { tools } : {}),
+      });
 
-    assistantContent =
-      response.content[0]?.type === "text" ? response.content[0].text : "";
+      if (response.stop_reason === "tool_use") {
+        // Append the assistant turn (may contain text + tool_use blocks)
+        loopMessages.push({ role: "assistant", content: response.content });
+
+        // Execute all tool_use blocks in this turn in parallel
+        const toolUseBlocks = response.content.filter(
+          (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+        );
+
+        const toolResults = await Promise.all(
+          toolUseBlocks.map(async (block) => {
+            const result = await executeTool({
+              name: block.name,
+              input: block.input as Record<string, unknown>,
+              orgId,
+              serviceClient,
+            });
+            return {
+              type: "tool_result" as const,
+              tool_use_id: block.id,
+              content: result.content,
+              ...(result.is_error ? { is_error: true as const } : {}),
+            };
+          })
+        );
+
+        loopMessages.push({ role: "user", content: toolResults });
+        continue;
+      }
+
+      // end_turn or any other stop_reason — extract text and break
+      finalAssistantText = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n\n");
+      break;
+    }
   } catch (err) {
     console.error("[team/chat] Claude API error:", err);
     const msg = err instanceof Error ? err.message : "Claude API error";
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  // Persist messages and update conversation timestamp in parallel (independent writes)
+  // Loop cap hit — Claude ran 8 tool rounds without an end_turn
+  if (!finalAssistantText) {
+    finalAssistantText =
+      "I've used too many tools — let me try a simpler approach. Could you rephrase your question?";
+  }
+
+  // Persist ONLY the user message and final assistant text (not intermediate tool rounds)
   await Promise.all([
     serviceClient.from("messages").insert([
       {
@@ -143,7 +201,7 @@ export async function POST(
       {
         conversation_id: activeConversationId,
         role: "assistant",
-        content: assistantContent,
+        content: finalAssistantText,
       },
     ]),
     serviceClient
@@ -155,7 +213,7 @@ export async function POST(
   return NextResponse.json({
     id: crypto.randomUUID(),
     role: "assistant",
-    content: assistantContent,
+    content: finalAssistantText,
     timestamp: new Date().toISOString(),
     conversationId: activeConversationId,
   });
