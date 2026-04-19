@@ -27,10 +27,14 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(prefix)
   );
 
-  // Allow demo mode to bypass auth on protected routes.
+  // Demo-mode auth bypass. Gated by NEXT_PUBLIC_DEMO_MODE so only preview
+  // or explicitly-enabled deploys expose the skip-to-dashboard flow.
+  // Production must leave NEXT_PUBLIC_DEMO_MODE unset.
+  const demoModeEnabled = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
   const isDemoMode =
-    request.cookies.get("edify_demo")?.value === "true" ||
-    request.nextUrl.searchParams.get("demo") === "true";
+    demoModeEnabled &&
+    (request.cookies.get("edify_demo")?.value === "true" ||
+      request.nextUrl.searchParams.get("demo") === "true");
 
   if (isDemoMode && isProtected) {
     if (request.nextUrl.searchParams.get("demo") === "true") {

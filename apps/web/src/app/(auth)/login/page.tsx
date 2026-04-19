@@ -159,19 +159,23 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div className="mt-6 flex items-center gap-4">
-        <div className="h-px flex-1 bg-white/10" />
-        <span className="text-xs text-white/30">or</span>
-        <div className="h-px flex-1 bg-white/10" />
-      </div>
+      {process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (
+        <>
+          <div className="mt-6 flex items-center gap-4">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-xs text-white/30">or</span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
 
-      <Link
-        href="/dashboard?demo=true"
-        className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#8B5CF6] hover:bg-white/5 transition-all duration-150"
-      >
-        Skip to Demo Dashboard
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+          <Link
+            href="/dashboard?demo=true"
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#8B5CF6] hover:bg-white/5 transition-all duration-150"
+          >
+            Skip to Demo Dashboard
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </>
+      )}
 
       <p className="mt-4 text-center text-sm text-white/40">
         Don&apos;t have an account?{" "}
