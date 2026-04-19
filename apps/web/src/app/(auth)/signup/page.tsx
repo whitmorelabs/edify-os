@@ -125,7 +125,7 @@ export default function SignupPage() {
       </div>
 
       <Link
-        href="/dashboard"
+        href="/dashboard?demo=true"
         className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#8B5CF6] hover:bg-white/5 transition-all duration-150"
       >
         Skip to Demo Dashboard

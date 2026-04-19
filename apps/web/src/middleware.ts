@@ -27,6 +27,20 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(prefix)
   );
 
+  // Allow demo mode to bypass auth on protected routes.
+  const isDemoMode =
+    request.cookies.get("edify_demo")?.value === "true" ||
+    request.nextUrl.searchParams.get("demo") === "true";
+
+  if (isDemoMode && isProtected) {
+    if (request.nextUrl.searchParams.get("demo") === "true") {
+      const resp = NextResponse.next();
+      resp.cookies.set("edify_demo", "true", { path: "/", maxAge: 60 * 60 * 24 }); // 24h
+      return resp;
+    }
+    return NextResponse.next();
+  }
+
   // Redirect unauthenticated users away from protected routes.
   if (isProtected && !session) {
     const loginUrl = new URL("/login", request.url);
