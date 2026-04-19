@@ -168,7 +168,7 @@ export async function POST(
         );
 
         // H3: Pre-fetch Google access tokens once per round to avoid N DB selects
-        // for N parallel tool calls. One fetch per integration type needed.
+        // for N parallel tool calls. Fetches run in parallel when both are needed.
         const needsCalendarToken = toolUseBlocks.some((b) =>
           b.name.startsWith("calendar_")
         );
@@ -176,28 +176,18 @@ export async function POST(
           b.name.startsWith("gmail_")
         );
         const preFetchedTokens = new Map<string, string>();
-        if (needsCalendarToken) {
-          const tokenResult = await getValidGoogleAccessToken(
-            serviceClient,
-            orgId,
-            "google_calendar"
-          );
-          if (!("error" in tokenResult)) {
-            preFetchedTokens.set("google_calendar", tokenResult.accessToken);
-          }
-          // If token fetch fails, executeTool will handle it per-block and return is_error.
-        }
-        if (needsGmailToken) {
-          const tokenResult = await getValidGoogleAccessToken(
-            serviceClient,
-            orgId,
-            "gmail"
-          );
-          if (!("error" in tokenResult)) {
-            preFetchedTokens.set("gmail", tokenResult.accessToken);
-          }
-          // If token fetch fails, executeTool will handle it per-block and return is_error.
-        }
+        await Promise.all([
+          needsCalendarToken
+            ? getValidGoogleAccessToken(serviceClient, orgId, "google_calendar").then((r) => {
+                if (!("error" in r)) preFetchedTokens.set("google_calendar", r.accessToken);
+              })
+            : Promise.resolve(),
+          needsGmailToken
+            ? getValidGoogleAccessToken(serviceClient, orgId, "gmail").then((r) => {
+                if (!("error" in r)) preFetchedTokens.set("gmail", r.accessToken);
+              })
+            : Promise.resolve(),
+        ]);
 
         // M3: Per-block try/catch so a single tool throw doesn't abort the whole round.
         const toolResults = await Promise.all(

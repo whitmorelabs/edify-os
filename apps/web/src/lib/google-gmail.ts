@@ -22,8 +22,8 @@ export type GmailMessage = {
   subject?: string;
   date?: string;
   isUnread?: boolean;
-  body?: string; // only populated by getMessage (full fetch)
-  messageId?: string; // raw Message-ID header, used for reply threading
+  body?: string;
+  messageId?: string;
 };
 
 export type GmailThread = {
@@ -43,7 +43,7 @@ export type GmailDraft = {
 export type GmailLabel = {
   id: string;
   name: string;
-  type?: string; // "system" | "user"
+  type?: "system" | "user";
 };
 
 // ---------------------------------------------------------------------------
@@ -87,7 +87,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
  * Used for RFC 2822 MIME message encoding required by Gmail v1 send/draft endpoints.
  */
 function toBase64Url(input: string): string {
-  // btoa works in both Node 18+ and browser environments
   return btoa(
     encodeURIComponent(input).replace(/%([0-9A-F]{2})/g, (_match, p1: string) =>
       String.fromCharCode(parseInt(p1, 16))
@@ -189,19 +188,16 @@ function extractBody(
 
   const mimeType = payload.mimeType as string | undefined;
 
-  // If this part is plain text, decode and return it
   if (mimeType === "text/plain") {
     const dataStr = (payload.body as Record<string, unknown> | undefined)
       ?.data as string | undefined;
     if (!dataStr) return undefined;
-    // Gmail returns base64url; decode to UTF-8 text
     const decoded = decodeBase64Url(dataStr);
     return decoded.length > 8000
       ? decoded.slice(0, 8000) + "[...truncated]"
       : decoded;
   }
 
-  // For multipart, recurse into parts
   if (mimeType?.startsWith("multipart/")) {
     const parts =
       (payload.parts as Array<Record<string, unknown>> | undefined) ?? [];
@@ -218,9 +214,7 @@ function extractBody(
  * Decode a base64url string to a UTF-8 string.
  */
 function decodeBase64Url(base64url: string): string {
-  // Convert base64url back to standard base64
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  // Pad to 4-char boundary
   const padded = base64 + "===".slice((base64.length + 3) % 4);
   return atob(padded);
 }
@@ -246,7 +240,6 @@ export async function listMessages({
 }): Promise<{ messages: GmailMessage[] }> {
   const params = new URLSearchParams({
     maxResults: String(Math.min(Math.max(1, maxResults), 50)),
-    format: "metadata",
   });
   if (query) params.set("q", query);
   if (labelIds?.length) params.set("labelIds", labelIds.join(","));
@@ -260,18 +253,10 @@ export async function listMessages({
   const stubs = listData.messages ?? [];
   if (stubs.length === 0) return { messages: [] };
 
-  // Fetch metadata for each stub in parallel (metadata format = slim)
-  const metaParams = new URLSearchParams({
-    format: "metadata",
-    "metadataHeaders": "From",
-  });
-  // Override: use full metadata fetch per-message for From/Subject/Date headers
   const messages = await Promise.all(
     stubs.map(async ({ id }) => {
-      const msgParams = new URLSearchParams({
-        format: "metadata",
-        "metadataHeaders": "From",
-      });
+      const msgParams = new URLSearchParams({ format: "metadata" });
+      msgParams.append("metadataHeaders", "From");
       msgParams.append("metadataHeaders", "Subject");
       msgParams.append("metadataHeaders", "Date");
       const msgUrl = `${GMAIL_BASE}/messages/${encodeURIComponent(id)}?${msgParams}`;
@@ -280,7 +265,6 @@ export async function listMessages({
       return parseMessage(raw, false);
     })
   );
-  void metaParams; // suppress unused warning
 
   return { messages };
 }
@@ -491,7 +475,7 @@ export async function listLabels({
     labels: (data.labels ?? []).map((l) => ({
       id: l.id,
       name: l.name,
-      type: l.type,
+      type: l.type as "system" | "user" | undefined,
     })),
   };
 }
