@@ -167,10 +167,13 @@ export async function POST(
           (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
         );
 
-        // H3: Pre-fetch the Google access token once per round if any calendar
-        // tool is being called — avoids N DB selects for N parallel tool calls.
+        // H3: Pre-fetch Google access tokens once per round to avoid N DB selects
+        // for N parallel tool calls. One fetch per integration type needed.
         const needsCalendarToken = toolUseBlocks.some((b) =>
           b.name.startsWith("calendar_")
+        );
+        const needsGmailToken = toolUseBlocks.some((b) =>
+          b.name.startsWith("gmail_")
         );
         const preFetchedTokens = new Map<string, string>();
         if (needsCalendarToken) {
@@ -181,6 +184,17 @@ export async function POST(
           );
           if (!("error" in tokenResult)) {
             preFetchedTokens.set("google_calendar", tokenResult.accessToken);
+          }
+          // If token fetch fails, executeTool will handle it per-block and return is_error.
+        }
+        if (needsGmailToken) {
+          const tokenResult = await getValidGoogleAccessToken(
+            serviceClient,
+            orgId,
+            "gmail"
+          );
+          if (!("error" in tokenResult)) {
+            preFetchedTokens.set("gmail", tokenResult.accessToken);
           }
           // If token fetch fails, executeTool will handle it per-block and return is_error.
         }

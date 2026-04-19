@@ -11,12 +11,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { calendarTools, executeCalendarTool, CALENDAR_TOOLS_ADDENDUM } from "@/lib/tools/calendar";
 import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/grants";
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
+import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { getValidGoogleAccessToken } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
 // Re-export all tool-family addendums from a single location so callers
 // don't need to know which file each came from.
-export { CALENDAR_TOOLS_ADDENDUM, GRANTS_TOOLS_ADDENDUM, CRM_TOOLS_ADDENDUM };
+export { CALENDAR_TOOLS_ADDENDUM, GRANTS_TOOLS_ADDENDUM, CRM_TOOLS_ADDENDUM, GMAIL_TOOLS_ADDENDUM };
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -45,6 +46,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("calendar")) parts.push(CALENDAR_TOOLS_ADDENDUM);
   if (families.has("grants")) parts.push(GRANTS_TOOLS_ADDENDUM);
   if (families.has("crm")) parts.push(CRM_TOOLS_ADDENDUM);
+  if (families.has("gmail")) parts.push(GMAIL_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -54,9 +56,9 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 // ---------------------------------------------------------------------------
 
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
-  executive_assistant: calendarTools,
+  executive_assistant: [...calendarTools, ...gmailTools],
   events_director: calendarTools,
-  development_director: [...grantsTools, ...crmTools],
+  development_director: [...grantsTools, ...crmTools, ...gmailTools],
   marketing_director: [],
   programs_director: [...grantsTools],
   hr_volunteer_coordinator: [],
@@ -130,6 +132,27 @@ export async function executeTool({
 
   if (name.startsWith("crm_")) {
     return executeCrmTool({ name, input, orgId, memberId, serviceClient });
+  }
+
+  if (name.startsWith("gmail_")) {
+    // Use pre-fetched token if available; otherwise fetch now.
+    let accessToken = preFetchedTokens?.get("gmail");
+    if (!accessToken) {
+      const tokenResult = await getValidGoogleAccessToken(
+        serviceClient,
+        orgId,
+        "gmail"
+      );
+      if ("error" in tokenResult) {
+        return {
+          content:
+            "Google Workspace is not connected for this organization. Please visit Settings → Integrations to connect a Google account.",
+          is_error: true,
+        };
+      }
+      accessToken = tokenResult.accessToken;
+    }
+    return executeGmailTool({ name, input, accessToken });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };
