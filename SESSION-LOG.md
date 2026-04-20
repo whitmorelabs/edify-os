@@ -2,6 +2,47 @@
 
 ---
 
+## 2026-04-20 — Phase 2d Drive Tools + Date Injection (Phase 2d + Date Injection Agent)
+
+**Identity:** Phase 2d + Date Injection Agent
+**Date:** 2026-04-20
+**Commit:** `3305b02`
+
+### Files Created
+- `apps/web/src/lib/google-drive.ts` — Drive v3 REST wrappers: listFiles, searchFiles, getFile, createTextFile, shareFile, downloadFileContent + DriveError class. Mirrors google-gmail.ts pattern exactly. Google Docs use export endpoint (text/plain); text/plain+markdown use alt=media; binary files return a "non-text file" error string.
+- `apps/web/src/lib/tools/drive.ts` — 6 Anthropic tool definitions + executeDriveTool dispatcher + DRIVE_TOOLS_ADDENDUM. Mirrors gmail.ts layout exactly.
+
+### Files Modified
+- `apps/web/src/lib/tools/registry.ts` — Imported driveTools/executeDriveTool/DRIVE_TOOLS_ADDENDUM; re-exported DRIVE_TOOLS_ADDENDUM; added `drive` branch to buildSystemAddendums; updated ARCHETYPE_TOOLS; added `drive_` dispatch branch in executeTool (mirrors gmail_ branch, uses "google_drive" integration type).
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — Added `needsDriveToken` pre-fetch to the parallel token fetch; prepended temporalBlock at the top of fullSystemPrompt for current-date injection.
+
+### Date Injection Structure
+A `temporalBlock` is computed dynamically on every chat call (not cached):
+```
+Current date and time: <nowUtc.toISOString()> (<nowLocal> America/New_York — UTC-4)
+When the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.
+```
+Prepended at the very top of fullSystemPrompt so it appears before any base prompt or tool addendums. TODO comment left noting that `America/New_York` should come from `orgs.timezone` once onboarding collects it.
+
+### Archetype Tool Assignments
+| Archetype | Tools |
+|---|---|
+| executive_assistant | calendar + gmail + drive |
+| events_director | calendar + drive |
+| development_director | grants + crm + gmail + drive |
+| marketing_director | drive only |
+| programs_director | grants + drive |
+| hr_volunteer_coordinator | (none) |
+
+### Build Result
+`npm run build` — PASSED. Zero type errors. 80 pages generated.
+
+### Blockers / Follow-ups
+- None. Clean build on first attempt.
+- Follow-up: add `orgs.timezone` column in onboarding depth PRD (noted in TODO comment in route.ts).
+
+---
+
 ## 2026-04-20 — Model ID Update (Model ID Update Agent)
 
 **Identity:** Model ID Update Agent
@@ -2893,3 +2934,37 @@ This agent verified all changes were correct and complete in the working tree, c
 1. The `middleware.ts` has a minor unstaged comment-only diff (1 line reformatted). It did not affect this task. Consider whether to stage it separately or leave it.
 2. The Dashboard Polish Agent's `bb623cc` commit message says "Fix TeamChatClient.tsx handleSend declared-before-use order bug (introduced by chat-reliability agent)". This was a real issue: my original edit placed the pendingPrompt useEffect BEFORE the handleSend useCallback declaration, and `const` is not hoisted. Dashboard Polish Agent caught this and fixed the order. The final file has handleSend declared before its use in the useEffect.
 3. No `ChatInput.tsx` changes were needed beyond the parent fix — the component's own `disabled={isDisabled}` logic is correct; the bug was entirely in the parent `ChatPanelProvider` Suspense wrapper.
+
+---
+
+## Phase 2d Simplify Agent — 2026-04-19
+
+**Commit:** `be55cdc`
+**Task:** /simplify pass on commit `3305b02` (Drive tools + date injection)
+
+### Simplifications applied
+
+**Quality — what-not-why comments removed (google-drive.ts):**
+- Deleted `// We need the mimeType to decide which endpoint to call` — the next line calls for `mimeType`, obvious
+- Deleted `// Export endpoint for Google Workspace documents` and `// Direct media download for plain text files` — the ternary condition reads clearly without them
+- Deleted `// Build multipart body manually` — `const boundary = ...` is self-evident
+
+**Efficiency — URL ternary in `downloadFileContent` (google-drive.ts):**
+- Collapsed the two-branch `if/else` for `contentUrl` (5 lines with comments) into a single ternary (3 lines). Same logic, less noise.
+
+**Reuse — `resolveGoogleToken` helper extracted (registry.ts):**
+- The three calendar/gmail/drive dispatch blocks each had an identical ~14-line pattern: check preFetched map → fetch from DB → return error if missing → return token. Extracted to a typed `resolveGoogleToken(integrationKey, preFetchedTokens, serviceClient, orgId)` helper (~10 lines). Each dispatch block now uses 3 lines instead of 14. Net: -42 lines in the dispatcher, +16 for the helper = -26 lines total.
+- Used `GoogleIntegrationType` (imported from `@/lib/google`) to keep the call-site type-safe.
+
+### Deliberately left alone
+
+- **`authHeaders()` / `handleResponse()` duplication across google-drive.ts / google-gmail.ts / google-calendar.ts** — These exist in pre-3305b02 code; calendar's `handleResponse` has a 204 No Content short-circuit the others lack. Extracting a shared `lib/google-http.ts` was out of scope for this commit's diff.
+- **`downloadFileContent` inline error handler** — The success path returns `.text()` not `.json()`, so `handleResponse` (which calls `.json()` on success) cannot be reused here. Kept as-is; it's the correct approach.
+- **Token pre-fetch `Promise.all` in route.ts** — Already correctly parallelized by the Phase 2d agent. No change needed.
+- **`TODO` comment about hardcoded `America/New_York` timezone** — Legitimate open work item, not a stale TODO. Left intact.
+- **Tool-definition input validation checks in drive.ts** — Redundant vs. schema `required` fields, but consistent with the pattern in all other tool executors. Not introduced by this commit's logic; pattern predates it.
+
+### Build result
+
+`npm run build` — zero type errors, zero warnings. 80 static pages generated. ✓
+
