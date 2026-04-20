@@ -27,9 +27,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(prefix)
   );
 
-  // Demo-mode auth bypass. Gated by NEXT_PUBLIC_DEMO_MODE so only preview
-  // or explicitly-enabled deploys expose the skip-to-dashboard flow.
-  // Production must leave NEXT_PUBLIC_DEMO_MODE unset.
+  // Gated by NEXT_PUBLIC_DEMO_MODE so only preview or explicitly-enabled
+  // deploys expose the skip-to-dashboard flow. Production must leave it unset.
   const demoModeEnabled = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
   const isDemoMode =
     demoModeEnabled &&

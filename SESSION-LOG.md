@@ -2,6 +2,72 @@
 
 ---
 
+## 2026-04-19 — Chat Backend Rewire (Chat Backend Rewire Agent)
+
+**Identity:** Chat Backend Rewire Agent
+**PRD:** PRD-chat-backend-rewire.md
+**Commit:** `c6346da` (fix: wire team chat to server-side route (use tool-use loop, encrypted key))
+**Date:** 2026-04-19
+
+### Files Changed
+
+- `apps/web/src/app/dashboard/team/[slug]/api.ts` — Rewrote `sendMessage()` to POST to `/api/team/[slug]/chat`. Deleted `createConversation()` (local-only, no longer needed). Removed all legacy imports (`getApiKey`, `getOrgContext`, `getSystemPrompt`, `callClaude`, `ClaudeMessage`, `getStoredMessages`).
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx` — Removed `createConversation` import and the ~25-line pre-creation block in `handleSend`. Removed `isCreatingConv` state (no longer needed). Rewrote `handleNewConversation()` to simply reset `activeConversation` to null and `messages` to `[]`. Updated `ConversationSidebar` call to pass `isCreating={false}`.
+- `apps/web/src/lib/api-key.ts` — Added top-of-file comment noting it's vestigial for chat (still used by admin/ai-config and decision-lab).
+
+### Root Cause Summary
+
+`sendMessage()` in `team/[slug]/api.ts` was reading the Claude API key from `localStorage` (`getApiKey()`). Onboarding saves the key encrypted in Supabase `orgs.encrypted_claude_key` — NOT in localStorage. Any user who signed up via the onboarding flow had an empty localStorage key, causing the immediate "No API key set" error. Even if a user manually pasted a key via admin/ai-config (which does save to localStorage), the chat would still bypass the server-side tool-use loop, meaning Calendar/Gmail/Grants/CRM never fired.
+
+Fix: `sendMessage()` now POSTs to `/api/team/[slug]/chat` which decrypts the key from Supabase, runs the full Phase 2b/2c tool-use loop, and persists conversations + messages server-side.
+
+### conversationId Reconciliation Approach
+
+**Before:** Client pre-created a conversation with a client-generated UUID before the first message send. This UUID was passed to `sendMessage()` and used for all localStorage storage.
+
+**After:**
+1. User types → `handleSend(content)` fires
+2. `apiSendMessage(slug, content, activeConversation?.id)` — passes `undefined` if no active conversation
+3. Server creates conversation, returns `response.conversationId` (server-generated UUID)
+4. Client adopts server's ID: hydrates `activeConversation`, saves user message under `serverConvId`, updates conversations list
+5. Subsequent messages pass `activeConversation.id` which is now the server's UUID
+
+A `tempConvId` is used for the optimistic user message UI render while the server responds. On success, UI messages are patched to use `serverConvId`. On failure, the temp ID is retained in the error message — no localStorage pollution.
+
+### Build Result
+
+`npm run build` passed cleanly — 80 pages, 0 TypeScript errors.
+
+### Manual Reasoning Check
+
+- **New user onboards → goes to chat → types message:** Server route hits `getAuthContext()` (reads Supabase session cookie), fetches encrypted key from `orgs.encrypted_claude_key`, decrypts, calls Claude with tool-use loop. Returns real assistant response. No "No API key set" error.
+- **Calendar query (Google not connected):** `getValidGoogleAccessToken` returns error shape → `executeTool` returns `is_error: true` with "Google Calendar not connected" — Claude surfaces this as a friendly message.
+- **Conversation continuity:** Old localStorage conversations with client-only UUIDs will not have server-side history (acceptable per PRD — pre-launch test data loss). New conversations work correctly.
+
+### Acceptance Criteria Check
+
+- ✅ `sendMessage()` POSTs to `/api/team/[slug]/chat`
+- ✅ `sendMessage()` no longer imports `getApiKey`, `getOrgContext`, `getSystemPrompt`, `callClaude`
+- ✅ `handleSend` no longer pre-creates a client-only conversation
+- ✅ First message sends `conversationId: undefined`; server-returned ID hydrates `activeConversation`
+- ✅ Subsequent messages pass the server's conversationId
+- ✅ `handleNewConversation` just resets local state
+- ✅ `lib/api-key.ts` still exists, still imports resolve for admin/ai-config and decision-lab
+- ✅ `npm run build` passes with zero type errors
+- ✅ Single commit `c6346da` on main
+
+### Blockers
+
+None.
+
+### Flagged Follow-ups for Lopmon
+
+1. **`decision-lab/api.ts` still uses legacy client-side BYOK** — needs its own rewire to a server-side route. Marked out-of-scope tonight per PRD.
+2. **Admin AI Config test-connection still uses localStorage** — acceptable diagnostic tool, not the user path. No action needed unless Z demos admin flow.
+3. **ConversationSidebar `isCreating` prop** — now hardcoded to `false`. If a "New conversation" loading spinner is desired in the future, the prop is already wired; just restore a boolean state on `handleNewConversation`.
+
+---
+
 ## 2026-04-19 — Phase 2c Gmail Tools (Phase 2c Gmail Agent)
 
 **Identity:** Phase 2c Gmail Agent
