@@ -53,6 +53,47 @@ Confirmed preserved. The `getHeartbeatHistory()` call, `HeartbeatUpdate` compone
 
 ---
 
+## 2026-04-20 — Real Data Simplify Agent
+
+**Identity:** Real Data Simplify Agent
+**Date:** 2026-04-20
+**Commit:** `ac76968`
+
+### Scope
+
+/simplify pass over three commits: `d005f45` (ProactiveHelper dismissal fix), `bb031bd` (real data for memory/tasks/inbox pages), `1cf6417` (ChatWidget hook ordering fix).
+
+### Simplifications Applied
+
+**support/ChatProvider.tsx — shared dismissal helper**
+- Exported `SUPPORT_CHAT_DISMISSED_KEY = 'edify_support_dismissed'` and `isSupportChatDismissed()` (try/catch sessionStorage read)
+- Rationale: `ChatWidget` and `ProactiveHelper` both independently defined the same string literal and the same 5-line try/catch read pattern. One canonical source.
+
+**support/ChatWidget.tsx**
+- Removed local `DISMISSED_KEY` constant (replaced by imported `SUPPORT_CHAT_DISMISSED_KEY`)
+- Collapsed 6-line mount `useEffect` to single `if (isSupportChatDismissed()) setIsDismissed(true)` call
+
+**support/ProactiveHelper.tsx**
+- Removed `CHAT_WIDGET_DISMISSED_KEY` constant (was a local alias for the same string)
+- Collapsed 8-line mount `useEffect` to single `if (isSupportChatDismissed()) setChatWidgetDismissed(true)` call
+
+**api/tasks/recent/route.ts — resolveAgentSlug helper**
+- Extracted `resolveAgentSlug(roleSlug: string | undefined): AgentRoleSlug` inner function
+- Removed two identical 4-line slug-validation + cast blocks (one in conversations fallback loop, one in tasks loop)
+- Dropped `?? null` on `s.duration_ms` (the column is already typed `number | null`; the nullish coalesce was a no-op)
+
+### Simplifications Deliberately Skipped
+
+- **API route auth/serviceClient boilerplate** (7 lines × 3 routes): Would require a new shared file touching infrastructure outside these commits. Not worth the new dependency for 3 callers.
+- **formatCreatedAt / formatUpdatedAt near-duplication** across page files: Slight behavioral differences (tasks goes 7 days before localeDateString; inbox goes 1 day). Extracting would require a new lib file. Skipped.
+- **approvals urgency/status narrowing** in inbox route: Intentional data validation, not duplication.
+
+### Build Result
+
+`npm run build` — compiled successfully, 0 type errors, 84 static pages generated.
+
+---
+
 ## 2026-04-19 — ProactiveHelper Sync Fix (ProactiveHelper Sync Fix Agent)
 
 **Identity:** ProactiveHelper Sync Fix Agent
