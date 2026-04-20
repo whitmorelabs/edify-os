@@ -8,31 +8,50 @@ import { useEffect, useState } from "react";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 
-// Mock last-active data — will be replaced by real backend data
-const LAST_ACTIVE: Record<string, string> = {
-  development_director: "2 min ago",
-  marketing_director: "15 min ago",
-  executive_assistant: "Just now",
-  programs_director: "1 hr ago",
-
-  hr_volunteer_coordinator: "Yesterday",
-  events_director: "30 min ago",
-};
+/**
+ * Format an ISO timestamp as a relative string like "2m ago", "3h ago", "1d ago".
+ * Falls back to "No conversations yet" when timestamp is null.
+ */
+function formatRelativeTime(isoTimestamp: string | null | undefined): string {
+  if (!isoTimestamp) return "No conversations yet";
+  const diffMs = Date.now() - new Date(isoTimestamp).getTime();
+  if (diffMs < 0) return "Just now";
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return "Yesterday";
+  if (diffDay < 7) return `${diffDay}d ago`;
+  const diffWk = Math.floor(diffDay / 7);
+  if (diffWk < 5) return `${diffWk}w ago`;
+  const diffMo = Math.floor(diffDay / 30);
+  return `${diffMo}mo ago`;
+}
 
 export default function TeamPage() {
   const [lastMessages, setLastMessages] = useState<Record<string, string>>({});
+  const [lastActiveTs, setLastActiveTs] = useState<Record<string, string | null>>({});
   const { names: archetypeNames } = useArchetypeNames();
 
-  // Load last message previews from localStorage
+  // Load last message previews and last-active timestamps from localStorage
   useEffect(() => {
     const previews: Record<string, string> = {};
+    const timestamps: Record<string, string | null> = {};
     for (const slug of ARCHETYPE_SLUGS) {
       const convos = getLocalConversations(slug);
       if (convos.length > 0) {
         previews[slug] = convos[0].title;
+        // convos are sorted descending by updatedAt; take the most recent
+        timestamps[slug] = convos[0].updatedAt ?? null;
+      } else {
+        timestamps[slug] = null;
       }
     }
     setLastMessages(previews);
+    setLastActiveTs(timestamps);
   }, []);
 
   return (
@@ -48,7 +67,7 @@ export default function TeamPage() {
         {ARCHETYPE_SLUGS.map((slug) => {
           const config = ARCHETYPE_CONFIG[slug as ArchetypeSlug];
           const Icon = config.icon;
-          const lastActive = LAST_ACTIVE[slug] ?? "Active";
+          const lastActive = formatRelativeTime(lastActiveTs[slug]);
           const lastMsg = lastMessages[slug];
           const customName = archetypeNames[slug];
 

@@ -3,14 +3,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { PermissionsInfo } from './PermissionsInfo';
-import type { LucideIcon } from 'lucide-react';
+import type React from 'react';
 
 type ModalState = 'idle' | 'pending' | 'success' | 'error';
+
+/** Accepts either a Lucide icon or a react-icons component */
+type AnyIcon = React.ComponentType<{ className?: string; size?: number | string }>;
 
 interface OAuthModalProps {
   integrationId: string;
   serviceName: string;
-  serviceIcon: LucideIcon;
+  serviceIcon: AnyIcon;
   iconBg: string;
   iconText: string;
   onClose: () => void;
