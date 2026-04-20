@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-04-20 — Model ID Update (Model ID Update Agent)
+
+**Identity:** Model ID Update Agent
+**Date:** 2026-04-20
+**Commit:** `f1baf48`
+
+**Task:** Replace retired Claude model IDs that were causing 404 errors from the Anthropic API.
+
+**Files changed (23 total):**
+- `apps/web/src/lib/claude-client.ts` — MODEL constant
+- `apps/web/src/app/dashboard/admin/ai-config/page.tsx` — test connection call
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — chat route (the one that fired the error)
+- `apps/web/src/app/api/decision-lab/route.ts` — decision lab (Haiku)
+- `apps/web/src/app/api/support/chat/route.ts` — support chat (Haiku)
+- `apps/api/src/routes/orgs.ts` — API key validation test call
+- `services/agents/src/config.py` — DEFAULT_MODEL setting
+- `services/agents/src/llm/anthropic_client.py` — _DEFAULT_MODEL constant
+- `services/agents/src/prompts/loader.py` — fallback model in PromptTemplate
+- `services/agents/src/agents/base.py` — BaseAgent default model
+- `services/agents/src/agents/sub/base_subagent.py` — BaseSubagent default model
+- 6x `services/agents/src/agents/primary/*.py` — per-agent model class attributes
+- 6x `services/agents/src/prompts/primary/*.md` — frontmatter model fields
+
+**Model ID mappings applied:**
+- `claude-sonnet-4-20250514` → `claude-sonnet-4-6` (19 occurrences)
+- `claude-haiku-4-20250514` → `claude-haiku-4-5-20251001` (2 occurrences)
+
+**Build result:** `npm run build` passed — 0 type errors, 80 pages generated.
+**Grep confirmation:** Zero remaining `claude-sonnet-4-20250514` or `claude-haiku-4-20250514` in live code (SESSION-LOG.md historical entries only).
+
+---
+
 ## 2026-04-19 — Night Simplify Pass (Night Simplify Agent)
 
 **Identity:** Night Simplify Agent
