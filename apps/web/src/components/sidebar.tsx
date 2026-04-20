@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useNotifications } from '@/components/notifications/NotificationProvider';
 import { useAuth } from '@/components/AuthProvider';
+import { useArchetypeNames } from '@/hooks/useArchetypeNames';
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -42,6 +43,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { unreadCount } = useNotifications();
   const { user } = useAuth();
+  const { names: archetypeNames } = useArchetypeNames();
   const [briefingComplete, setBriefingComplete] = useState(true); // default true to avoid flash
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -159,6 +161,8 @@ export function Sidebar() {
           {AGENT_SLUGS.map((slug) => {
             const config = AGENT_COLORS[slug];
             const isChatActive = pathname.startsWith(`/dashboard/team/${slug}`);
+            const customName = archetypeNames[slug];
+            const displayLabel = customName ? `${customName} (${config.label})` : config.label;
 
             return (
               <Link
@@ -174,7 +178,7 @@ export function Sidebar() {
                 <span
                   className={cn('w-2 h-2 rounded-full flex-shrink-0', config.bg)}
                 />
-                <span className="flex-1 truncate">{config.label}</span>
+                <span className="flex-1 truncate">{displayLabel}</span>
                 <span className="text-[10px] text-brand-400">Active</span>
               </Link>
             );

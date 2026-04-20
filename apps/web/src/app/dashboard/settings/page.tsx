@@ -17,7 +17,10 @@ import {
   ArrowRight,
   Clock,
   FileText,
+  Pencil,
 } from "lucide-react";
+import { useArchetypeNames } from "@/hooks/useArchetypeNames";
+import { ARCHETYPE_CONFIG, ARCHETYPE_SLUGS } from "@/lib/archetype-config";
 
 type AutonomyLevel = "suggestion" | "assisted" | "autonomous";
 
@@ -62,6 +65,36 @@ export default function SettingsPage() {
   const [apiKeySet, setApiKeySet] = useState(false);
   const [autonomy, setAutonomy] = useState<AutonomyLevel>("suggestion");
   const [inviteEmail, setInviteEmail] = useState("");
+
+  // Custom archetype names
+  const { names: archetypeNames, updateName } = useArchetypeNames();
+  const [draftNames, setDraftNames] = useState<Record<string, string>>({});
+  const [nameSaveState, setNameSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  function getDraftName(slug: string): string {
+    if (slug in draftNames) return draftNames[slug];
+    return archetypeNames[slug] ?? "";
+  }
+
+  async function handleSaveNames() {
+    setNameSaveState("saving");
+    try {
+      await Promise.all(
+        ARCHETYPE_SLUGS.map((slug) => {
+          const draft = draftNames[slug];
+          // Only send slugs that have been explicitly changed in this session
+          if (draft === undefined) return Promise.resolve();
+          return updateName(slug, draft || null);
+        })
+      );
+      setDraftNames({});
+      setNameSaveState("saved");
+      setTimeout(() => setNameSaveState("idle"), 2000);
+    } catch {
+      setNameSaveState("error");
+      setTimeout(() => setNameSaveState("idle"), 3000);
+    }
+  }
 
   return (
     <div className="max-w-3xl space-y-8 animate-fade-in">
@@ -114,6 +147,70 @@ export default function SettingsPage() {
           Configure Check-ins
           <ArrowRight className="h-4 w-4" />
         </Link>
+      </div>
+
+      {/* Rename Your Team */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50">
+            <Pencil className="h-5 w-5 text-violet-600" />
+          </div>
+          <div>
+            <h2 className="heading-3">Rename your team</h2>
+            <p className="text-sm text-slate-500">
+              Give each AI team member a personal name. They&apos;ll introduce themselves by it in chat.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {ARCHETYPE_SLUGS.map((slug) => {
+            const config = ARCHETYPE_CONFIG[slug];
+            return (
+              <div key={slug} className="flex items-center gap-3">
+                <label className="w-44 shrink-0 text-sm font-medium text-slate-700 truncate">
+                  {config.label}
+                </label>
+                <input
+                  type="text"
+                  value={getDraftName(slug)}
+                  onChange={(e) =>
+                    setDraftNames((prev) => ({ ...prev, [slug]: e.target.value }))
+                  }
+                  placeholder={config.label}
+                  className="input-field flex-1"
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-xs text-slate-400">
+            Leave a field blank to use the default role title.
+          </p>
+          <button
+            onClick={handleSaveNames}
+            disabled={nameSaveState === "saving" || Object.keys(draftNames).length === 0}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {nameSaveState === "saving" ? (
+              "Saving..."
+            ) : nameSaveState === "saved" ? (
+              <>
+                <Check className="h-4 w-4" />
+                Saved
+              </>
+            ) : nameSaveState === "error" ? (
+              "Error — try again"
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Save Names
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Billing & Subscription */}

@@ -6,6 +6,7 @@ import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import { ARCHETYPE_TOOLS, executeTool, buildSystemAddendums } from "@/lib/tools/registry";
 import { getValidGoogleAccessToken } from "@/lib/google";
+import type { ArchetypeNamesMap } from "@/app/api/members/archetype-names/route";
 
 const TOOL_USE_LOOP_MAX = 8;
 const MAX_RESPONSE_TOKENS = 4096;
@@ -105,9 +106,27 @@ export async function POST(
     activeConversationId = newConv.id;
   }
 
+  // Fetch member's custom archetype name for this slug (if any)
+  let customArchetypeName: string | null = null;
+  if (memberId) {
+    const { data: memberRow } = await serviceClient
+      .from("members")
+      .select("archetype_names")
+      .eq("id", memberId)
+      .single();
+    const namesMap = (memberRow?.archetype_names as ArchetypeNamesMap) ?? {};
+    customArchetypeName = namesMap[slug] ?? null;
+  }
+
   // Build system prompt for this archetype
   const basePrompt = ARCHETYPE_PROMPTS[slug] || "";
-  const systemPrompt = basePrompt.replace(/\{org_name\}/g, orgName);
+  let systemPrompt = basePrompt.replace(/\{org_name\}/g, orgName);
+
+  // Prepend custom name instruction if the member has set one
+  if (customArchetypeName?.trim()) {
+    const nameInstruction = `Your user has chosen to call you "${customArchetypeName.trim()}". Refer to yourself as ${customArchetypeName.trim()} when introducing yourself or signing off. Keep your personality and expertise identical.\n\n`;
+    systemPrompt = nameInstruction + systemPrompt;
+  }
 
   // Add org context if available
   const orgContext = mission

@@ -3074,3 +3074,38 @@ This agent verified all changes were correct and complete in the working tree, c
 
 `npm run build` — zero type errors, zero warnings. 80 static pages generated. ✓
 
+
+---
+
+## Session: Custom Names Agent — 2026-04-19
+
+**Identity:** Custom Names Agent (Sonnet)
+**Task:** PRD-custom-archetype-names.md — Per-member custom archetype names
+
+### Files Created
+
+- `supabase/migrations/00018_member_archetype_names.sql` — **NEW MIGRATION. Citlali must apply in morning via Supabase SQL Editor.** Adds `archetype_names jsonb default '{}'` column to `members` table.
+- `apps/web/src/app/api/members/archetype-names/route.ts` — GET + PATCH API route for reading/updating custom names per member.
+- `apps/web/src/hooks/useArchetypeNames.ts` — React hook that fetches custom names on mount and provides `updateName()` helper.
+
+### Files Changed
+
+- `supabase/combined_migration.sql` — Appended migration 00018 content so Citlali's morning bulk-apply stays in sync.
+- `apps/web/src/lib/archetype-prompts.ts` — Extended `getSystemPrompt()` with optional `customName` param. When set, prepends a 1-sentence instruction telling Claude to use the custom name.
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — Fetches member's `archetype_names` from DB on each request; injects custom name into system prompt if set.
+- `apps/web/src/app/dashboard/settings/page.tsx` — Added "Rename your team" section with 6 input rows (one per archetype) and a single Save Names button. Uses `useArchetypeNames()` hook. Optimistic-ish: saves all changed names in parallel, shows "Saved" on success, "Error — try again" on failure.
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx` — Fetches custom names via hook on mount; chat header now shows `"Anna (Executive Assistant)"` format when a custom name is set.
+- `apps/web/src/components/sidebar.tsx` — "YOUR AI TEAM" section now shows `"Anna (Executive Assistant)"` format when a custom name is set.
+
+### Migration note
+
+**`supabase/migrations/00018_member_archetype_names.sql` must be applied manually via Supabase SQL Editor before custom names will save/load. Until then, the column is absent and the PATCH will silently fail.**
+
+### Build result
+
+`npm run build` — zero type errors, zero warnings. 81 static pages generated. ✓
+
+### Follow-ups / observations (out of scope — not fixed)
+
+- `ConversationSidebar.tsx` was listed in the PRD as needing archetype name changes, but its conversation list items show conversation titles, not archetype names. No archetype label appears there. Logged here for awareness — no action taken.
+- `getSystemPrompt()` in `archetype-prompts.ts` is now capable of injecting custom names, but the chat route directly uses `ARCHETYPE_PROMPTS[slug]` and builds the prompt inline (does not call `getSystemPrompt`). The injection was added directly in the chat route for consistency with that existing pattern. The `getSystemPrompt` signature update is available for future callers.

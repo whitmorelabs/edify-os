@@ -21,6 +21,7 @@ import {
   type Conversation,
 } from "./api";
 import { cn } from "@/lib/utils";
+import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 
 // ---------------------------------------------------------------------------
 // Suggested prompts per archetype
@@ -141,6 +142,11 @@ export default function TeamChatClient({
   const archetypeSlug = slug as ArchetypeSlug;
   const config = ARCHETYPE_CONFIG[archetypeSlug];
   const Icon = config.icon;
+
+  const { names: archetypeNames } = useArchetypeNames();
+  const customName = archetypeNames[archetypeSlug];
+  // Display label: "Anna (Executive Assistant)" or "Executive Assistant"
+  const displayLabel = customName ? `${customName} (${config.label})` : config.label;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -338,7 +344,7 @@ export default function TeamChatClient({
 
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-semibold text-slate-900 truncate">
-              {config.label}
+              {displayLabel}
             </h1>
             <p className="text-xs text-slate-500 truncate">
               {config.description}

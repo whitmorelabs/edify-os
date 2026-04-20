@@ -338,11 +338,18 @@ export const ARCHETYPE_PROMPTS: Record<string, string> = {
 
 /**
  * Get the system prompt for a given archetype slug,
- * with org context injected.
+ * with org context and optional custom name injected.
+ *
+ * @param slug          - Archetype slug (e.g. "executive_assistant")
+ * @param orgContext    - Org-level context injected into the prompt
+ * @param customName    - Optional custom name the user has given this archetype.
+ *                        When provided, a short line is prepended telling Claude
+ *                        to refer to itself by that name.
  */
 export function getSystemPrompt(
   slug: string,
-  orgContext?: { orgName?: string; missionStatement?: string; additionalContext?: string } | null
+  orgContext?: { orgName?: string; missionStatement?: string; additionalContext?: string } | null,
+  customName?: string | null
 ): string {
   const base = ARCHETYPE_PROMPTS[slug];
   if (!base) return "";
@@ -362,6 +369,12 @@ export function getSystemPrompt(
     if (contextLines.length > 0) {
       prompt += `\n\n## Organization Context\n${contextLines.join("\n")}`;
     }
+  }
+
+  // If the user has given this archetype a custom name, prepend a short instruction.
+  if (customName?.trim()) {
+    const nameInstruction = `Your user has chosen to call you "${customName.trim()}". Refer to yourself as ${customName.trim()} when introducing yourself or signing off. Keep your personality and expertise identical.\n\n`;
+    prompt = nameInstruction + prompt;
   }
 
   return prompt;
