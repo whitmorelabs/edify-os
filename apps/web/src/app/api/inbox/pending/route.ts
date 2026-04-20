@@ -13,6 +13,8 @@ export interface InboxItem {
   urgency: "low" | "normal" | "high" | "critical";
   status: "pending" | "approved" | "rejected";
   createdAt: string;
+  /** "approvals" = real DB row that can be PATCHed; "messages" = fallback, localStorage only */
+  source: "approvals" | "messages";
 }
 
 export async function GET() {
@@ -78,6 +80,7 @@ export async function GET() {
       urgency,
       status,
       createdAt: ap.created_at as string,
+      source: "approvals",
     });
   }
 
@@ -125,6 +128,7 @@ export async function GET() {
         urgency: "normal",
         status: "pending",
         createdAt: msg.created_at as string,
+        source: "messages",
       });
     }
   }

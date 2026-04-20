@@ -92,19 +92,40 @@ export default function InboxPage() {
   }, [section]);
 
   const updateStatus = (id: string, status: ApprovalStatus) => {
+    const item = items.find((i) => i.id === id);
+    // Optimistic local update first for snappy UI
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status } : item))
+      prev.map((i) => (i.id === id ? { ...i, status } : i))
     );
+    // Only persist to DB if this came from the approvals table
+    if (item?.source === "approvals") {
+      fetch(`/api/inbox/pending/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            // Roll back optimistic update on failure
+            setItems((prev) =>
+              prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
+            );
+          }
+        })
+        .catch(() => {
+          // Roll back on network error
+          setItems((prev) =>
+            prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
+          );
+        });
+    }
   };
 
   const bulkApproveHighConfidence = () => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.status === "pending" && item.confidence >= 0.9
-          ? { ...item, status: "approved" as ApprovalStatus }
-          : item
-      )
+    const toApprove = items.filter(
+      (item) => item.status === "pending" && item.confidence >= 0.9
     );
+    toApprove.forEach((item) => updateStatus(item.id, "approved"));
   };
 
   const openEdit = (item: InboxItem) => {
@@ -116,11 +137,32 @@ export default function InboxPage() {
   };
 
   const saveEdit = (id: string) => {
-    localStorage.setItem(`edify_inbox_edits_${id}`, editContent);
-    // Update preview in local state so changes are visible immediately
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, preview: editContent } : item))
-    );
+    const item = items.find((i) => i.id === id);
+    const captured = editContent;
+
+    if (item?.source === "approvals") {
+      // Persist to DB; update local state on success
+      fetch(`/api/inbox/pending/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ output_preview: captured }),
+      })
+        .then((res) => {
+          if (res.ok) {
+            setItems((prev) =>
+              prev.map((i) => (i.id === id ? { ...i, preview: captured } : i))
+            );
+          }
+        })
+        .catch(() => {/* ignore — user can retry */});
+    } else {
+      // messages fallback: localStorage only
+      localStorage.setItem(`edify_inbox_edits_${id}`, captured);
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, preview: captured } : i))
+      );
+    }
+
     setEditingId(null);
     setEditContent("");
   };

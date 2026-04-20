@@ -71,8 +71,10 @@ export default function MemoryPage() {
   const [entries, setEntries] = useState<MemoryEntryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchEntries = () => {
     setLoading(true);
     setError(null);
     fetch("/api/memory/entries", { cache: "no-store" })
@@ -83,7 +85,38 @@ export default function MemoryPage() {
       .then((data) => setEntries(data))
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load memory"))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchEntries();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleAddEntry = () => {
+    if (!newEntry.title.trim() || !newEntry.content.trim()) return;
+    setSaving(true);
+    setSaveError(null);
+    fetch("/api/memory/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: newEntry.category,
+        title: newEntry.title.trim(),
+        content: newEntry.content.trim(),
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Save failed"); });
+        return res.json() as Promise<MemoryEntryRow>;
+      })
+      .then(() => {
+        setShowAddForm(false);
+        setNewEntry({ title: "", content: "", category: "general" });
+        fetchEntries();
+      })
+      .catch((err: unknown) => setSaveError(err instanceof Error ? err.message : "Save failed"))
+      .finally(() => setSaving(false));
+  };
 
   const categories = Object.entries(categoryConfig) as [
     MemoryEntryCategory,
@@ -177,14 +210,24 @@ export default function MemoryPage() {
                 placeholder="What should your AI team know..."
               />
             </div>
+            {saveError && (
+              <p className="text-sm text-red-500">{saveError}</p>
+            )}
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setShowAddForm(false)}
+                onClick={() => { setShowAddForm(false); setSaveError(null); }}
                 className="btn-secondary"
+                disabled={saving}
               >
                 Cancel
               </button>
-              <button className="btn-primary">Save Entry</button>
+              <button
+                onClick={handleAddEntry}
+                className="btn-primary"
+                disabled={saving || !newEntry.title.trim() || !newEntry.content.trim()}
+              >
+                {saving ? "Saving…" : "Save Entry"}
+              </button>
             </div>
           </div>
         </div>
