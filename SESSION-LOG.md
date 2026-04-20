@@ -6,7 +6,7 @@
 
 **Identity:** Chat Polish Agent
 **Date:** 2026-04-20
-**Commit:** TBD (filled after push)
+**Commit:** `dda27de`
 **PRD:** `PRD-chat-polish-bundle.md`
 
 ### Summary
