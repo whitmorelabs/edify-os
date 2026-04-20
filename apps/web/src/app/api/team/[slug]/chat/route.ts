@@ -118,7 +118,26 @@ export async function POST(
   const tools = ARCHETYPE_TOOLS[slug as ArchetypeSlug] ?? [];
 
   // Build addendum chain based on which tool families this archetype has (single pass).
-  const fullSystemPrompt = systemPrompt + orgContext + buildSystemAddendums(tools);
+  const toolAddendums = buildSystemAddendums(tools);
+
+  // Inject current date/time so Claude can interpret relative time expressions correctly.
+  // Without this, Claude guesses "now" from training data and gets the date wildly wrong.
+  // TODO: Replace the hardcoded "America/New_York" below with orgs.timezone once
+  // onboarding collects a timezone field from the user.
+  const nowUtc = new Date();
+  const nowLocal = nowUtc.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const temporalBlock = `Current date and time: ${nowUtc.toISOString()} (${nowLocal} America/New_York — UTC-4)\nWhen the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.\n`;
+
+  const fullSystemPrompt = temporalBlock + systemPrompt + orgContext + toolAddendums;
 
   // H1: Persist user message immediately — before entering the tool-use loop.
   // This ensures that if Claude's API errors mid-loop, the user's message is
@@ -175,6 +194,9 @@ export async function POST(
         const needsGmailToken = toolUseBlocks.some((b) =>
           b.name.startsWith("gmail_")
         );
+        const needsDriveToken = toolUseBlocks.some((b) =>
+          b.name.startsWith("drive_")
+        );
         const preFetchedTokens = new Map<string, string>();
         await Promise.all([
           needsCalendarToken
@@ -185,6 +207,11 @@ export async function POST(
           needsGmailToken
             ? getValidGoogleAccessToken(serviceClient, orgId, "gmail").then((r) => {
                 if (!("error" in r)) preFetchedTokens.set("gmail", r.accessToken);
+              })
+            : Promise.resolve(),
+          needsDriveToken
+            ? getValidGoogleAccessToken(serviceClient, orgId, "google_drive").then((r) => {
+                if (!("error" in r)) preFetchedTokens.set("google_drive", r.accessToken);
               })
             : Promise.resolve(),
         ]);
