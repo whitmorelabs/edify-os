@@ -2,11 +2,9 @@
 
 import { useRef, useEffect, useState, type KeyboardEvent } from 'react';
 import { MessageCircle, X, Send, Minimize2 } from 'lucide-react';
-import { useSupportChat, type SupportMessage } from './ChatProvider';
+import { useSupportChat, type SupportMessage, SUPPORT_CHAT_DISMISSED_KEY, isSupportChatDismissed } from './ChatProvider';
 import { TypingIndicator } from '@/components/typing-indicator';
 import { cn } from '@/lib/utils';
-
-const DISMISSED_KEY = 'edify_support_dismissed';
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-US', {
@@ -55,13 +53,7 @@ export function ChatWidget() {
 
   // Read dismissal from sessionStorage on mount
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(DISMISSED_KEY) === 'true') {
-        setIsDismissed(true);
-      }
-    } catch {
-      // sessionStorage unavailable (e.g. private browsing restrictions) — ignore
-    }
+    if (isSupportChatDismissed()) setIsDismissed(true);
   }, []);
 
   // Auto-scroll to bottom when messages arrive
@@ -88,9 +80,9 @@ export function ChatWidget() {
   function handleDismiss(e: React.MouseEvent) {
     e.stopPropagation();
     try {
-      sessionStorage.setItem(DISMISSED_KEY, 'true');
+      sessionStorage.setItem(SUPPORT_CHAT_DISMISSED_KEY, 'true');
     } catch {
-      // ignore
+      // sessionStorage unavailable — ignore
     }
     setIsDismissed(true);
     if (isOpen) closeChat();

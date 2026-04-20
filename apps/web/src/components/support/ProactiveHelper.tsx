@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MessageCircle, X } from 'lucide-react';
-import { useSupportChat } from './ChatProvider';
+import { useSupportChat, isSupportChatDismissed } from './ChatProvider';
 import { cn } from '@/lib/utils';
 
 interface ProactiveHelperProps {
@@ -13,7 +13,6 @@ interface ProactiveHelperProps {
 }
 
 const DISMISSED_KEY = 'edify_proactive_helper_dismissed';
-const CHAT_WIDGET_DISMISSED_KEY = 'edify_support_dismissed';
 
 function getDismissedPages(): Set<string> {
   try {
@@ -72,13 +71,7 @@ export function ProactiveHelper({
   // Sync ChatWidget dismissal state on mount — if user dismissed the chat widget,
   // never show the proactive helper (it would be a ghost tooltip with no widget to open).
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(CHAT_WIDGET_DISMISSED_KEY) === 'true') {
-        setChatWidgetDismissed(true);
-      }
-    } catch {
-      // sessionStorage unavailable (e.g. private browsing restrictions) — ignore
-    }
+    if (isSupportChatDismissed()) setChatWidgetDismissed(true);
   }, []);
 
   // Idle detection: reset timer on user activity

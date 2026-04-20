@@ -29,6 +29,17 @@ const SupportChatContext = createContext<SupportChatContextType | null>(null);
 
 const STORAGE_KEY = 'edify_support_chat_history';
 
+export const SUPPORT_CHAT_DISMISSED_KEY = 'edify_support_dismissed';
+
+/** Returns true if the user dismissed the support chat widget this session. */
+export function isSupportChatDismissed(): boolean {
+  try {
+    return sessionStorage.getItem(SUPPORT_CHAT_DISMISSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function serializeMessages(messages: SupportMessage[]): string {
   return JSON.stringify(
     messages.map((m) => ({

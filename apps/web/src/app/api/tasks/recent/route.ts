@@ -40,6 +40,12 @@ export async function GET() {
 
   const validSlugs = ARCHETYPE_SLUGS as readonly string[];
 
+  function resolveAgentSlug(roleSlug: string | undefined): AgentRoleSlug {
+    return roleSlug && validSlugs.includes(roleSlug)
+      ? (roleSlug as AgentRoleSlug)
+      : "executive_assistant";
+  }
+
   // Pull tasks with their agent config and steps
   const { data: tasksData } = await serviceClient
     .from("tasks")
@@ -68,11 +74,9 @@ export async function GET() {
       .limit(25);
 
     for (const conv of convData ?? []) {
-      const slug = (conv.agent_configs as { role_slug?: string } | null)?.role_slug;
-      const agentSlug =
-        slug && validSlugs.includes(slug)
-          ? (slug as AgentRoleSlug)
-          : ("executive_assistant" as AgentRoleSlug);
+      const agentSlug = resolveAgentSlug(
+        (conv.agent_configs as { role_slug?: string } | null)?.role_slug,
+      );
 
       conversationTasks.push({
         id: conv.id as string,
@@ -89,11 +93,9 @@ export async function GET() {
   const rows: TaskRow[] = [];
 
   for (const task of tasksData ?? []) {
-    const slug = (task.agent_configs as { role_slug?: string } | null)?.role_slug;
-    const agentSlug =
-      slug && validSlugs.includes(slug)
-        ? (slug as AgentRoleSlug)
-        : ("executive_assistant" as AgentRoleSlug);
+    const agentSlug = resolveAgentSlug(
+      (task.agent_configs as { role_slug?: string } | null)?.role_slug,
+    );
 
     const rawStatus = task.status as string;
     const validStatuses: TaskStatus[] = [
@@ -118,7 +120,7 @@ export async function GET() {
         stepNumber: s.step_number,
         agentRole: s.agent_role,
         action: s.action,
-        durationMs: s.duration_ms ?? null,
+        durationMs: s.duration_ms,
       }));
 
     rows.push({
