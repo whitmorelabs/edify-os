@@ -6,6 +6,7 @@ import { ARCHETYPE_CONFIG, ARCHETYPE_SLUGS } from "@/lib/archetype-config";
 import { getLocalConversations } from "./[slug]/api";
 import { useEffect, useState } from "react";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
+import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 
 // Mock last-active data — will be replaced by real backend data
 const LAST_ACTIVE: Record<string, string> = {
@@ -20,6 +21,7 @@ const LAST_ACTIVE: Record<string, string> = {
 
 export default function TeamPage() {
   const [lastMessages, setLastMessages] = useState<Record<string, string>>({});
+  const { names: archetypeNames } = useArchetypeNames();
 
   // Load last message previews from localStorage
   useEffect(() => {
@@ -48,6 +50,7 @@ export default function TeamPage() {
           const Icon = config.icon;
           const lastActive = LAST_ACTIVE[slug] ?? "Active";
           const lastMsg = lastMessages[slug];
+          const customName = archetypeNames[slug];
 
           return (
             <Link
@@ -75,9 +78,20 @@ export default function TeamPage() {
 
                 {/* Name and role */}
                 <div className="mt-4">
-                  <h3 className="text-sm font-bold text-gray-900 leading-tight">
-                    {config.label}
-                  </h3>
+                  {customName ? (
+                    <>
+                      <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                        {customName}
+                      </h3>
+                      <p className="mt-0.5 text-xs font-medium text-gray-500">
+                        {config.label}
+                      </p>
+                    </>
+                  ) : (
+                    <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                      {config.label}
+                    </h3>
+                  )}
                   <p className="mt-1 text-xs text-gray-500 leading-relaxed">
                     {config.description}
                   </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Key,
@@ -18,9 +18,12 @@ import {
   Clock,
   FileText,
   Pencil,
+  Loader2,
 } from "lucide-react";
 import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 import { ARCHETYPE_CONFIG, ARCHETYPE_SLUGS } from "@/lib/archetype-config";
+import type { OrgDetails } from "@/app/api/org/route";
+import type { OrgMember } from "@/app/api/org/members/route";
 
 type AutonomyLevel = "suggestion" | "assisted" | "autonomous";
 
@@ -48,23 +51,88 @@ const autonomyLevels: {
   },
 ];
 
-const teamMembers = [
-  { id: "1", name: "Sarah Chen", email: "sarah@hopefoundation.org", role: "Owner" },
-  { id: "2", name: "Marcus Johnson", email: "marcus@hopefoundation.org", role: "Admin" },
-  { id: "3", name: "Priya Patel", email: "priya@hopefoundation.org", role: "Member" },
-];
-
 export default function SettingsPage() {
-  const [orgName, setOrgName] = useState("Hope Community Foundation");
-  const [mission, setMission] = useState(
-    "Empowering underserved communities through education, mentorship, and sustainable development programs."
-  );
-  const [website, setWebsite] = useState("https://hopecommunity.org");
+  // --- Org info (real data) ---
+  const [orgData, setOrgData] = useState<OrgDetails | null>(null);
+  const [orgLoading, setOrgLoading] = useState(true);
+  const [orgName, setOrgName] = useState("");
+  const [mission, setMission] = useState("");
+  const [orgSaveState, setOrgSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // --- Members (real data) ---
+  const [members, setMembers] = useState<OrgMember[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [membersLoading, setMembersLoading] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // --- Other existing state ---
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
   const [autonomy, setAutonomy] = useState<AutonomyLevel>("suggestion");
-  const [inviteEmail, setInviteEmail] = useState("");
+
+  // Fetch org details on mount
+  useEffect(() => {
+    async function loadOrg() {
+      try {
+        const res = await fetch("/api/org");
+        if (res.ok) {
+          const data = (await res.json()) as OrgDetails;
+          setOrgData(data);
+          setOrgName(data.name ?? "");
+          setMission(data.mission ?? "");
+          if (data.anthropic_api_key_hint) {
+            setApiKeySet(true);
+          }
+        }
+      } catch {
+        // Non-fatal — show empty fields
+      } finally {
+        setOrgLoading(false);
+      }
+    }
+    loadOrg();
+  }, []);
+
+  // Fetch members on mount
+  useEffect(() => {
+    async function loadMembers() {
+      try {
+        const res = await fetch("/api/org/members");
+        if (res.ok) {
+          const data = await res.json() as { members: OrgMember[]; currentUserId: string };
+          setMembers(data.members ?? []);
+          setCurrentUserId(data.currentUserId ?? null);
+        }
+      } catch {
+        // Non-fatal — show empty list
+      } finally {
+        setMembersLoading(false);
+      }
+    }
+    loadMembers();
+  }, []);
+
+  async function handleSaveOrgProfile() {
+    setOrgSaveState("saving");
+    try {
+      const res = await fetch("/api/org", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: orgName, mission }),
+      });
+      if (!res.ok) {
+        throw new Error("Save failed");
+      }
+      const updated = (await res.json()) as OrgDetails;
+      setOrgData(updated);
+      setOrgSaveState("saved");
+      setTimeout(() => setOrgSaveState("idle"), 2000);
+    } catch {
+      setOrgSaveState("error");
+      setTimeout(() => setOrgSaveState("idle"), 3000);
+    }
+  }
 
   // Custom archetype names
   const { names: archetypeNames, updateName } = useArchetypeNames();
@@ -243,44 +311,70 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Organization Profile</h2>
-            <p className="text-sm text-slate-500">Basic info about your nonprofit.</p>
+            <p className="text-sm text-slate-500">Basic info about your organization.</p>
           </div>
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="label mb-1.5 block">Organization Name</label>
-            <input
-              type="text"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              className="input-field"
-            />
+        {orgLoading ? (
+          <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading…
           </div>
-          <div>
-            <label className="label mb-1.5 block">Mission Statement</label>
-            <textarea
-              value={mission}
-              onChange={(e) => setMission(e.target.value)}
-              rows={3}
-              className="input-field"
-            />
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="label mb-1.5 block">Organization Name</label>
+              <input
+                type="text"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="Your organization name"
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="label mb-1.5 block">Mission Statement</label>
+              <textarea
+                value={mission}
+                onChange={(e) => setMission(e.target.value)}
+                rows={3}
+                placeholder="Describe your organization's mission…"
+                className="input-field"
+              />
+            </div>
+            {orgData?.plan && (
+              <div>
+                <label className="label mb-1.5 block">Plan</label>
+                <p className="text-sm text-slate-700 capitalize">{orgData.plan}</p>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <button
+                onClick={handleSaveOrgProfile}
+                disabled={orgSaveState === "saving"}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {orgSaveState === "saving" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : orgSaveState === "saved" ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Saved
+                  </>
+                ) : orgSaveState === "error" ? (
+                  "Error — try again"
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-          <div>
-            <label className="label mb-1.5 block">Website</label>
-            <input
-              type="url"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div className="flex justify-end">
-            <button className="btn-primary">
-              <Check className="h-4 w-4" />
-              Save Changes
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Anthropic Key (BYOK) */}
@@ -319,19 +413,16 @@ export default function SettingsPage() {
                   Access key saved
                 </p>
                 <p className="text-xs text-emerald-600">
-                  sk-ant-...{apiKey.slice(-8) || "xxxx"}
+                  sk-ant-...{orgData?.anthropic_api_key_hint ?? (apiKey.slice(-4) || "xxxx")}
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                setApiKeySet(false);
-                setApiKey("");
-              }}
-              className="text-sm font-medium text-red-600 hover:text-red-700"
+            <Link
+              href="/dashboard/admin/ai-config"
+              className="text-sm font-medium text-brand-600 hover:text-brand-700"
             >
-              Remove
-            </button>
+              Manage Key
+            </Link>
           </div>
         ) : (
           <div className="space-y-3">
@@ -428,62 +519,98 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          {teamMembers.map((member) => (
-            <div
-              key={member.id}
-              className="flex items-center justify-between rounded-lg border border-slate-200 p-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
-                  {member.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {member.name}
-                  </p>
-                  <p className="text-xs text-slate-500">{member.email}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    member.role === "Owner"
-                      ? "bg-brand-50 text-brand-700"
-                      : member.role === "Admin"
-                      ? "bg-sky-50 text-sky-700"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
+        {membersLoading ? (
+          <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading…
+          </div>
+        ) : members.length === 0 ? (
+          <p className="text-sm text-slate-400 py-2">No members found.</p>
+        ) : (
+          <div className="space-y-3">
+            {members.map((member) => {
+              const isYou = member.userId === currentUserId;
+              const roleCapitalized =
+                member.role.charAt(0).toUpperCase() + member.role.slice(1);
+              return (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between rounded-lg border border-slate-200 p-3"
                 >
-                  {member.role}
-                </span>
-                {member.role !== "Owner" && (
-                  <button className="text-slate-400 hover:text-red-500">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                      {member.avatarInitials}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
+                        {member.name}
+                        {isYou && (
+                          <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
+                            You
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-500">{member.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        member.role === "owner"
+                          ? "bg-brand-50 text-brand-700"
+                          : member.role === "admin"
+                          ? "bg-sky-50 text-sky-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {roleCapitalized}
+                    </span>
+                    {member.role !== "owner" && !isYou && (
+                      <button
+                        className="text-slate-400 hover:text-red-500"
+                        title="Remove member (coming soon)"
+                        disabled
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-        <div className="mt-4 flex gap-2">
-          <input
-            type="email"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            placeholder="colleague@nonprofit.org"
-            className="input-field flex-1"
-          />
-          <button className="btn-secondary">
+        <div className="mt-4">
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="btn-secondary"
+          >
             <Plus className="h-4 w-4" />
-            Invite
+            Invite Member
           </button>
         </div>
       </div>
+
+      {/* Invite modal (stub) */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="card w-full max-w-sm p-6 space-y-4">
+            <h3 className="heading-3">Invite a Team Member</h3>
+            <p className="text-sm text-slate-500">
+              Team invites are coming soon. You&apos;ll be able to invite colleagues by email once this feature launches.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="btn-primary"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
