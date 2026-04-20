@@ -2,6 +2,85 @@
 
 ---
 
+## 2026-04-19 — Memory/Tasks/Inbox Real Data Agent
+
+**Identity:** Memory/Tasks/Inbox Real Data Agent
+**Date:** 2026-04-19
+**Commit:** `bb031bd`
+
+### Problem
+
+Three dashboard pages (`/dashboard/memory`, `/dashboard/tasks`, `/dashboard/inbox`) showed hardcoded mock data. Z flagged all three as fake. Inbox expand/edit buttons were also non-functional.
+
+### Files Created
+
+- `apps/web/src/app/api/memory/entries/route.ts` — GET: queries `orgs.mission`, `documents` (done only), `members.archetype_names`, and `memory_entries`; returns unified `MemoryEntryRow[]` shape
+- `apps/web/src/app/api/tasks/recent/route.ts` — GET: queries `tasks` joined to `agent_configs` and `task_steps`; falls back to `conversations` as task proxies when tasks table is empty
+- `apps/web/src/app/api/inbox/pending/route.ts` — GET: queries `approvals` table; falls back to assistant `messages` with content > 300 chars when no approvals exist
+
+### Files Modified
+
+- `apps/web/src/app/dashboard/memory/page.tsx` — Replaced hardcoded `entries` array with `useEffect`+`fetch` from `/api/memory/entries`; added loading skeletons, error state, honest empty state with Settings CTA; added `formatUpdatedAt` for ISO timestamps; added new categories (financials, volunteers, events) to categoryConfig
+- `apps/web/src/app/dashboard/tasks/page.tsx` — Replaced hardcoded `tasks` array with `useEffect`+`fetch` from `/api/tasks/recent`; added loading, error, empty state with Team CTA; fixed nested `<tbody>` bug (was `<tbody key=...>` inside `<tbody>`); added `formatCreatedAt` for ISO timestamps
+- `apps/web/src/app/dashboard/inbox/page.tsx` — Replaced hardcoded `initialItems` with `/api/inbox/pending`; added Expand modal (full content, scrollable, close button, approve/reject/edit from modal); added Edit mode (textarea pre-filled from preview or localStorage `edify_inbox_edits_{id}`, Save persists to localStorage); heartbeat/team-updates section left entirely unchanged
+
+### Query Shapes
+
+- **Memory entries:** `orgs(mission, updated_at)` + `documents(id, file_name, category, parsed_text, created_at) where processing_status='done'` + `members(archetype_names) where org_id` + `memory_entries(id, category, title, content, source, auto_generated, updated_at) where org_id`
+- **Tasks recent:** `tasks(id, title, status, confidence_score, created_at, agent_config_id, agent_configs(role_slug), task_steps(id, step_number, agent_role, action, duration_ms)) where org_id order by created_at desc limit 25`; fallback: `conversations(id, title, updated_at, agent_config_id, agent_configs(role_slug)) where org_id order by updated_at desc limit 25`
+- **Inbox pending:** `approvals(id, title, summary, output_preview, confidence_score, urgency, status, created_at, agent_config_id, agent_configs(role_slug)) where org_id in (pending, approved, rejected)`; fallback: `messages(id, content, created_at, conversations!inner(org_id, agent_config_id, agent_configs(role_slug))) where role='assistant' and content.length>300`
+
+### Heartbeat Rendering
+
+Confirmed preserved. The `getHeartbeatHistory()` call, `HeartbeatUpdate` component, team-updates section state, and empty state for no heartbeats are all unchanged.
+
+### Empty States (New Org)
+
+- Memory: "No memory entries yet. Your memory grows as you chat with your team, upload briefings, and customize their roles." + Settings link
+- Tasks: "No tasks yet. Start a conversation with any team member to begin." + Team link  
+- Inbox: "Nothing waiting for your review right now. Your team will flag items here when they draft emails, posts, or proposals."
+
+### Build Result
+
+`npm run build` — compiled successfully, 0 type errors, 84 static pages generated.
+
+### Follow-ups Flagged (not fixed, scope creep)
+
+- No real approvals workflow yet — approval decisions are local state only (not persisted to `approvals` table)
+- Edit save writes to localStorage only; no backend persistence for inbox edits
+- Tasks page fallback uses conversations; a dedicated tasks table + workflow is a separate PRD
+- Memory "Add Entry" form saves nowhere yet (button wired, no POST route)
+
+---
+
+## 2026-04-19 — ProactiveHelper Sync Fix (ProactiveHelper Sync Fix Agent)
+
+**Identity:** ProactiveHelper Sync Fix Agent
+**Date:** 2026-04-19
+**Commit:** `d005f45`
+
+### Problem
+
+When the user dismissed the support chat widget (FAB hidden via `sessionStorage["edify_support_dismissed"] = "true"`), the `ProactiveHelper` tooltip ("Stuck? Need help?") could still fire on idle. Clicking "Get help now" called `openChat()` but `ChatWidget` returns `null` when dismissed, so the chat never appeared — a ghost tooltip with a broken CTA.
+
+### Approach
+
+Added a `chatWidgetDismissed` state variable (initialized `false`) read via a mount-time `useEffect` that checks `sessionStorage["edify_support_dismissed"]`. The `show` callback was updated to bail out early when `chatWidgetDismissed` is `true`.
+
+All React hooks run unconditionally on every render (hooks rules preserved). The guard lives inside the `show` callback, not before any hook. The `early return null` at line 121 is unchanged — it remains after all hooks.
+
+Limitation: if the user dismisses the widget mid-session (after `ProactiveHelper` has already mounted), the helper won't re-check until next page load. That's acceptable per PRD.
+
+### Files Changed
+
+- `apps/web/src/components/support/ProactiveHelper.tsx` — Added `CHAT_WIDGET_DISMISSED_KEY` constant, `chatWidgetDismissed` state, mount `useEffect`, and guard in `show` callback
+
+### Build Result
+
+`npm run build` — compiled successfully, 0 type errors, 81 static pages generated.
+
+---
+
 ## 2026-04-19 — Chat Exception Diagnostic: Client-Side Crash Fix (Chat Exception Diagnostic Agent)
 
 **Identity:** Chat Exception Diagnostic Agent
