@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class HRVolunteerCoordinator(BasePrimaryAgent):
     role_slug = "hr_volunteer_coordinator"
     display_name = "HR & Volunteer Coordinator"
-    model = "claude-sonnet-4-20250514"
+    model = "claude-sonnet-4-6"
     temperature = 0.4
 
     _SUBAGENT_REGISTRY: dict[str, Any] = {

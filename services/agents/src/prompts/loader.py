@@ -36,7 +36,7 @@ class PromptTemplate:
 
     @property
     def model(self) -> str:
-        return self.metadata.get("model", "claude-sonnet-4-20250514")
+        return self.metadata.get("model", "claude-sonnet-4-6")
 
     @property
     def temperature(self) -> float:

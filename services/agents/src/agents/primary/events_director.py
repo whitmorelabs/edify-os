@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class EventsDirector(BasePrimaryAgent):
     role_slug = "events_director"
     display_name = "Events Director"
-    model = "claude-sonnet-4-20250514"
+    model = "claude-sonnet-4-6"
     temperature = 0.4
 
     _SUBAGENT_REGISTRY: dict[str, Any] = {

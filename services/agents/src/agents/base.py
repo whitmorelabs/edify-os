@@ -26,7 +26,7 @@ class BaseAgent(ABC):
     # -- Override in subclasses ----------------------------------------
     role_slug: str = ""
     display_name: str = ""
-    model: str = "claude-sonnet-4-20250514"
+    model: str = "claude-sonnet-4-6"
     temperature: float = 0.3
 
     # Injected by __init__ in each subclass

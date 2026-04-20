@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class MarketingDirector(BasePrimaryAgent):
     role_slug = "marketing_director"
     display_name = "Marketing Director"
-    model = "claude-sonnet-4-20250514"
+    model = "claude-sonnet-4-6"
     temperature = 0.5  # slightly more creative for marketing content
 
     _SUBAGENT_REGISTRY: dict[str, Any] = {

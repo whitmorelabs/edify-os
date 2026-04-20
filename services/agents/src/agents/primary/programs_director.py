@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class ProgramsDirector(BasePrimaryAgent):
     role_slug = "programs_director"
     display_name = "Programs Director"
-    model = "claude-sonnet-4-20250514"
+    model = "claude-sonnet-4-6"
     temperature = 0.35
 
     _SUBAGENT_REGISTRY: dict[str, Any] = {

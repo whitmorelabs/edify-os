@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         const systemPrompt = basePrompt.replace(/\{org_name\}/g, orgName) + DECISION_LAB_SUFFIX;
 
         const response = await anthropic.messages.create({
-          model: 'claude-haiku-4-20250514', // Use Haiku for speed in parallel calls
+          model: 'claude-haiku-4-5-20251001', // Use Haiku for speed in parallel calls
           max_tokens: 512,
           temperature: 0.25,
           system: systemPrompt,

@@ -72,7 +72,7 @@ class BaseSubagent(ABC):
     artifact_type: str = ""
     temperature: float = 0.2
     max_tokens: int = 2048
-    model: str = "claude-sonnet-4-20250514"
+    model: str = "claude-sonnet-4-6"
 
     def __init__(
         self,

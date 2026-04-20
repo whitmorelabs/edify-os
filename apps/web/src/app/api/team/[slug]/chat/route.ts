@@ -143,7 +143,7 @@ export async function POST(
   try {
     for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: MAX_RESPONSE_TOKENS,
         temperature: 0.3,
         system: fullSystemPrompt,

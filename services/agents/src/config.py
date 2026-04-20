@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     PORT: int = 8001
 
     # Defaults for Claude calls (can be overridden per-agent)
-    DEFAULT_MODEL: str = "claude-sonnet-4-20250514"
+    DEFAULT_MODEL: str = "claude-sonnet-4-6"
     DEFAULT_MAX_TOKENS: int = 4096
     DEFAULT_TEMPERATURE: float = 0.3
 

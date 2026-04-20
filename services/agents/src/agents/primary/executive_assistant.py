@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class ExecutiveAssistant(BasePrimaryAgent):
     role_slug = "executive_assistant"
     display_name = "Executive Assistant"
-    model = "claude-sonnet-4-20250514"
+    model = "claude-sonnet-4-6"
     temperature = 0.3
 
     _SUBAGENT_REGISTRY: dict[str, Any] = {

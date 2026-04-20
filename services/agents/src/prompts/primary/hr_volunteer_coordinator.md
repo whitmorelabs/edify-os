@@ -1,7 +1,7 @@
 ---
 role: hr_volunteer_coordinator
 display_name: HR & Volunteer Coordinator
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 max_tokens: 4096
 temperature: 0.4
 subagents:
