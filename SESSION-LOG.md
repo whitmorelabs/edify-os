@@ -2,6 +2,42 @@
 
 ---
 
+## 2026-04-19 — Decision Lab Server-Side Rewire (Decision Lab Rewire Agent)
+
+**Identity:** Decision Lab Rewire Agent
+**Date:** 2026-04-19
+**PRD:** `PRD-decision-lab-rewire.md`
+
+### Files Changed
+
+- **Modified:** `apps/web/src/app/dashboard/decision-lab/api.ts` — Rewrote `runScenario()` to POST to `/api/decision-lab` instead of calling Claude directly from the browser. Removed top-level imports of `getApiKey`, `getOrgContext`, `getSystemPrompt`, `callClaude`, `callClaudeParallel`. Removed the old internal helpers `parseArchetypeResponse`, `buildSynthesis`, and `ARCHETYPE_META` (at module scope). Removed `runSingleArchetype` (was already gone from this file; the old equivalent was the inline map in `runScenario`). Preserved all localStorage history helpers (`saveToHistory`, `loadHistory`, `saveScenarioResult`, `loadScenarioResult`, `getHistory`, `getScenario`) unchanged. Kept type exports (`Stance`, `Confidence`, `ArchetypeResponse`, `SynthesisResult`, `ScenarioResult`, `ScenarioSummary`) matching the server route's shape exactly.
+
+### Server Route Signature Confirmed
+
+`POST /api/decision-lab` expects: `{ scenario_text: string, selected_archetypes?: string[] }`
+
+Note: PRD spec said `{ scenario, archetype_slugs }` but actual server uses `{ scenario_text, selected_archetypes }` — client was adapted to match server's actual shape.
+
+Response: `ScenarioResult` with `{ id, scenario_text, created_at, responses[], synthesis }` — field names match client types exactly. No adaptation needed.
+
+Errors: `{ error: string }` with HTTP status — surfaced as `"${status}: ${serverMsg}"` matching the team chat pattern.
+
+### askFollowUp Note
+
+`askFollowUp()` still uses `callClaude` directly — there is no `/api/decision-lab/follow-up` server route. The imports are converted to dynamic `import()` calls to avoid top-level BYOK imports, and the function is documented with a NOTE comment. This is out of scope per the PRD ("Out of scope — adding new decision-lab features"). Tracked for a future PRD.
+
+### Build Result
+
+`cd apps/web && npm run build` — passed, zero type errors, 81 static pages generated.
+
+### Manual Reasoning
+
+- User with onboarded org + encrypted key runs a scenario → `runScenario` POSTs `{ scenario_text, selected_archetypes }` → server does auth, key retrieval, parallel Claude calls, synthesis → returns `ScenarioResult` → client saves to localStorage + returns to UI. No "No API key set" error possible.
+- User without API key → server `getAnthropicClientForOrg` returns 400/500 with `{ error: "..." }` → client throws `"400: ..."` which the UI displays in its error state.
+- localStorage history: `saveToHistory`, `saveScenarioResult`, `getHistory`, `getScenario` are untouched — still work independently of any server call.
+
+---
+
 ## 2026-04-19 — Simplify: Custom Names + Skills Cleanup (Names+Skills Simplify Agent)
 
 **Identity:** Names+Skills Simplify Agent
