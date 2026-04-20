@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AGENT_COLORS, type AgentRoleSlug } from "@/lib/agent-colors";
+import { ARCHETYPE_SLUGS } from "@/lib/archetypes";
 import { getHeartbeatHistory, type HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
 import { HeartbeatUpdate } from "@/app/dashboard/inbox/components/HeartbeatUpdate";
 
@@ -407,9 +408,7 @@ export default function InboxPage() {
                 key={result.id}
                 result={result}
                 onDiscuss={(archetype) => {
-                  // Route to the full-page chat for the given archetype
-                  const validAgentSlugs = ["development_director", "marketing_director", "executive_assistant"];
-                  if (validAgentSlugs.includes(archetype)) {
+                  if ((ARCHETYPE_SLUGS as readonly string[]).includes(archetype)) {
                     router.push(`/dashboard/team/${archetype}`);
                   }
                 }}

@@ -32,8 +32,8 @@ export async function GET() {
   }
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const validSlugs = ARCHETYPE_SLUGS as readonly string[];
 
-  // Run independent queries in parallel
   const [
     { count: tasksCompleted },
     { count: pendingApprovals },
@@ -71,16 +71,12 @@ export async function GET() {
       .limit(10),
   ]);
 
-  // Count distinct archetypes active in last 7 days
   const activeSlugSet = new Set<string>();
   for (const conv of activeAgentData.data ?? []) {
     const slug = (conv.agent_configs as { role_slug?: string } | null)?.role_slug;
-    if (slug && (ARCHETYPE_SLUGS as readonly string[]).includes(slug)) {
-      activeSlugSet.add(slug);
-    }
+    if (slug && validSlugs.includes(slug)) activeSlugSet.add(slug);
   }
 
-  // Build activity feed
   const recentActivity: DashboardActivity[] = [];
   for (const msg of activityData.data ?? []) {
     const convMeta = msg.conversations as {
@@ -89,7 +85,7 @@ export async function GET() {
       agent_configs?: { role_slug?: string } | null;
     } | null;
     const slug = convMeta?.agent_configs?.role_slug;
-    const validSlug = slug && (ARCHETYPE_SLUGS as readonly string[]).includes(slug)
+    const validSlug = slug && validSlugs.includes(slug)
       ? (slug as AgentRoleSlug)
       : ("executive_assistant" as AgentRoleSlug);
 

@@ -192,9 +192,7 @@ export default function TeamChatClient({
     async (content: string) => {
       setIsTyping(true);
 
-      // Add user message to UI immediately. We use a temp conversationId if
-      // there is no active conversation yet — the server will assign a real one
-      // and we'll backfill localStorage under the server's ID after the response.
+      // Temp ID used for optimistic render; backfilled to server's ID on success.
       const tempConvId = activeConversation?.id ?? `temp-${crypto.randomUUID()}`;
       const userMsg: Message = {
         id: crypto.randomUUID(),
@@ -206,17 +204,13 @@ export default function TeamChatClient({
       setMessages((prev) => [...prev, userMsg]);
 
       try {
-        // Pass conversationId only when we already have a server-confirmed one.
         const response = await apiSendMessage(
           slug,
           content,
           activeConversation?.id
         );
 
-        // The server is authoritative on conversationId — adopt it now.
         const serverConvId = response.conversationId;
-
-        // Hydrate or update activeConversation from the server's ID.
         const isNew = !activeConversation;
         const conv: Conversation = activeConversation
           ? { ...activeConversation, updatedAt: new Date().toISOString(), messageCount: activeConversation.messageCount + 2 }
@@ -229,13 +223,11 @@ export default function TeamChatClient({
               messageCount: 2,
             };
 
-        // If this was a new conversation, save user message under the real ID.
         if (isNew) {
           saveMessage(serverConvId, { ...userMsg, conversationId: serverConvId });
           saveConversationMeta(slug, conv);
           setActiveConversation(conv);
           setConversations((prev) => [conv, ...prev]);
-          // Update UI messages to use the real conversationId
           setMessages((prev) =>
             prev.map((m) =>
               m.conversationId === tempConvId
@@ -263,7 +255,6 @@ export default function TeamChatClient({
       } catch (err) {
         const rawMessage =
           err instanceof Error ? err.message : String(err);
-        // Surface the real error so users know what failed (auth, network, etc.)
         const friendlyContent = rawMessage.toLowerCase().includes("network") ||
           rawMessage.toLowerCase().includes("failed to fetch")
           ? `Chat failed: network error — check your connection and try again.`
@@ -309,13 +300,6 @@ export default function TeamChatClient({
     setActiveConversation(conv);
     const stored = getMessages(conv.id);
     setMessages(stored);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Prompt from empty state — queue it to send
-  // ---------------------------------------------------------------------------
-  function handlePromptSelect(prompt: string) {
-    setPendingPrompt(prompt);
   }
 
   const showEmptyState = messages.length === 0 && !isTyping;
@@ -371,7 +355,7 @@ export default function TeamChatClient({
         {/* Messages or empty state */}
         {showEmptyState ? (
           <div className="flex-1 overflow-y-auto">
-            <EmptyState slug={archetypeSlug} onPromptSelect={handlePromptSelect} />
+            <EmptyState slug={archetypeSlug} onPromptSelect={setPendingPrompt} />
           </div>
         ) : (
           <ChatMessages
