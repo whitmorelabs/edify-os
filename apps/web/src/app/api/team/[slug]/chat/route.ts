@@ -264,10 +264,19 @@ export async function POST(
         // Append the assistant turn (may contain text + tool_use blocks)
         loopMessages.push({ role: "assistant", content: response.content as Anthropic.MessageParam["content"] });
 
-        // Execute all tool_use blocks in this turn in parallel
+        // Execute all tool_use blocks in this turn in parallel.
+        // Note: skills/code-execution use type "server_tool_use" (executed server-side by
+        // Anthropic — we do NOT send tool_result for those). Filter for client-side tool_use only.
         const toolUseBlocks = response.content.filter(
           (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
         );
+
+        // If there are no client-side tool_use blocks (e.g. only server_tool_use from skills),
+        // the model has finished processing internally. Break out and return what we have.
+        if (toolUseBlocks.length === 0) {
+          finalAssistantText = textInThisResponse;
+          break;
+        }
 
         // H3: Pre-fetch Google access tokens once per round to avoid N DB selects
         // for N parallel tool calls. Fetches run in parallel when both are needed.
@@ -348,7 +357,21 @@ export async function POST(
         break;
       }
 
-      // Any other stop_reason — log and break with whatever text we have.
+      // Skills/beta-specific stop reasons — "pause_turn" means the model paused for
+      // server-side processing (skills execution). "compaction" is an auto-compaction event.
+      // "model_context_window_exceeded" means the context is too long. In all cases, break
+      // with whatever text we have (the fallback logic below fills in a canned message if empty).
+      if (
+        response.stop_reason === "pause_turn" ||
+        response.stop_reason === "compaction" ||
+        response.stop_reason === "model_context_window_exceeded"
+      ) {
+        console.warn("[chat] Skills/beta stop_reason", { stop_reason: response.stop_reason });
+        finalAssistantText = textInThisResponse;
+        break;
+      }
+
+      // Any other unexpected stop_reason — log and break with whatever text we have.
       console.warn("[chat] Unexpected stop_reason", { stop_reason: response.stop_reason });
       finalAssistantText = textInThisResponse;
       break;

@@ -120,9 +120,12 @@ const MARKDOWN_COMPONENTS: Components = {
 };
 
 function AssistantMarkdown({ content }: { content: string }) {
+  // Defensive: coerce to string in case a non-string value leaks through (e.g.
+  // a message loaded from localStorage that was stored before a type migration).
+  const safeContent = typeof content === "string" ? content : String(content ?? "");
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
-      {content}
+      {safeContent}
     </ReactMarkdown>
   );
 }

@@ -62,7 +62,7 @@ export function ConversationSidebar({
                 )}
                 title={conv.title}
               >
-                {conv.title[0].toUpperCase()}
+                {(conv.title?.[0] ?? "?").toUpperCase()}
               </button>
             ))}
           </div>
