@@ -129,19 +129,6 @@ export default function SpialNavbar() {
               {l.label}
             </Link>
           ))}
-          <div className="w-full border-t border-white/10 mt-2 pt-4">
-            <p className="text-white/40 text-xs uppercase tracking-wider text-center mb-3">Your AI Team</p>
-            {archetypes.map((a) => (
-              <Link
-                key={a.label}
-                href={a.href}
-                className="block text-white/70 text-base font-normal text-center no-underline py-2 transition-colors duration-300 hover:text-[#8B5CF6]"
-                onClick={() => setMobileOpen(false)}
-              >
-                {a.label}
-              </Link>
-            ))}
-          </div>
         </nav>
 
         {/* Get Started button */}

@@ -16,6 +16,8 @@ import {
   FlaskConical,
   FileText,
   Shield,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useChatPanel } from './chat-provider';
 import { AGENT_COLORS, AGENT_SLUGS } from '@/lib/agent-colors';
@@ -41,6 +43,7 @@ export function Sidebar() {
   const { openChat, activeAgent, isOpen } = useChatPanel();
   const { unreadCount } = useNotifications();
   const [briefingComplete, setBriefingComplete] = useState(true); // default true to avoid flash
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -51,8 +54,13 @@ export function Sidebar() {
     }
   }, []);
 
-  return (
-    <aside className="w-64 shrink-0 h-screen flex flex-col bg-brand-950 overflow-y-auto sidebar-scroll">
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  const sidebarContent = (
+    <aside className="w-64 shrink-0 h-full flex flex-col bg-brand-950 overflow-y-auto sidebar-scroll">
       {/* Header */}
       <div className="flex items-center gap-2.5 p-5">
         <Sparkles size={22} className="text-brand-300" />
@@ -62,6 +70,14 @@ export function Sidebar() {
           <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-300 bg-white/10 px-2 py-0.5 rounded-full">
             AI Teams
           </span>
+          {/* Close button — mobile only */}
+          <button
+            className="lg:hidden ml-1 text-brand-300 hover:text-white transition"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
         </div>
       </div>
 
@@ -169,5 +185,39 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Hamburger button — mobile only, fixed top-left */}
+      <button
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-brand-950 text-brand-300 hover:text-white transition shadow-lg"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
+      >
+        <Menu size={22} />
+      </button>
+
+      {/* Desktop sidebar — always visible on lg+ */}
+      <div className="hidden lg:flex h-screen">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile sidebar — overlay when open */}
+      {mobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          {/* Slide-in panel */}
+          <div className="lg:hidden fixed inset-y-0 left-0 z-50 flex h-screen overflow-hidden">
+            {sidebarContent}
+          </div>
+        </>
+      )}
+    </>
   );
 }
