@@ -1,0 +1,137 @@
+import { NextResponse } from "next/server";
+import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
+import type { AgentRoleSlug } from "@/lib/agent-colors";
+import { ARCHETYPE_SLUGS } from "@/lib/archetypes";
+
+export type TaskStatus =
+  | "pending"
+  | "planning"
+  | "executing"
+  | "awaiting_approval"
+  | "completed"
+  | "failed";
+
+export interface TaskRow {
+  id: string;
+  title: string;
+  agent: AgentRoleSlug;
+  status: TaskStatus;
+  confidence: number | null;
+  createdAt: string;
+  steps: {
+    id: string;
+    stepNumber: number;
+    agentRole: string;
+    action: string;
+    durationMs: number | null;
+  }[];
+}
+
+export async function GET() {
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  const validSlugs = ARCHETYPE_SLUGS as readonly string[];
+
+  // Pull tasks with their agent config and steps
+  const { data: tasksData } = await serviceClient
+    .from("tasks")
+    .select(`
+      id,
+      title,
+      status,
+      confidence_score,
+      created_at,
+      agent_config_id,
+      agent_configs(role_slug),
+      task_steps(id, step_number, agent_role, action, duration_ms)
+    `)
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(25);
+
+  // Also pull conversations as tasks if tasks table is empty (conversations = task proxies)
+  let conversationTasks: TaskRow[] = [];
+  if (!tasksData || tasksData.length === 0) {
+    const { data: convData } = await serviceClient
+      .from("conversations")
+      .select("id, title, updated_at, agent_config_id, agent_configs(role_slug)")
+      .eq("org_id", orgId)
+      .order("updated_at", { ascending: false })
+      .limit(25);
+
+    for (const conv of convData ?? []) {
+      const slug = (conv.agent_configs as { role_slug?: string } | null)?.role_slug;
+      const agentSlug =
+        slug && validSlugs.includes(slug)
+          ? (slug as AgentRoleSlug)
+          : ("executive_assistant" as AgentRoleSlug);
+
+      conversationTasks.push({
+        id: conv.id as string,
+        title: (conv.title as string | null) ?? "Conversation",
+        agent: agentSlug,
+        status: "completed",
+        confidence: null,
+        createdAt: conv.updated_at as string,
+        steps: [],
+      });
+    }
+  }
+
+  const rows: TaskRow[] = [];
+
+  for (const task of tasksData ?? []) {
+    const slug = (task.agent_configs as { role_slug?: string } | null)?.role_slug;
+    const agentSlug =
+      slug && validSlugs.includes(slug)
+        ? (slug as AgentRoleSlug)
+        : ("executive_assistant" as AgentRoleSlug);
+
+    const rawStatus = task.status as string;
+    const validStatuses: TaskStatus[] = [
+      "pending", "planning", "executing", "awaiting_approval", "completed", "failed",
+    ];
+    const status: TaskStatus = validStatuses.includes(rawStatus as TaskStatus)
+      ? (rawStatus as TaskStatus)
+      : "pending";
+
+    const rawSteps = (task.task_steps ?? []) as {
+      id: string;
+      step_number: number;
+      agent_role: string;
+      action: string;
+      duration_ms: number | null;
+    }[];
+
+    const steps = rawSteps
+      .sort((a, b) => a.step_number - b.step_number)
+      .map((s) => ({
+        id: s.id,
+        stepNumber: s.step_number,
+        agentRole: s.agent_role,
+        action: s.action,
+        durationMs: s.duration_ms ?? null,
+      }));
+
+    rows.push({
+      id: task.id as string,
+      title: (task.title as string) || "Untitled Task",
+      agent: agentSlug,
+      status,
+      confidence: (task.confidence_score as number | null) ?? null,
+      createdAt: task.created_at as string,
+      steps,
+    });
+  }
+
+  const result = rows.length > 0 ? rows : conversationTasks;
+  return NextResponse.json(result);
+}

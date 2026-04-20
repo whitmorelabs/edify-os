@@ -11,6 +11,9 @@ import {
   ChevronUp,
   Users,
   Settings,
+  Maximize2,
+  X,
+  Save,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,87 +21,11 @@ import { AGENT_COLORS, type AgentRoleSlug } from "@/lib/agent-colors";
 import { ARCHETYPE_SLUGS } from "@/lib/archetypes";
 import { getHeartbeatHistory, type HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
 import { HeartbeatUpdate } from "@/app/dashboard/inbox/components/HeartbeatUpdate";
+import type { InboxItem } from "@/app/api/inbox/pending/route";
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
-
-interface ApprovalItem {
-  id: string;
-  agent: AgentRoleSlug;
-  title: string;
-  summary: string;
-  preview: string;
-  confidence: number;
-  urgency: "low" | "normal" | "high" | "critical";
-  status: ApprovalStatus;
-  createdAt: string;
-}
-
-const initialItems: ApprovalItem[] = [
-  {
-    id: "1",
-    agent: "development_director",
-    title: "Send donor email blast",
-    summary:
-      "Spring fundraising campaign email to 1,200 contacts with personalized greetings.",
-    preview:
-      "Dear [Donor Name],\n\nAs spring arrives, we're reminded of the incredible impact your generosity has made...",
-    confidence: 0.92,
-    urgency: "high",
-    status: "pending",
-    createdAt: "10 min ago",
-  },
-  {
-    id: "2",
-    agent: "marketing_director",
-    title: "Publish blog post",
-    summary:
-      'Annual Impact Report 2025 blog post — 1,200 words with infographics.',
-    preview:
-      "2025 was a transformative year for Hope Community Foundation. Together with our partners...",
-    confidence: 0.87,
-    urgency: "normal",
-    status: "pending",
-    createdAt: "45 min ago",
-  },
-  {
-    id: "3",
-    agent: "executive_assistant",
-    title: "Book venue for May gala",
-    summary:
-      "Reserve community center for annual gala on May 15th. $2,500 deposit required.",
-    preview:
-      "Venue: Downtown Community Center\nDate: May 15, 2026\nCapacity: 250 guests\nDeposit: $2,500",
-    confidence: 0.78,
-    urgency: "high",
-    status: "pending",
-    createdAt: "2 hrs ago",
-  },
-  {
-    id: "4",
-    agent: "development_director",
-    title: "Submit LOI to Ford Foundation",
-    summary:
-      "Letter of Intent for the Youth Development grant program. $150K request.",
-    preview:
-      "Dear Program Officer,\n\nHope Community Foundation respectfully submits this Letter of Intent...",
-    confidence: 0.83,
-    urgency: "critical",
-    status: "pending",
-    createdAt: "3 hrs ago",
-  },
-  {
-    id: "5",
-    agent: "marketing_director",
-    title: "Schedule social media posts",
-    summary: "5 posts for next week across Facebook and Instagram.",
-    preview:
-      "Monday: Community garden photo update\nTuesday: Volunteer spotlight\nWednesday: Event reminder...",
-    confidence: 0.95,
-    urgency: "low",
-    status: "pending",
-    createdAt: "5 hrs ago",
-  },
-];
+type FilterTab = "all" | "pending" | "approved" | "rejected";
+type InboxSection = "approvals" | "team-updates";
 
 const urgencyColors = {
   low: "bg-slate-100 text-slate-600",
@@ -107,17 +34,53 @@ const urgencyColors = {
   critical: "bg-red-50 text-red-700",
 };
 
-type FilterTab = "all" | "pending" | "approved" | "rejected";
-type InboxSection = "approvals" | "team-updates";
+function formatCreatedAt(iso: string): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const now = Date.now();
+  const diff = now - date.getTime();
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  return date.toLocaleDateString();
+}
 
 export default function InboxPage() {
   const router = useRouter();
-  const [items, setItems] = useState(initialItems);
+
+  // Data state
+  const [items, setItems] = useState<InboxItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // UI state
   const [filter, setFilter] = useState<FilterTab>("pending");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [previewExpandedId, setPreviewExpandedId] = useState<string | null>(null);
+  const [expandedModalId, setExpandedModalId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState<string>("");
   const [section, setSection] = useState<InboxSection>("approvals");
+
+  // Heartbeat state
   const [heartbeats, setHeartbeats] = useState<HeartbeatResult[]>([]);
   const [heartbeatsLoading, setHeartbeatsLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetch("/api/inbox/pending", { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load inbox");
+        return res.json() as Promise<InboxItem[]>;
+      })
+      .then((data) => setItems(data))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load inbox"))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     if (section === "team-updates") {
@@ -144,6 +107,36 @@ export default function InboxPage() {
     );
   };
 
+  const openEdit = (item: InboxItem) => {
+    // Check localStorage for saved edits
+    const saved = localStorage.getItem(`edify_inbox_edits_${item.id}`);
+    setEditContent(saved ?? item.preview);
+    setEditingId(item.id);
+    setExpandedModalId(null);
+  };
+
+  const saveEdit = (id: string) => {
+    localStorage.setItem(`edify_inbox_edits_${id}`, editContent);
+    // Update preview in local state so changes are visible immediately
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, preview: editContent } : item))
+    );
+    setEditingId(null);
+    setEditContent("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditContent("");
+  };
+
+  const openExpand = (id: string) => {
+    setExpandedModalId(id);
+    setEditingId(null);
+  };
+
+  const closeExpand = () => setExpandedModalId(null);
+
   const filtered =
     filter === "all" ? items : items.filter((i) => i.status === filter);
   const pendingCount = items.filter((i) => i.status === "pending").length;
@@ -157,6 +150,11 @@ export default function InboxPage() {
     { key: "rejected", label: "Rejected" },
     { key: "all", label: "All" },
   ];
+
+  // Item being shown in expand modal
+  const expandedItem = expandedModalId
+    ? items.find((i) => i.id === expandedModalId)
+    : null;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -213,30 +211,51 @@ export default function InboxPage() {
       {section === "approvals" && (
         <>
           {/* Filter Tabs */}
-          <div className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key)}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-                  filter === tab.key
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && tab.count > 0 && (
-                  <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          {!loading && !error && items.length > 0 && (
+            <div className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
+                  className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+                    filter === tab.key
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Approval Cards */}
           <div className="space-y-3">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <>
+                <div className="h-40 rounded-xl bg-slate-100 animate-pulse" />
+                <div className="h-40 rounded-xl bg-slate-100 animate-pulse" />
+              </>
+            ) : error ? (
+              <div className="card p-12 text-center">
+                <p className="text-sm text-red-500">{error}</p>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="card p-12 text-center">
+                <Filter className="mx-auto h-10 w-10 text-slate-300" />
+                <p className="mt-4 font-medium text-slate-700">
+                  Nothing waiting for your review right now.
+                </p>
+                <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
+                  Your team will flag items here when they draft emails, posts, or proposals.
+                </p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="card p-12 text-center">
                 <Filter className="mx-auto h-8 w-8 text-slate-300" />
                 <p className="mt-3 text-sm text-slate-500">
@@ -245,8 +264,9 @@ export default function InboxPage() {
               </div>
             ) : (
               filtered.map((item) => {
-                const agentConfig = AGENT_COLORS[item.agent];
-                const isExpanded = expandedId === item.id;
+                const agentConfig = AGENT_COLORS[item.agent as AgentRoleSlug] ?? AGENT_COLORS.executive_assistant;
+                const isPreviewExpanded = previewExpandedId === item.id;
+                const isEditing = editingId === item.id;
                 const confidenceColor =
                   item.confidence >= 0.85
                     ? "bg-emerald-500"
@@ -286,7 +306,7 @@ export default function InboxPage() {
                             {item.urgency}
                           </span>
                           <span className="text-xs text-slate-400">
-                            {item.createdAt}
+                            {formatCreatedAt(item.createdAt)}
                           </span>
                         </div>
                       </div>
@@ -306,11 +326,12 @@ export default function InboxPage() {
                         </span>
                         <button
                           onClick={() =>
-                            setExpandedId(isExpanded ? null : item.id)
+                            setPreviewExpandedId(isPreviewExpanded ? null : item.id)
                           }
                           className="text-slate-400 hover:text-slate-600"
+                          title="Toggle preview"
                         >
-                          {isExpanded ? (
+                          {isPreviewExpanded ? (
                             <ChevronUp className="h-4 w-4" />
                           ) : (
                             <ChevronDown className="h-4 w-4" />
@@ -318,16 +339,43 @@ export default function InboxPage() {
                         </button>
                       </div>
 
-                      {/* Expanded Preview */}
-                      {isExpanded && (
-                        <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 whitespace-pre-wrap font-mono">
+                      {/* Inline Preview (collapsed snippet) */}
+                      {isPreviewExpanded && !isEditing && (
+                        <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
                           {item.preview}
+                        </div>
+                      )}
+
+                      {/* Edit Mode */}
+                      {isEditing && (
+                        <div className="mt-4 space-y-2">
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="input-field font-mono text-sm w-full"
+                            rows={10}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => saveEdit(item.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+                            >
+                              <Save className="h-3.5 w-3.5" />
+                              Save
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="btn-ghost text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       )}
 
                       {/* Actions */}
                       {item.status === "pending" && (
-                        <div className="mt-4 flex gap-2">
+                        <div className="mt-4 flex flex-wrap gap-2">
                           <button
                             onClick={() => updateStatus(item.id, "approved")}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
@@ -342,7 +390,19 @@ export default function InboxPage() {
                             <XCircle className="h-4 w-4" />
                             Reject
                           </button>
-                          <button className="btn-ghost">
+                          <button
+                            onClick={() => openExpand(item.id)}
+                            className="btn-ghost"
+                            title="View full content"
+                          >
+                            <Maximize2 className="h-4 w-4" />
+                            Expand
+                          </button>
+                          <button
+                            onClick={() => openEdit(item)}
+                            className="btn-ghost"
+                            title="Edit content"
+                          >
                             <Pencil className="h-4 w-4" />
                             Edit
                           </button>
@@ -350,7 +410,7 @@ export default function InboxPage() {
                       )}
 
                       {item.status !== "pending" && (
-                        <div className="mt-3">
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
                               item.status === "approved"
@@ -365,6 +425,13 @@ export default function InboxPage() {
                             )}
                             {item.status === "approved" ? "Approved" : "Rejected"}
                           </span>
+                          <button
+                            onClick={() => openExpand(item.id)}
+                            className="btn-ghost text-xs"
+                          >
+                            <Maximize2 className="h-3.5 w-3.5" />
+                            Expand
+                          </button>
                         </div>
                       )}
                     </div>
@@ -415,6 +482,67 @@ export default function InboxPage() {
               />
             ))
           )}
+        </div>
+      )}
+
+      {/* ── Full-content expand modal ── */}
+      {expandedItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={closeExpand}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl bg-white shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-slate-900 text-lg">
+                  {expandedItem.title}
+                </h2>
+                <p className="text-sm text-slate-500 mt-0.5">{expandedItem.summary}</p>
+              </div>
+              <button
+                onClick={closeExpand}
+                className="ml-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">
+              {expandedItem.preview || "No content available."}
+            </div>
+            <div className="mt-4 flex gap-2">
+              {expandedItem.status === "pending" && (
+                <>
+                  <button
+                    onClick={() => { updateStatus(expandedItem.id, "approved"); closeExpand(); }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => { updateStatus(expandedItem.id, "rejected"); closeExpand(); }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => { closeExpand(); openEdit(expandedItem); }}
+                    className="btn-ghost"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </button>
+                </>
+              )}
+              <button onClick={closeExpand} className="btn-ghost ml-auto">
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
