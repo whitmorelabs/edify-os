@@ -2,6 +2,80 @@
 
 ---
 
+## 2026-04-19 — Simplify: Custom Names + Skills Cleanup (Names+Skills Simplify Agent)
+
+**Identity:** Names+Skills Simplify Agent
+**Date:** 2026-04-19
+**Commit:** TBD (filled after commit)
+**Base commits simplified:** `935bc18` (custom names), `986c1e6` (Anthropic Skills)
+
+### Simplifications Applied
+
+1. **Extracted `SKILL_MIME` to `lib/skills/registry.ts`** — The MIME map (`docx/xlsx/pptx/pdf` → MIME string) was defined independently in `chat/route.ts` (as `SKILL_MIME`) and in `files/[fileId]/route.ts` (as a local `MIME` object). Moved the single source of truth to `registry.ts` as an exported constant. Both routes now import from the registry. Eliminates 8 lines of duplicate string literals.
+
+2. **Extracted `buildCustomNameInstruction()` to `lib/archetype-prompts.ts`** — The name-instruction string (`"Your user has chosen to call you..."`) was identical in `getSystemPrompt()` and inlined again in `chat/route.ts`. Extracted to a new exported helper `buildCustomNameInstruction(customName)`. `getSystemPrompt` and the chat route both call it. Eliminates one duplicated string template.
+
+3. **Corrected stale header comment in `files/[fileId]/route.ts`** — The file comment said "orgId query param is used to look up the org's API key" but the implementation uses session-cookie auth, not a query param. Corrected the comment to match reality.
+
+### Deliberately Left Alone
+
+- **`FileChip` / `FileChips` memoization** — Components are plain functions. They're only rendered when `msg.files` is non-empty (rare), and the parent (`ChatMessages`) doesn't re-render at high frequency. Adding `memo()` would add noise with no observable benefit.
+- **Chat route two-path dispatch** (`hasSkills` branch) — The `beta.messages.create` vs `messages.create` split has diverged enough in call shape (betas array, container, tool cast) that unifying them would require more code than it saves. Left intact.
+- **`useArchetypeNames` caching** — The hook fetches once on mount and syncs on update. It does not implement SWR-style revalidation, which is intentional — names are rarely changed. No unnecessary caching added.
+- **Error leak in file proxy** — `err.message` from the Anthropic SDK is returned in the 502 body. These messages are not sensitive (they contain HTTP status codes / timeouts, not org keys), so this was left as-is.
+- **`ARCHETYPE_PROMPTS` import in chat route** — Chat route still builds the system prompt inline rather than calling `getSystemPrompt()`. The two functions have different org-context shapes (chat route adds "Org name:" line that `getSystemPrompt` doesn't). Merging them would change prompt behavior. Left alone.
+
+### Build Result
+
+`cd apps/web && npm run build` — passed, zero type errors, 81 static pages generated.
+
+---
+
+## 2026-04-19 — Anthropic Skills per Archetype (Anthropic Skills Agent)
+
+**Identity:** Anthropic Skills Agent
+**Date:** 2026-04-19
+**Commit:** `986c1e6`
+**PRD:** `PRD-anthropic-skills-per-archetype.md`
+
+### Files Created
+
+- `apps/web/src/lib/skills/registry.ts` — `ARCHETYPE_SKILLS` mapping, `SKILLS_ADDENDUM`, `CODE_EXECUTION_TOOL`, `SKILLS_BETA_HEADERS`, `buildContainer()` helper. Exhaust-check against `ARCHETYPE_SLUGS` at compile time.
+- `apps/web/src/app/api/files/[fileId]/route.ts` — Server-side proxy for Anthropic Files API. Browser calls `/api/files/:fileId`, server authenticates with the org's API key and streams the file back with correct MIME headers and `Content-Disposition: attachment`.
+
+### Files Modified
+
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — When `ARCHETYPE_SKILLS[slug]` is non-empty: switches to `client.beta.messages.create()` with `betas: ["code-execution-2025-08-25", "skills-2025-10-02"]`, appends `CODE_EXECUTION_TOOL` to the tools array, passes `container: { skills: [...] }`, injects `SKILLS_ADDENDUM` into system prompt. Extracts file outputs from `bash_code_execution_tool_result` and `code_execution_tool_result` response blocks, collects `{ name, mimeType, downloadUrl }` via `collectFileOutput()` helper (fetches file metadata from Anthropic Files API). Returns `files` array alongside the assistant text. Standard archetypes with no skills use the old `anthropic.messages.create()` path unchanged.
+- `apps/web/src/app/dashboard/team/[slug]/api.ts` — Added `GeneratedFile` type `{ name, mimeType, downloadUrl }`. Added `files?: GeneratedFile[]` to `Message` and `AssistantMessage` interfaces. `sendMessage()` passes files from the server response to the returned `AssistantMessage`.
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — Added `FileChip` and `FileChips` components (import `Download` from lucide). When `msg.files` is present on an assistant message, renders download chips below the markdown content. Chip shows filename, extension label (Word Doc / Excel / PowerPoint / PDF), and triggers browser download via the proxy route.
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx` — Passes `files` from `response.files` through to the `assistantMsg` object stored in state and localStorage.
+
+### SDK Status
+
+SDK version: `@anthropic-ai/sdk@0.90.0` — **no upgrade needed**. The 0.90.0 release already ships full support for `client.beta.messages.create()` with `betas` array and `container: BetaContainerParams` (which has `skills: Array<BetaSkillParams>`). The correct code execution tool type for the skills beta is `code_execution_20250825`.
+
+### Response Shape Documented
+
+Skills generate files via Anthropic's managed code execution environment. The response content blocks that carry file references are:
+- `bash_code_execution_tool_result` → `.content.type === "bash_code_execution_result"` → `.content.content[].type === "bash_code_execution_output"` → `.file_id`
+- `code_execution_tool_result` → `.content.type === "code_execution_result"` → `.content.content[].type === "code_execution_output"` → `.file_id`
+
+File metadata (filename, size) is fetched via `anthropic.beta.files.retrieveMetadata(fileId)` with header `anthropic-beta: files-api-2025-04-14`. File content is streamed via `anthropic.beta.files.download(fileId)`. Both require the Anthropic API key — hence the server-side proxy route.
+
+### Cost Notes
+
+Skills execute code in Anthropic's managed sandbox environment. Per Anthropic docs, code execution is priced at $0.05/hour of compute time after 1,550 free hours/month per organization. Skill-generated file creation will consume some compute time. For demo usage this is negligible, but Citlali should be aware that heavy production usage (many large .docx/.pptx generations per hour) could add compute cost on top of standard token pricing.
+
+### Build Result
+
+`cd apps/web && npm run build` — passed, zero type errors, zero warnings.
+
+### Testing Notes
+
+Unit-level testing was not performed (no test harness in this repo). The implementation follows the exact SDK types verified from `node_modules/@anthropic-ai/sdk/src/resources/beta/messages/messages.ts`. Live end-to-end testing (asking Development Director for a Word doc) requires a valid Anthropic API key with skills beta access. The proxy route handles auth via session cookie + Supabase org key lookup.
+
+---
+
 ## 2026-04-20 — Simplify: Chat Polish Cleanup (Chat Polish Simplify Agent)
 
 **Identity:** Chat Polish Simplify Agent

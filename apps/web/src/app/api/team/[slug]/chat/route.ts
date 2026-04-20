@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
-import { ARCHETYPE_PROMPTS } from "@/lib/archetype-prompts";
+import { ARCHETYPE_PROMPTS, buildCustomNameInstruction } from "@/lib/archetype-prompts";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import { ARCHETYPE_TOOLS, executeTool, buildSystemAddendums } from "@/lib/tools/registry";
@@ -9,6 +9,7 @@ import { getValidGoogleAccessToken } from "@/lib/google";
 import type { ArchetypeNamesMap } from "@/app/api/members/archetype-names/route";
 import {
   ARCHETYPE_SKILLS,
+  SKILL_MIME,
   SKILLS_ADDENDUM,
   SKILLS_BETA_HEADERS,
   CODE_EXECUTION_TOOL,
@@ -127,13 +128,9 @@ export async function POST(
 
   // Build system prompt for this archetype
   const basePrompt = ARCHETYPE_PROMPTS[slug] || "";
-  let systemPrompt = basePrompt.replace(/\{org_name\}/g, orgName);
-
-  // Prepend custom name instruction if the member has set one
-  if (customArchetypeName?.trim()) {
-    const nameInstruction = `Your user has chosen to call you "${customArchetypeName.trim()}". Refer to yourself as ${customArchetypeName.trim()} when introducing yourself or signing off. Keep your personality and expertise identical.\n\n`;
-    systemPrompt = nameInstruction + systemPrompt;
-  }
+  const systemPrompt =
+    buildCustomNameInstruction(customArchetypeName) +
+    basePrompt.replace(/\{org_name\}/g, orgName);
 
   // Add org context if available
   const orgContext = mission
@@ -200,13 +197,6 @@ export async function POST(
     : tools;
   const containerParam = buildContainer(archetypeSkillIds);
 
-  // MIME type lookup for skill-generated files.
-  const SKILL_MIME: Record<string, string> = {
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    pdf: "application/pdf",
-  };
 
   try {
     for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {

@@ -337,6 +337,16 @@ export const ARCHETYPE_PROMPTS: Record<string, string> = {
 };
 
 /**
+ * Returns a system-prompt prefix that instructs Claude to use a custom display
+ * name. Returns an empty string when name is absent or blank.
+ */
+export function buildCustomNameInstruction(customName?: string | null): string {
+  const trimmed = customName?.trim();
+  if (!trimmed) return "";
+  return `Your user has chosen to call you "${trimmed}". Refer to yourself as ${trimmed} when introducing yourself or signing off. Keep your personality and expertise identical.\n\n`;
+}
+
+/**
  * Get the system prompt for a given archetype slug,
  * with org context and optional custom name injected.
  *
@@ -371,11 +381,5 @@ export function getSystemPrompt(
     }
   }
 
-  // If the user has given this archetype a custom name, prepend a short instruction.
-  if (customName?.trim()) {
-    const nameInstruction = `Your user has chosen to call you "${customName.trim()}". Refer to yourself as ${customName.trim()} when introducing yourself or signing off. Keep your personality and expertise identical.\n\n`;
-    prompt = nameInstruction + prompt;
-  }
-
-  return prompt;
+  return buildCustomNameInstruction(customName) + prompt;
 }

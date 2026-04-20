@@ -51,6 +51,14 @@ export const SKILLS_BETA_HEADERS = [
   "skills-2025-10-02",
 ] as const;
 
+/** MIME types for skill-generated files, keyed by lowercase extension. */
+export const SKILL_MIME: Record<string, string> = {
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  pdf: "application/pdf",
+};
+
 /**
  * Build the `container` parameter for `client.beta.messages.create()`.
  * Returns undefined when the archetype has no skills (avoids sending empty container).

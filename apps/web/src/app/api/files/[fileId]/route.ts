@@ -5,17 +5,15 @@
  * the org's API key to download. This route fetches the file server-side
  * (using the org's key stored in Supabase) and streams it back to the browser.
  *
- * URL: GET /api/files/:fileId?orgId=<uuid>
- *
- * The orgId query param is used to look up the org's API key.
- * (We can't use auth cookies reliably in a GET/download context from
- * a download chip, so we pass orgId explicitly.)
+ * URL: GET /api/files/:fileId
+ * Authenticated via session cookie — org resolved from the auth context.
  */
 
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
+import { SKILL_MIME } from "@/lib/skills/registry";
 
 export async function GET(
   _request: Request,
@@ -54,15 +52,8 @@ export async function GET(
       } as Parameters<typeof anthropic.beta.files.retrieveMetadata>[1]);
       if (metadata.filename) {
         filename = metadata.filename;
-        // Infer content type from extension
         const ext = filename.split(".").pop()?.toLowerCase();
-        const MIME: Record<string, string> = {
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-          pdf: "application/pdf",
-        };
-        if (ext && MIME[ext]) contentType = MIME[ext];
+        if (ext && SKILL_MIME[ext]) contentType = SKILL_MIME[ext];
       }
     } catch {
       // Non-fatal — fall back to generic filename / octet-stream
