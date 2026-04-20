@@ -6,7 +6,7 @@
 
 **Identity:** Chat Polish Simplify Agent
 **Date:** 2026-04-20
-**Commit:** TBD (see below)
+**Commit:** `0aada58`
 **Base commit simplified:** `dda27de`
 
 ### Simplifications applied
