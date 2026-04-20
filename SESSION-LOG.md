@@ -2,6 +2,97 @@
 
 ---
 
+## 2026-04-19 — Polish Batch Agent A: Integration Logos + Team Last-Active
+
+**Identity:** Polish Batch Agent A
+**Date:** 2026-04-19
+**Commit:** `5c6f1db`
+
+### Tasks
+
+**A. Integration brand logos** — `/dashboard/integrations` previously used generic Lucide icons for every service. Replaced with real `react-icons/si` brand SVGs where available.
+
+**B. Team last-active timestamps** — `/dashboard/team` had a hardcoded `LAST_ACTIVE` mock dict. Replaced with real localStorage-derived timestamps from `getLocalConversations(slug)[0].updatedAt`, formatted relative ("2m ago", "3h ago", "1d ago"). Falls back to "No conversations yet" when no history.
+
+### New Dependency
+
+`react-icons@^5.6.0` added to `apps/web/package.json` via `pnpm add react-icons --filter @edify/web`.
+
+### Files Modified
+
+- `apps/web/src/app/dashboard/integrations/page.tsx`
+  - Removed `LucideIcon` type import; added `AnyIcon = React.ComponentType<{className?,size?}>` union type
+  - Imported 19 brand icons from `react-icons/si`
+  - Swapped icon field on 19 INTEGRATIONS entries: Gmail → SiGmail, Google Calendar → SiGooglecalendar, Google Drive → SiGoogledrive, Salesforce → SiSalesforce, HubSpot → SiHubspot, Mailchimp → SiMailchimp, Facebook → SiFacebook, Instagram → SiInstagram, Twitter/X → SiX, Dropbox → SiDropbox, Asana → SiAsana, Trello → SiTrello, WordPress → SiWordpress, Squarespace → SiSquarespace, Slack → SiSlack, Stripe → SiStripe, PayPal → SiPaypal, QuickBooks → SiQuickbooks, Xero → SiXero
+  - Removed 10 unused Lucide imports (Database, Users, Globe, Camera, MessageCircle, FolderOpen, HardDrive, LayoutList, Kanban, Calculator, Receipt, Layout, Hash, CreditCard, Wallet)
+
+- `apps/web/src/app/dashboard/integrations/components/OAuthModal.tsx`
+  - Changed `serviceIcon: LucideIcon` prop type to `AnyIcon` to accept react-icons components
+
+- `apps/web/src/app/dashboard/team/page.tsx`
+  - Removed hardcoded `LAST_ACTIVE` constant
+  - Added `formatRelativeTime(isoTimestamp)` helper (s/m/h/d/w/mo buckets)
+  - Added `lastActiveTs` state loaded from localStorage via `getLocalConversations(slug)[0].updatedAt`
+  - Renders formatted relative time per card; shows "No conversations yet" on empty
+
+### Lucide Fallbacks (no brand icon available)
+
+Outlook (Mail), Outlook Calendar (Calendar), Bloomerang/DonorPerfect (Heart), Little Green Light (Leaf), Constant Contact (Send), LinkedIn (Briefcase), OneDrive (Cloud), Instrumentl (Search), GrantStation (BookOpen), Foundation Directory (Library), Monday.com (Columns3), Microsoft Teams (MessagesSquare), Eventbrite (Ticket), GiveSmart (PartyPopper)
+
+### Build Result
+
+`pnpm --filter @edify/web run build` — ✓ Compiled, zero type errors, 86 static pages generated.
+
+---
+
+## 2026-04-19 — Team Page Custom Names + Settings Real Data Agent
+
+**Identity:** Team + Settings Real Data Agent
+**Date:** 2026-04-19
+**Commit:** `8d5c1cd`
+
+### Problem
+
+Two live-testing observations from Citlali:
+- A. `/dashboard/team` archetype cards showed hardcoded role titles — did not respect custom names from `useArchetypeNames()`
+- B. `/dashboard/settings` showed hardcoded fake org info (Hope Community Foundation) and hardcoded fake member list
+
+### Files Created
+
+- `apps/web/src/app/api/org/route.ts` — GET: returns `orgs.id, name, mission, plan, anthropic_api_key_hint, ai_enabled` for the current user's org. PATCH: updates `name` and/or `mission`, owner/admin only. Permission guard checks `members.role` via service client.
+- `apps/web/src/app/api/org/members/route.ts` — GET: fetches all `members` for the org, enriches with auth user info (email, full_name) via `serviceClient.auth.admin.listUsers({ perPage: 200 })` in one call (avoids N+1). Returns `{ members: OrgMember[], currentUserId: string }`.
+
+### Files Modified
+
+- `apps/web/src/app/dashboard/team/page.tsx` — Added `useArchetypeNames()` hook. Each archetype card now shows custom name as bold heading + role title as subtitle (when custom name is set), or just role title (fallback). Removed the `LAST_ACTIVE` mock — kept the display but it remains as a future follow-up to replace with real last-message timestamps.
+- `apps/web/src/app/dashboard/settings/page.tsx` — Replaced hardcoded org name/mission/website/plan with real data from `GET /api/org`. Org profile save now calls `PATCH /api/org`. Replaced hardcoded `teamMembers` array with real data from `GET /api/org/members`. Shows (You) badge next to current user. Invite button now opens a stub modal ("Team invites coming soon"). API key hint now reads from `orgData.anthropic_api_key_hint`. All existing sections (Rename Your Team, Schedule, Briefing, Billing, Autonomy Level) left untouched.
+
+### Query Shapes
+
+**GET /api/org** → `orgs.select("id, name, mission, plan, anthropic_api_key_hint, ai_enabled").eq("id", orgId)`
+
+**PATCH /api/org** → `orgs.update({ name?, mission? }).eq("id", orgId)` — role guard: `members.select("role").eq("id", memberId)` must return owner/admin
+
+**GET /api/org/members** → `members.select("id, role, created_at, user_id").eq("org_id", orgId)` + `serviceClient.auth.admin.listUsers({ perPage: 200 })` for email/name enrichment (one call, no N+1)
+
+### Member Email Lookup
+
+Used `listUsers({ perPage: 200 })` on the service client, same pattern as `apps/web/src/app/api/admin/members/route.ts`. Builds a Map keyed by `user_id`, then joins in one pass. Fallback: `"(unknown)"` if user not found in the page. Follow-up: if orgs ever exceed 200 members, need pagination.
+
+### Build Result
+
+`npm run build` — zero type errors, 86 static pages generated, both new routes appear as `ƒ /api/org` and `ƒ /api/org/members`.
+
+### Follow-Ups (not in scope)
+
+- Replace `LAST_ACTIVE` mock on team page with real last-message timestamps from conversations
+- Invite member flow (currently stub modal)
+- Member removal (Trash2 button is disabled/stub)
+- Role reassignment UI
+- `listUsers` pagination for orgs > 200 members
+
+---
+
 ## 2026-04-19 — Memory/Tasks/Inbox Real Data Agent
 
 **Identity:** Memory/Tasks/Inbox Real Data Agent
