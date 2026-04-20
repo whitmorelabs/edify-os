@@ -13,7 +13,7 @@ import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/too
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { driveTools, executeDriveTool, DRIVE_TOOLS_ADDENDUM } from "@/lib/tools/drive";
-import { getValidGoogleAccessToken } from "@/lib/google";
+import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
 // Re-export all tool-family addendums from a single location so callers
@@ -75,6 +75,23 @@ void _exhaustCheck;
 // Tool dispatcher
 // ---------------------------------------------------------------------------
 
+const GOOGLE_NOT_CONNECTED = "Google Workspace is not connected for this organization. Please visit Settings → Integrations to connect a Google account.";
+
+/** Resolve a Google access token: use pre-fetched value or fetch from DB.
+ *  Returns the token string, or an error result object to return immediately. */
+async function resolveGoogleToken(
+  integrationKey: GoogleIntegrationType,
+  preFetchedTokens: Map<string, string> | undefined,
+  serviceClient: SupabaseClient<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  orgId: string,
+): Promise<string | { content: string; is_error: true }> {
+  const cached = preFetchedTokens?.get(integrationKey);
+  if (cached) return cached;
+  const result = await getValidGoogleAccessToken(serviceClient, orgId, integrationKey);
+  if ("error" in result) return { content: GOOGLE_NOT_CONNECTED, is_error: true };
+  return result.accessToken;
+}
+
 /**
  * Execute a tool call by name. Called from the chat route tool-use loop.
  * Handles Google token retrieval and translates NextResponse errors into
@@ -102,30 +119,9 @@ export async function executeTool({
   preFetchedTokens?: Map<string, string>;
 }): Promise<{ content: string; is_error?: boolean }> {
   if (name.startsWith("calendar_")) {
-    // Use pre-fetched token if available; otherwise fetch now.
-    let accessToken = preFetchedTokens?.get("google_calendar");
-    if (!accessToken) {
-      const tokenResult = await getValidGoogleAccessToken(
-        serviceClient,
-        orgId,
-        "google_calendar"
-      );
-      if ("error" in tokenResult) {
-        // Translate the NextResponse error into a user-friendly tool error string.
-        // Claude will explain this to the user instead of pretending to access a calendar.
-        return {
-          content:
-            "Google Workspace is not connected for this organization. Please visit Settings → Integrations to connect a Google account.",
-          is_error: true,
-        };
-      }
-      accessToken = tokenResult.accessToken;
-    }
-    return executeCalendarTool({
-      name,
-      input,
-      accessToken,
-    });
+    const token = await resolveGoogleToken("google_calendar", preFetchedTokens, serviceClient, orgId);
+    if (typeof token !== "string") return token;
+    return executeCalendarTool({ name, input, accessToken: token });
   }
 
   if (name.startsWith("grants_")) {
@@ -137,45 +133,15 @@ export async function executeTool({
   }
 
   if (name.startsWith("gmail_")) {
-    // Use pre-fetched token if available; otherwise fetch now.
-    let accessToken = preFetchedTokens?.get("gmail");
-    if (!accessToken) {
-      const tokenResult = await getValidGoogleAccessToken(
-        serviceClient,
-        orgId,
-        "gmail"
-      );
-      if ("error" in tokenResult) {
-        return {
-          content:
-            "Google Workspace is not connected for this organization. Please visit Settings → Integrations to connect a Google account.",
-          is_error: true,
-        };
-      }
-      accessToken = tokenResult.accessToken;
-    }
-    return executeGmailTool({ name, input, accessToken });
+    const token = await resolveGoogleToken("gmail", preFetchedTokens, serviceClient, orgId);
+    if (typeof token !== "string") return token;
+    return executeGmailTool({ name, input, accessToken: token });
   }
 
   if (name.startsWith("drive_")) {
-    // Use pre-fetched token if available; otherwise fetch now.
-    let accessToken = preFetchedTokens?.get("google_drive");
-    if (!accessToken) {
-      const tokenResult = await getValidGoogleAccessToken(
-        serviceClient,
-        orgId,
-        "google_drive"
-      );
-      if ("error" in tokenResult) {
-        return {
-          content:
-            "Google Workspace is not connected for this organization. Please visit Settings → Integrations to connect a Google account.",
-          is_error: true,
-        };
-      }
-      accessToken = tokenResult.accessToken;
-    }
-    return executeDriveTool({ name, input, accessToken });
+    const token = await resolveGoogleToken("google_drive", preFetchedTokens, serviceClient, orgId);
+    if (typeof token !== "string") return token;
+    return executeDriveTool({ name, input, accessToken: token });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };

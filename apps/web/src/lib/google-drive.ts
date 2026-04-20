@@ -204,7 +204,6 @@ export async function downloadFileContent({
   accessToken: string;
   fileId: string;
 }): Promise<{ content: string }> {
-  // We need the mimeType to decide which endpoint to call
   const metaParams = new URLSearchParams({ fields: "id,name,mimeType" });
   const metaUrl = `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}?${metaParams}`;
   const metaResponse = await fetch(metaUrl, {
@@ -221,15 +220,9 @@ export async function downloadFileContent({
     };
   }
 
-  let contentUrl: string;
-  if (isGoogleDoc(meta.mimeType)) {
-    // Export endpoint for Google Workspace documents
-    const exportParams = new URLSearchParams({ mimeType: "text/plain" });
-    contentUrl = `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}/export?${exportParams}`;
-  } else {
-    // Direct media download for plain text files
-    contentUrl = `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}?alt=media`;
-  }
+  const contentUrl = isGoogleDoc(meta.mimeType)
+    ? `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}/export?${new URLSearchParams({ mimeType: "text/plain" })}`
+    : `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}?alt=media`;
 
   const contentResponse = await fetch(contentUrl, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -272,7 +265,6 @@ export async function createTextFile({
   parents?: string[];
   mimeType?: string;
 }): Promise<{ file: DriveFile }> {
-  // Build multipart body manually
   const boundary = "-------edify_drive_boundary_314159";
   const metadata: Record<string, unknown> = { name, mimeType };
   if (parents?.length) metadata.parents = parents;
