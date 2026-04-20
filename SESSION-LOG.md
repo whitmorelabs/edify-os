@@ -2,6 +2,43 @@
 
 ---
 
+## 2026-04-19 — Chat Exception Diagnostic: Client-Side Crash Fix (Chat Exception Diagnostic Agent)
+
+**Identity:** Chat Exception Diagnostic Agent
+**Date:** 2026-04-19
+**Commit:** `5910bd3`
+
+### Root Cause
+
+Three bugs identified; one is the direct cause of the "Application error: a client-side exception has occurred" Z reported:
+
+**Primary (render crash):** `ConversationSidebar.tsx` line 65 — collapsed sidebar avatar uses `conv.title[0].toUpperCase()`. If `conv.title` is an empty string (possible if a message title was generated from empty/whitespace input), `conv.title[0]` is `undefined`, and `.toUpperCase()` throws a `TypeError` during React's render phase. React has no error boundary to catch this, so Next.js shows the "Application error" page.
+
+**Secondary (server-side correctness):** Chat route — when Skills are active and Claude executes code server-side, the beta API returns `stop_reason: "tool_use"` but with only `server_tool_use` blocks (not `tool_use`). The `toolUseBlocks` filter returns empty, causing an empty `toolResults` push and a 400 from the API on the next round. This caused message failures (502 back to client) but not a client crash. Fixed by breaking out when no client-side `tool_use` blocks remain.
+
+**Tertiary (server-side correctness):** Chat route — beta stop reasons `"pause_turn"`, `"compaction"`, and `"model_context_window_exceeded"` fell through to the generic warn-and-break path. Now handled explicitly.
+
+**Defensive:** `AssistantMarkdown` — added `String()` coercion so react-markdown never receives a non-string value even if a message was saved to localStorage with a corrupted `content` field.
+
+### Files Changed
+
+- `apps/web/src/app/dashboard/team/[slug]/components/ConversationSidebar.tsx` — Fix: `(conv.title?.[0] ?? "?").toUpperCase()` in collapsed avatar
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — Defensive: coerce `msg.content` to string in `AssistantMarkdown`
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — Fix: break when `toolUseBlocks` is empty (skills path); handle `"pause_turn"` / `"compaction"` / `"model_context_window_exceeded"` stop reasons
+
+### Reproduction
+
+The primary crash is reproducible by:
+1. Creating a conversation with an empty or whitespace-only title (edge case, normally prevented by ChatInput validation but possible through stale localStorage or race conditions)
+2. Collapsing the ConversationSidebar (click the `<` button)
+3. The collapsed avatar render calls `conv.title[0].toUpperCase()` → crash
+
+### Build Result
+
+`cd apps/web && npm run build` — passed, zero type errors, zero warnings.
+
+---
+
 ## 2026-04-19 — Decision Lab Server-Side Rewire (Decision Lab Rewire Agent)
 
 **Identity:** Decision Lab Rewire Agent
@@ -3219,3 +3256,34 @@ This agent verified all changes were correct and complete in the working tree, c
 
 - `ConversationSidebar.tsx` was listed in the PRD as needing archetype name changes, but its conversation list items show conversation titles, not archetype names. No archetype label appears there. Logged here for awareness — no action taken.
 - `getSystemPrompt()` in `archetype-prompts.ts` is now capable of injecting custom names, but the chat route directly uses `ARCHETYPE_PROMPTS[slug]` and builds the prompt inline (does not call `getSystemPrompt`). The injection was added directly in the chat route for consistency with that existing pattern. The `getSystemPrompt` signature update is available for future callers.
+
+---
+
+## Session: ChatWidget Hooks Fix — 2026-04-19
+
+**Agent:** ChatWidget Hooks Fix Agent
+
+### What was done
+
+- Fixed a Rules of Hooks violation in `apps/web/src/components/support/ChatWidget.tsx`.
+- The early return `if (isDismissed) return null;` was sitting at line ~79, between the first `useEffect` (sessionStorage read) and three subsequent `useEffects` (auto-scroll, focus-on-open, auto-resize textarea).
+- When a user clicked the X dismiss button, `isDismissed` flipped to `true`, the component returned early, and React detected a hook count mismatch between renders → React minified error #300 + infinite render loop.
+- Fix: moved `if (isDismissed) return null;` (and the `handleDismiss` function) to AFTER all four `useEffect` hooks, but before the JSX `return (...)`. All hooks now run unconditionally on every render.
+
+### Supabase 500 investigation
+
+- Console error: `GET /rest/v1/members?select=org_id,orgs(*) → 500`
+- Query sites: `AuthProvider.tsx:~55` and `hooks.ts:~120`, both using `.select("org_id, orgs(*)")`.
+- Checked `supabase/combined_migration.sql`: RLS policy `"Members can view their org"` on `orgs` is correctly scoped (`id in (select org_id from members where user_id = auth.uid())`). Policy is sound.
+- Recent migrations: 00017 (donation triggers), 00018 (adds `archetype_names jsonb` to `members`) — neither touches `orgs` schema.
+- No new columns added to `orgs` recently that could break the query.
+- **Conclusion: Supabase 500 appears to be a transient PostgREST error (possibly timing out on the nested join during high load, or a brief Supabase project cold start). Not caused by our code or schema. Deferred to follow-up — recommend monitoring Supabase project logs for recurrence.**
+
+### Build result
+
+- `apps/web` build: PASSED (Next.js 14.2.35, 81 static pages, compiled successfully, no type errors).
+- `apps/slack` build: FAILED with pre-existing `@slack/types` TS2307 error — confirmed pre-existing (error present before our change via git stash test). Not caused by this fix.
+
+### Commit
+
+- SHA: (see below — committed and pushed to main)

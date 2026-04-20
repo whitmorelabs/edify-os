@@ -64,20 +64,6 @@ export function ChatWidget() {
     }
   }, []);
 
-  function handleDismiss(e: React.MouseEvent) {
-    e.stopPropagation();
-    try {
-      sessionStorage.setItem(DISMISSED_KEY, 'true');
-    } catch {
-      // ignore
-    }
-    setIsDismissed(true);
-    if (isOpen) closeChat();
-  }
-
-  // Render nothing if dismissed for this session
-  if (isDismissed) return null;
-
   // Auto-scroll to bottom when messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -98,6 +84,20 @@ export function ChatWidget() {
       textarea.style.height = `${Math.min(textarea.scrollHeight, 96)}px`;
     }
   }, [inputValue]);
+
+  function handleDismiss(e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      sessionStorage.setItem(DISMISSED_KEY, 'true');
+    } catch {
+      // ignore
+    }
+    setIsDismissed(true);
+    if (isOpen) closeChat();
+  }
+
+  // Render nothing if dismissed for this session — must be AFTER all hooks
+  if (isDismissed) return null;
 
   async function handleSend() {
     if (!inputValue.trim() || isLoading) return;
