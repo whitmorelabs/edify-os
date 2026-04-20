@@ -6,7 +6,7 @@
 
 **Identity:** Names+Skills Simplify Agent
 **Date:** 2026-04-19
-**Commit:** TBD (filled after commit)
+**Commit:** `568316f`
 **Base commits simplified:** `935bc18` (custom names), `986c1e6` (Anthropic Skills)
 
 ### Simplifications Applied
