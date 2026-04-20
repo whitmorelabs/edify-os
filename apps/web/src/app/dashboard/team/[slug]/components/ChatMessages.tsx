@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "../api";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
@@ -36,89 +36,91 @@ function relativeTime(isoString: string): string {
 // Renders links, bold, italic, lists, code blocks, tables, strikethrough.
 // Links open in a new tab. Raw HTML is NOT allowed (react-markdown default).
 // ---------------------------------------------------------------------------
+
+// Stable reference — defined outside the component so the object is not
+// recreated on every render (avoids unnecessary ReactMarkdown re-mounts).
+const MARKDOWN_COMPONENTS: Components = {
+  // Links: open in new tab, safe rel
+  a: ({ ...props }) => (
+    <a
+      {...props}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-brand-600 underline hover:text-brand-800 break-words"
+    />
+  ),
+  // Paragraphs
+  p: ({ ...props }) => (
+    <p {...props} className="text-sm leading-relaxed mb-1 last:mb-0" />
+  ),
+  // Headings
+  h1: ({ ...props }) => (
+    <h1 {...props} className="text-base font-bold text-slate-900 mt-2 mb-1" />
+  ),
+  h2: ({ ...props }) => (
+    <h2 {...props} className="text-sm font-bold text-slate-800 mt-2 mb-0.5" />
+  ),
+  h3: ({ ...props }) => (
+    <h3 {...props} className="text-sm font-semibold text-slate-700 mt-1 mb-0.5" />
+  ),
+  // Lists
+  ul: ({ ...props }) => (
+    <ul {...props} className="list-disc pl-5 text-sm space-y-0.5 my-1" />
+  ),
+  ol: ({ ...props }) => (
+    <ol {...props} className="list-decimal pl-5 text-sm space-y-0.5 my-1" />
+  ),
+  li: ({ ...props }) => (
+    <li {...props} className="text-sm leading-relaxed" />
+  ),
+  // Inline and block code
+  code: ({ className, children, ...props }) => {
+    const isBlock = className?.includes("language-");
+    if (isBlock) {
+      return (
+        <pre className="bg-slate-100 rounded-lg px-3 py-2 my-1 overflow-x-auto text-xs font-mono">
+          <code className={className} {...props}>
+            {children}
+          </code>
+        </pre>
+      );
+    }
+    return (
+      <code
+        {...props}
+        className="bg-slate-100 rounded px-1 py-0.5 text-xs font-mono"
+      >
+        {children}
+      </code>
+    );
+  },
+  // Pre wrapper — handled inside code above to prevent double-wrapping
+  pre: ({ ...props }) => <>{props.children}</>,
+  // Bold / italic / strikethrough — rely on react-markdown defaults
+  // Blockquote
+  blockquote: ({ ...props }) => (
+    <blockquote
+      {...props}
+      className="border-l-2 border-slate-300 pl-3 text-slate-600 italic my-1"
+    />
+  ),
+  // Table (remark-gfm)
+  table: ({ ...props }) => (
+    <div className="overflow-x-auto my-1">
+      <table {...props} className="text-xs border-collapse w-full" />
+    </div>
+  ),
+  th: ({ ...props }) => (
+    <th {...props} className="border border-slate-200 px-2 py-1 bg-slate-50 font-semibold text-left" />
+  ),
+  td: ({ ...props }) => (
+    <td {...props} className="border border-slate-200 px-2 py-1" />
+  ),
+};
+
 function AssistantMarkdown({ content }: { content: string }) {
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        // Links: open in new tab, safe rel
-        a: ({ ...props }) => (
-          <a
-            {...props}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-brand-600 underline hover:text-brand-800 break-words"
-          />
-        ),
-        // Paragraphs
-        p: ({ ...props }) => (
-          <p {...props} className="text-sm leading-relaxed mb-1 last:mb-0" />
-        ),
-        // Headings
-        h1: ({ ...props }) => (
-          <h1 {...props} className="text-base font-bold text-slate-900 mt-2 mb-1" />
-        ),
-        h2: ({ ...props }) => (
-          <h2 {...props} className="text-sm font-bold text-slate-800 mt-2 mb-0.5" />
-        ),
-        h3: ({ ...props }) => (
-          <h3 {...props} className="text-sm font-semibold text-slate-700 mt-1 mb-0.5" />
-        ),
-        // Lists
-        ul: ({ ...props }) => (
-          <ul {...props} className="list-disc pl-5 text-sm space-y-0.5 my-1" />
-        ),
-        ol: ({ ...props }) => (
-          <ol {...props} className="list-decimal pl-5 text-sm space-y-0.5 my-1" />
-        ),
-        li: ({ ...props }) => (
-          <li {...props} className="text-sm leading-relaxed" />
-        ),
-        // Inline code
-        code: ({ className, children, ...props }) => {
-          const isBlock = className?.includes("language-");
-          if (isBlock) {
-            return (
-              <pre className="bg-slate-100 rounded-lg px-3 py-2 my-1 overflow-x-auto text-xs font-mono">
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              </pre>
-            );
-          }
-          return (
-            <code
-              {...props}
-              className="bg-slate-100 rounded px-1 py-0.5 text-xs font-mono"
-            >
-              {children}
-            </code>
-          );
-        },
-        // Pre wrapper (block code) — handled inside code above, but prevent double-wrapping
-        pre: ({ ...props }) => <>{props.children}</>,
-        // Bold / italic / strikethrough — rely on react-markdown defaults (no override needed)
-        // Blockquote
-        blockquote: ({ ...props }) => (
-          <blockquote
-            {...props}
-            className="border-l-2 border-slate-300 pl-3 text-slate-600 italic my-1"
-          />
-        ),
-        // Table (remark-gfm)
-        table: ({ ...props }) => (
-          <div className="overflow-x-auto my-1">
-            <table {...props} className="text-xs border-collapse w-full" />
-          </div>
-        ),
-        th: ({ ...props }) => (
-          <th {...props} className="border border-slate-200 px-2 py-1 bg-slate-50 font-semibold text-left" />
-        ),
-        td: ({ ...props }) => (
-          <td {...props} className="border border-slate-200 px-2 py-1" />
-        ),
-      }}
-    >
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
       {content}
     </ReactMarkdown>
   );

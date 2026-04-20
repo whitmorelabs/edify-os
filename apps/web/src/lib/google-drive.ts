@@ -393,26 +393,6 @@ export async function createFile({
 }
 
 /**
- * @deprecated Use `createFile` instead.
- * Kept for backwards-compatibility; delegates to createFile with format="text".
- */
-export async function createTextFile({
-  accessToken,
-  name,
-  content,
-  parents,
-  mimeType = "text/plain",
-}: {
-  accessToken: string;
-  name: string;
-  content: string;
-  parents?: string[];
-  mimeType?: string;
-}): Promise<{ file: DriveFile }> {
-  return createFile({ accessToken, name, content, parents, mimeType });
-}
-
-/**
  * Share a file with a specific email address.
  * role: "reader" | "writer" | "commenter"
  * Uses Drive Permissions endpoint.

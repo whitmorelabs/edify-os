@@ -2,6 +2,34 @@
 
 ---
 
+## 2026-04-20 — Simplify: Chat Polish Cleanup (Chat Polish Simplify Agent)
+
+**Identity:** Chat Polish Simplify Agent
+**Date:** 2026-04-20
+**Commit:** TBD (see below)
+**Base commit simplified:** `dda27de`
+
+### Simplifications applied
+
+1. **Deleted `createTextFile` shim** (`apps/web/src/lib/google-drive.ts`)
+   — The `@deprecated` shim was never called by any source file. Only referenced in SESSION-LOG.md and PRD markdown files. Deleted ~15 lines.
+
+2. **Extracted `MARKDOWN_COMPONENTS` constant** (`apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx`)
+   — The `components` prop object was defined inline inside `AssistantMarkdown`, causing it to be recreated on every render. Moved to a module-level `const MARKDOWN_COMPONENTS: Components` (type imported from `react-markdown`) so the reference is stable. Also imported `type Components` from `react-markdown` to type it cleanly.
+
+### Deliberately left alone
+
+- **`drive_create_file` executor input validation** — The `typeof input.content !== "string"` guard is redundant given the tool schema marks `content` required, but removing runtime validation guards is risky. Left intact.
+- **`validFormats` array in executor** — Could be derived from `Object.keys(FORMAT_MIME_MAP)` but that would require a cross-module import with no net simplification. Left intact.
+- **`renderMarkdown` in `apps/web/src/lib/markdown.ts`** — Confirmed this is a separate server-side HTML renderer used by guide pages, not a leftover from the ChatMessages.tsx rewrite.
+- **`ChatWidget.tsx`** — Clean as written; no dead code, no over-verbose types.
+
+### Build result
+
+`cd apps/web && npm run build` — passed, zero type errors, 80 static pages generated.
+
+---
+
 ## 2026-04-20 — Chat Polish Bundle (Chat Polish Agent)
 
 **Identity:** Chat Polish Agent
