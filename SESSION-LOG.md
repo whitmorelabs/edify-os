@@ -2,6 +2,47 @@
 
 ---
 
+## 2026-04-19 — Night Simplify Pass (Night Simplify Agent)
+
+**Identity:** Night Simplify Agent
+**Date:** 2026-04-19
+**Commits:**
+- `2ca32e1` — docs: add PRDs + session logs from 2026-04-19 night session
+- `133c268` — simplify: night-session cleanup (chat reliability, dashboard polish, chat rewire)
+
+### Simplifications Applied
+
+**Reuse**
+- `apps/web/src/app/dashboard/inbox/page.tsx` — Replaced inline `validAgentSlugs = ["development_director", ...]` array with the existing `ARCHETYPE_SLUGS` constant from `@/lib/archetypes`. The hardcoded subset was already redundant — any valid archetype can have a team chat page.
+- `apps/web/src/app/api/dashboard/summary/route.ts` — `(ARCHETYPE_SLUGS as readonly string[])` cast was repeated twice 15 lines apart. Extracted to a single `validSlugs` local constant, used in both the activeSlugSet loop and the activity feed validator.
+
+**Quality**
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx` — Removed `handlePromptSelect` single-line passthrough function (`setPendingPrompt(prompt)`). Passed `setPendingPrompt` directly as `onPromptSelect` to `EmptyState`. Passthrough functions that don't transform the argument add indirection without value.
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx` — Deleted six what-not-why comments in `handleSend`: the optimistic-render 3-liner, `// Pass conversationId only when we already have...`, `// The server is authoritative on conversationId — adopt it now.`, `// Hydrate or update activeConversation from the server's ID.`, `// If this was a new conversation, save user message under the real ID.`, `// Update UI messages to use the real conversationId`, and `// Surface the real error so users know what failed`. The code names and structure explain all of these.
+- `apps/web/src/app/api/dashboard/summary/route.ts` — Deleted `// Run independent queries in parallel` comment above `Promise.all`. The construct speaks for itself.
+
+**Efficiency**
+- No efficiency issues found in tonight's three commits. The dashboard summary route already uses `Promise.all` for its four queries. The chat rewire already moved API calls to the server side with no sequential-that-should-be-parallel patterns.
+
+### Files Touched
+- `apps/web/src/app/api/dashboard/summary/route.ts`
+- `apps/web/src/app/dashboard/inbox/page.tsx`
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx`
+
+### Build Result
+`cd apps/web && npm run build` — 80 pages, 0 TypeScript errors. Clean.
+
+### Skipped / Not Simplified
+
+- **`dashboard/page.tsx` `stats` array inside component**: Rebuilds on every render but derives from `summary` state. A `useMemo` would save 3 object allocations per render — not worth the complexity for 3 static-template items. Left alone.
+- **`TeamChatClient.tsx` `pendingPrompt` state**: Could theoretically call `handleSend` directly from `EmptyState` via a callback, eliminating the state + effect. Skipped — the effect exists to guard against calling `handleSend` while `isTyping` is true, which is a valid constraint the direct-call approach would lose.
+- **`summary/route.ts` `agent_config_id` in activity query select**: The join select includes `agent_config_id` in both queries but only `role_slug` is used. A tighter select might reduce payload, but the Supabase join syntax requires it for the relation traversal — left alone.
+
+### Blockers
+None.
+
+---
+
 ## 2026-04-19 — Chat Backend Rewire (Chat Backend Rewire Agent)
 
 **Identity:** Chat Backend Rewire Agent
