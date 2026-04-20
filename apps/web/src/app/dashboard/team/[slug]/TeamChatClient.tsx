@@ -16,7 +16,6 @@ import {
   saveMessage,
   saveConversationMeta,
   getLocalConversations,
-  createConversation,
   generateTitle,
   type Message,
   type Conversation,
@@ -148,7 +147,6 @@ export default function TeamChatClient({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
-  const [isCreatingConv, setIsCreatingConv] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
@@ -194,83 +192,80 @@ export default function TeamChatClient({
     async (content: string) => {
       setIsTyping(true);
 
-      // Create a conversation if none is active
-      let conv = activeConversation;
-      if (!conv) {
-        const title = generateTitle(content);
-        try {
-          conv = await createConversation(slug);
-          conv = { ...conv, title };
-          saveConversationMeta(slug, conv);
-          setActiveConversation(conv);
-          setConversations((prev) => [conv!, ...prev]);
-        } catch {
-          // Create a local-only conversation
-          conv = {
-            id: crypto.randomUUID(),
-            slug,
-            title: generateTitle(content),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            messageCount: 0,
-          };
-          saveConversationMeta(slug, conv);
-          setActiveConversation(conv);
-          setConversations((prev) => [conv!, ...prev]);
-        }
-      }
-
-      // Add user message to UI immediately
+      // Add user message to UI immediately. We use a temp conversationId if
+      // there is no active conversation yet — the server will assign a real one
+      // and we'll backfill localStorage under the server's ID after the response.
+      const tempConvId = activeConversation?.id ?? `temp-${crypto.randomUUID()}`;
       const userMsg: Message = {
         id: crypto.randomUUID(),
         role: "user",
         content,
         timestamp: new Date().toISOString(),
-        conversationId: conv.id,
+        conversationId: tempConvId,
       };
       setMessages((prev) => [...prev, userMsg]);
-      saveMessage(conv.id, userMsg);
-
-      // Update conversation title from first message
-      if (conv.messageCount === 0) {
-        const updated = { ...conv, title: generateTitle(content) };
-        saveConversationMeta(slug, updated);
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conv!.id ? updated : c))
-        );
-      }
 
       try {
-        const response = await apiSendMessage(slug, content, conv.id);
+        // Pass conversationId only when we already have a server-confirmed one.
+        const response = await apiSendMessage(
+          slug,
+          content,
+          activeConversation?.id
+        );
+
+        // The server is authoritative on conversationId — adopt it now.
+        const serverConvId = response.conversationId;
+
+        // Hydrate or update activeConversation from the server's ID.
+        const isNew = !activeConversation;
+        const conv: Conversation = activeConversation
+          ? { ...activeConversation, updatedAt: new Date().toISOString(), messageCount: activeConversation.messageCount + 2 }
+          : {
+              id: serverConvId,
+              slug,
+              title: generateTitle(content),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messageCount: 2,
+            };
+
+        // If this was a new conversation, save user message under the real ID.
+        if (isNew) {
+          saveMessage(serverConvId, { ...userMsg, conversationId: serverConvId });
+          saveConversationMeta(slug, conv);
+          setActiveConversation(conv);
+          setConversations((prev) => [conv, ...prev]);
+          // Update UI messages to use the real conversationId
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.conversationId === tempConvId
+                ? { ...m, conversationId: serverConvId }
+                : m
+            )
+          );
+        } else {
+          saveMessage(serverConvId, userMsg);
+          saveConversationMeta(slug, conv);
+          setConversations((prev) =>
+            prev.map((c) => (c.id === serverConvId ? conv : c))
+          );
+        }
+
         const assistantMsg: Message = {
           id: response.id,
           role: "assistant",
           content: response.content,
           timestamp: response.timestamp,
-          conversationId: conv.id,
+          conversationId: serverConvId,
         };
         setMessages((prev) => [...prev, assistantMsg]);
-        saveMessage(conv.id, assistantMsg);
-
-        // Update conversation metadata
-        const updatedConv: Conversation = {
-          ...conv,
-          updatedAt: new Date().toISOString(),
-          messageCount: conv.messageCount + 2,
-        };
-        saveConversationMeta(slug, updatedConv);
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conv!.id ? updatedConv : c))
-        );
+        saveMessage(serverConvId, assistantMsg);
       } catch (err) {
         const rawMessage =
           err instanceof Error ? err.message : String(err);
-        // Surface the real error so users know what failed (API key missing,
-        // auth error, network failure, etc.) rather than a generic message.
-        const friendlyContent = rawMessage.startsWith("No API key")
-          ? `Chat failed: ${rawMessage}`
-          : rawMessage.toLowerCase().includes("network") ||
-            rawMessage.toLowerCase().includes("failed to fetch")
+        // Surface the real error so users know what failed (auth, network, etc.)
+        const friendlyContent = rawMessage.toLowerCase().includes("network") ||
+          rawMessage.toLowerCase().includes("failed to fetch")
           ? `Chat failed: network error — check your connection and try again.`
           : `Chat failed: ${rawMessage}`;
         const errorMsg: Message = {
@@ -278,7 +273,7 @@ export default function TeamChatClient({
           role: "assistant",
           content: friendlyContent,
           timestamp: new Date().toISOString(),
-          conversationId: conv.id,
+          conversationId: tempConvId,
         };
         setMessages((prev) => [...prev, errorMsg]);
       } finally {
@@ -299,32 +294,12 @@ export default function TeamChatClient({
   }, [pendingPrompt, isTyping, handleSend]);
 
   // ---------------------------------------------------------------------------
-  // Create new conversation
+  // Create new conversation — just reset local state.
+  // The server will create the conversation on the next message send.
   // ---------------------------------------------------------------------------
-  async function handleNewConversation() {
-    setIsCreatingConv(true);
-    try {
-      const conv = await createConversation(slug);
-      setActiveConversation(conv);
-      setMessages([]);
-      setConversations((prev) => [conv, ...prev]);
-    } catch {
-      // Create locally
-      const conv: Conversation = {
-        id: crypto.randomUUID(),
-        slug,
-        title: "New conversation",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        messageCount: 0,
-      };
-      saveConversationMeta(slug, conv);
-      setActiveConversation(conv);
-      setMessages([]);
-      setConversations((prev) => [conv, ...prev]);
-    } finally {
-      setIsCreatingConv(false);
-    }
+  function handleNewConversation() {
+    setActiveConversation(null);
+    setMessages([]);
   }
 
   // ---------------------------------------------------------------------------
@@ -353,7 +328,7 @@ export default function TeamChatClient({
         activeConversationId={activeConversation?.id ?? null}
         onSelect={handleSelectConversation}
         onNew={handleNewConversation}
-        isCreating={isCreatingConv}
+        isCreating={false}
       />
 
       {/* Main chat area */}

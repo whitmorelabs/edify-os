@@ -1,9 +1,4 @@
 // Types for the team chat system
-import { getApiKey } from "@/lib/api-key";
-import { getOrgContext } from "@/lib/org-context";
-import { getSystemPrompt } from "@/lib/archetype-prompts";
-import { callClaude, type ClaudeMessage } from "@/lib/claude-client";
-import { getMessages as getStoredMessages } from "@/lib/conversations";
 
 export interface Message {
   id: string;
@@ -36,44 +31,37 @@ export interface AssistantMessage {
 
 /**
  * Send a message to a team member and get their response.
- * Calls Claude API directly from the browser using the user's BYOK key.
+ * POSTs to the server-side /api/team/[slug]/chat route which uses the
+ * encrypted API key from Supabase (set during onboarding) and runs the
+ * full Phase 2b/2c tool-use loop (Calendar, Gmail, Grants, CRM).
  */
 export async function sendMessage(
   slug: string,
   message: string,
   conversationId?: string
 ): Promise<AssistantMessage> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error("No API key set. Please add your Claude API key in AI Configuration.");
-  }
-
-  const orgContext = getOrgContext();
-  const systemPrompt = getSystemPrompt(slug, orgContext);
-
-  // Build conversation history for context
-  const historyMessages: ClaudeMessage[] = [];
-  if (conversationId) {
-    const stored = getStoredMessages(conversationId);
-    for (const msg of stored) {
-      historyMessages.push({ role: msg.role, content: msg.content });
-    }
-  }
-
-  // Add the new user message
-  historyMessages.push({ role: "user", content: message });
-
-  const response = await callClaude(apiKey, systemPrompt, historyMessages, {
-    maxTokens: 4096,
-    temperature: 0.3,
+  const res = await fetch(`/api/team/${slug}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, conversationId }),
   });
 
+  if (!res.ok) {
+    let serverMsg = "Server error";
+    try {
+      const data = await res.json();
+      if (data?.error) serverMsg = data.error;
+    } catch { /* ignore parse */ }
+    throw new Error(`${res.status}: ${serverMsg}`);
+  }
+
+  const data = await res.json();
   return {
-    id: response.id,
+    id: data.id,
     role: "assistant",
-    content: response.content,
-    timestamp: response.timestamp,
-    conversationId: conversationId ?? crypto.randomUUID(),
+    content: data.content,
+    timestamp: data.timestamp,
+    conversationId: data.conversationId,
   };
 }
 
@@ -157,22 +145,6 @@ export function getLocalConversations(slug: string): Conversation[] {
   } catch {
     return [];
   }
-}
-
-/**
- * Create a new conversation locally (no server needed).
- */
-export async function createConversation(slug: string): Promise<Conversation> {
-  const conv: Conversation = {
-    id: crypto.randomUUID(),
-    slug,
-    title: "New conversation",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    messageCount: 0,
-  };
-  saveConversationMeta(slug, conv);
-  return conv;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,10 @@
 // Utility for storing and retrieving the Claude API key from localStorage.
 // The key never leaves the browser.
+//
+// NOTE: Vestigial client-side BYOK helper. Team chat no longer uses this —
+// see /api/team/[slug]/chat (server-side route with encrypted key from Supabase).
+// Still used by: admin/ai-config (test-connection flow) and decision-lab/api.ts.
+// decision-lab is a follow-up rewire target.
 
 const STORAGE_KEY = "edify_claude_api_key";
 
