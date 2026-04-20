@@ -13,6 +13,7 @@ interface ProactiveHelperProps {
 }
 
 const DISMISSED_KEY = 'edify_proactive_helper_dismissed';
+const CHAT_WIDGET_DISMISSED_KEY = 'edify_support_dismissed';
 
 function getDismissedPages(): Set<string> {
   try {
@@ -39,6 +40,7 @@ export function ProactiveHelper({
 }: ProactiveHelperProps) {
   const { isOpen, openChat } = useSupportChat();
   const [visible, setVisible] = useState(false);
+  const [chatWidgetDismissed, setChatWidgetDismissed] = useState(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageKey = useRef<string>('');
 
@@ -46,10 +48,11 @@ export function ProactiveHelper({
 
   const show = useCallback(() => {
     if (isOpen) return;
+    if (chatWidgetDismissed) return;
     const dismissed = getDismissedPages();
     if (dismissed.has(pageKey.current)) return;
     setVisible(true);
-  }, [isOpen]);
+  }, [isOpen, chatWidgetDismissed]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
@@ -64,6 +67,18 @@ export function ProactiveHelper({
   // Set page key on mount
   useEffect(() => {
     pageKey.current = typeof window !== 'undefined' ? window.location.pathname : '/';
+  }, []);
+
+  // Sync ChatWidget dismissal state on mount — if user dismissed the chat widget,
+  // never show the proactive helper (it would be a ghost tooltip with no widget to open).
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(CHAT_WIDGET_DISMISSED_KEY) === 'true') {
+        setChatWidgetDismissed(true);
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing restrictions) — ignore
+    }
   }, []);
 
   // Idle detection: reset timer on user activity
