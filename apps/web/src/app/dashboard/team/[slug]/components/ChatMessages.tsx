@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Message } from "../api";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { ARCHETYPE_CONFIG } from "@/lib/archetype-config";
@@ -31,91 +32,96 @@ function relativeTime(isoString: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Simple markdown renderer — handles **bold**, *italic*, headers, and lists
+// Markdown renderer — react-markdown + remark-gfm
+// Renders links, bold, italic, lists, code blocks, tables, strikethrough.
+// Links open in a new tab. Raw HTML is NOT allowed (react-markdown default).
 // ---------------------------------------------------------------------------
-function renderMarkdown(text: string): React.ReactNode[] {
-  const lines = text.split("\n");
-  const result: React.ReactNode[] = [];
-
-  lines.forEach((line, lineIndex) => {
-    // Heading
-    const headingMatch = line.match(/^(#{1,3})\s+(.+)/);
-    if (headingMatch) {
-      const level = headingMatch[1].length;
-      const content = headingMatch[2];
-      const className =
-        level === 1
-          ? "text-base font-bold text-slate-900 mt-2 mb-1"
-          : level === 2
-          ? "text-sm font-bold text-slate-800 mt-2 mb-0.5"
-          : "text-sm font-semibold text-slate-700 mt-1 mb-0.5";
-      result.push(
-        <p key={lineIndex} className={className}>
-          {inlineMarkdown(content)}
-        </p>
-      );
-      return;
-    }
-
-    // Unordered list
-    const bulletMatch = line.match(/^[\-\*]\s+(.+)/);
-    if (bulletMatch) {
-      result.push(
-        <li key={lineIndex} className="ml-4 list-disc text-sm leading-relaxed">
-          {inlineMarkdown(bulletMatch[1])}
-        </li>
-      );
-      return;
-    }
-
-    // Numbered list
-    const numMatch = line.match(/^\d+\.\s+(.+)/);
-    if (numMatch) {
-      result.push(
-        <li key={lineIndex} className="ml-4 list-decimal text-sm leading-relaxed">
-          {inlineMarkdown(numMatch[1])}
-        </li>
-      );
-      return;
-    }
-
-    // Empty line
-    if (line.trim() === "") {
-      result.push(<div key={lineIndex} className="h-2" />);
-      return;
-    }
-
-    // Regular paragraph
-    result.push(
-      <p key={lineIndex} className="text-sm leading-relaxed">
-        {inlineMarkdown(line)}
-      </p>
-    );
-  });
-
-  return result;
-}
-
-function inlineMarkdown(text: string): React.ReactNode {
-  // Split on **bold**, *italic*, and `code`
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
-
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith("*") && part.endsWith("*")) {
-      return <em key={i}>{part.slice(1, -1)}</em>;
-    }
-    if (part.startsWith("`") && part.endsWith("`")) {
-      return (
-        <code key={i} className="bg-slate-100 rounded px-1 py-0.5 text-xs font-mono">
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-    return part;
-  });
+function AssistantMarkdown({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // Links: open in new tab, safe rel
+        a: ({ ...props }) => (
+          <a
+            {...props}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-600 underline hover:text-brand-800 break-words"
+          />
+        ),
+        // Paragraphs
+        p: ({ ...props }) => (
+          <p {...props} className="text-sm leading-relaxed mb-1 last:mb-0" />
+        ),
+        // Headings
+        h1: ({ ...props }) => (
+          <h1 {...props} className="text-base font-bold text-slate-900 mt-2 mb-1" />
+        ),
+        h2: ({ ...props }) => (
+          <h2 {...props} className="text-sm font-bold text-slate-800 mt-2 mb-0.5" />
+        ),
+        h3: ({ ...props }) => (
+          <h3 {...props} className="text-sm font-semibold text-slate-700 mt-1 mb-0.5" />
+        ),
+        // Lists
+        ul: ({ ...props }) => (
+          <ul {...props} className="list-disc pl-5 text-sm space-y-0.5 my-1" />
+        ),
+        ol: ({ ...props }) => (
+          <ol {...props} className="list-decimal pl-5 text-sm space-y-0.5 my-1" />
+        ),
+        li: ({ ...props }) => (
+          <li {...props} className="text-sm leading-relaxed" />
+        ),
+        // Inline code
+        code: ({ className, children, ...props }) => {
+          const isBlock = className?.includes("language-");
+          if (isBlock) {
+            return (
+              <pre className="bg-slate-100 rounded-lg px-3 py-2 my-1 overflow-x-auto text-xs font-mono">
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              </pre>
+            );
+          }
+          return (
+            <code
+              {...props}
+              className="bg-slate-100 rounded px-1 py-0.5 text-xs font-mono"
+            >
+              {children}
+            </code>
+          );
+        },
+        // Pre wrapper (block code) — handled inside code above, but prevent double-wrapping
+        pre: ({ ...props }) => <>{props.children}</>,
+        // Bold / italic / strikethrough — rely on react-markdown defaults (no override needed)
+        // Blockquote
+        blockquote: ({ ...props }) => (
+          <blockquote
+            {...props}
+            className="border-l-2 border-slate-300 pl-3 text-slate-600 italic my-1"
+          />
+        ),
+        // Table (remark-gfm)
+        table: ({ ...props }) => (
+          <div className="overflow-x-auto my-1">
+            <table {...props} className="text-xs border-collapse w-full" />
+          </div>
+        ),
+        th: ({ ...props }) => (
+          <th {...props} className="border border-slate-200 px-2 py-1 bg-slate-50 font-semibold text-left" />
+        ),
+        td: ({ ...props }) => (
+          <td {...props} className="border border-slate-200 px-2 py-1" />
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -214,7 +220,7 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
                     </p>
                   ) : (
                     <div className="space-y-0.5">
-                      {renderMarkdown(msg.content)}
+                      <AssistantMarkdown content={msg.content} />
                     </div>
                   )}
                 </div>

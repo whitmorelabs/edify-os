@@ -6,6 +6,8 @@ import { useSupportChat, type SupportMessage } from './ChatProvider';
 import { TypingIndicator } from '@/components/typing-indicator';
 import { cn } from '@/lib/utils';
 
+const DISMISSED_KEY = 'edify_support_dismissed';
+
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-US', {
     hour: 'numeric',
@@ -47,8 +49,34 @@ export function ChatWidget() {
   const { isOpen, messages, isLoading, openChat, closeChat, sendMessage } = useSupportChat();
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Read dismissal from sessionStorage on mount
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(DISMISSED_KEY) === 'true') {
+        setIsDismissed(true);
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing restrictions) — ignore
+    }
+  }, []);
+
+  function handleDismiss(e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      sessionStorage.setItem(DISMISSED_KEY, 'true');
+    } catch {
+      // ignore
+    }
+    setIsDismissed(true);
+    if (isOpen) closeChat();
+  }
+
+  // Render nothing if dismissed for this session
+  if (isDismissed) return null;
 
   // Auto-scroll to bottom when messages arrive
   useEffect(() => {
@@ -213,19 +241,36 @@ export function ChatWidget() {
 
       {/* Floating trigger button (shown when closed) */}
       {!isOpen && (
-        <button
-          onClick={handleToggle}
-          className={cn(
-            'relative flex h-14 w-14 items-center justify-center rounded-full',
-            'bg-brand-500 text-white shadow-xl',
-            'hover:bg-brand-600 hover:scale-105 active:scale-95',
-            'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
-          )}
-          aria-label="Open support chat"
-        >
-          <MessageCircle size={24} />
-        </button>
+        <div className="relative flex items-center justify-center">
+          {/* Dismiss X — small badge anchored to top-left of the FAB */}
+          <button
+            onClick={handleDismiss}
+            className={cn(
+              'absolute -top-1.5 -left-1.5 z-10',
+              'flex h-5 w-5 items-center justify-center rounded-full',
+              'bg-slate-500 text-white shadow-md',
+              'hover:bg-slate-700 transition-colors duration-150',
+            )}
+            aria-label="Dismiss support chat"
+            title="Dismiss support chat"
+          >
+            <X size={10} />
+          </button>
+
+          <button
+            onClick={handleToggle}
+            className={cn(
+              'relative flex h-14 w-14 items-center justify-center rounded-full',
+              'bg-brand-500 text-white shadow-xl',
+              'hover:bg-brand-600 hover:scale-105 active:scale-95',
+              'transition-all duration-200',
+              'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
+            )}
+            aria-label="Open support chat"
+          >
+            <MessageCircle size={24} />
+          </button>
+        </div>
       )}
     </div>
   );

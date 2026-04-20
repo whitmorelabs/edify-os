@@ -2,6 +2,84 @@
 
 ---
 
+## 2026-04-20 — Chat Polish Bundle (Chat Polish Agent)
+
+**Identity:** Chat Polish Agent
+**Date:** 2026-04-20
+**Commit:** TBD (filled after push)
+**PRD:** `PRD-chat-polish-bundle.md`
+
+### Summary
+Three polish fixes delivered in one commit: Google Docs creation, support widget dismiss, and markdown rendering in assistant chat bubbles.
+
+### Fix A — Google Docs creation (`drive_create_file`)
+
+**Files modified:**
+- `apps/web/src/lib/google-drive.ts` — Added `DriveFileFormat` type, `FORMAT_MIME_MAP`, `resolveMimeType()`, `isGoogleWorkspaceMime()`, and new `createFile()` function. `createTextFile` kept as a `@deprecated` shim that delegates to `createFile` for backwards compatibility.
+- `apps/web/src/lib/tools/drive.ts` — Replaced `createTextFile` import with `createFile` + `DriveFileFormat`. Updated `drive_create_file` tool description and schema to add optional `format` enum param (default `google_doc`). Updated executor to resolve format. Updated `DRIVE_TOOLS_ADDENDUM` to mention the default format.
+
+**Creation approach:**
+- Google Workspace types (Doc/Sheet/Slide) + empty content → metadata-only `POST /drive/v3/files` (blank native doc)
+- Google Workspace types + non-empty content → multipart upload to `/upload/drive/v3/files?uploadType=multipart` with `mimeType` in metadata set to the Google Workspace mime; body sent as `text/plain` so Google auto-converts
+- text / markdown → plain multipart upload (existing behaviour, unchanged)
+
+**Format map:**
+| format | mimeType |
+|---|---|
+| `google_doc` (default) | `application/vnd.google-apps.document` |
+| `google_sheet` | `application/vnd.google-apps.spreadsheet` |
+| `google_slide` | `application/vnd.google-apps.presentation` |
+| `text` | `text/plain` |
+| `markdown` | `text/markdown` |
+
+No fallback needed — both paths (empty and seeded content) implemented.
+
+### Fix B — Support widget dismiss
+
+**File modified:** `apps/web/src/components\support\ChatWidget.tsx`
+
+**Approach:**
+- Added `isDismissed` state, read from `sessionStorage.getItem('edify_support_dismissed')` on mount.
+- Added `handleDismiss()` that sets sessionStorage, updates state, and closes the chat panel if open.
+- Added a small (20×20) grey dismiss X badge anchored to the top-left of the FAB, visible only when the panel is collapsed (`!isOpen`). Uses `e.stopPropagation()` so clicking X does not also open the chat.
+- When `isDismissed === true`, component renders `null` — FAB is gone.
+- Session-only: closing the browser tab and reopening restores the FAB. `localStorage` upgrade noted as a potential follow-up if Citlali wants persistent dismissal.
+
+**Notes:** Existing Minimize2 + X in the expanded panel header already worked correctly — no changes needed there.
+
+### Fix C — Markdown rendering in assistant chat bubbles
+
+**File modified:** `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx`
+
+**Approach:** Replaced the existing hand-rolled `renderMarkdown` + `inlineMarkdown` functions with a new `AssistantMarkdown` component using `react-markdown` + `remark-gfm`.
+
+**New deps added:**
+- `react-markdown` — markdown parser + React renderer
+- `remark-gfm` — GFM extensions: tables, strikethrough, task lists, autolinks
+
+**Features now rendered:**
+- Links (`[text](url)`) → clickable, open in new tab with `rel="noopener noreferrer"`, styled `text-brand-600 underline`
+- Bold (`**bold**`), italic (`*italic*`), strikethrough (`~~text~~`)
+- Unordered and ordered lists (indented, disc/decimal)
+- Inline code (`code`) and fenced code blocks
+- Blockquotes
+- Tables (remark-gfm, scrollable on overflow)
+- Headings h1–h3
+
+**No `@tailwindcss/typography` installed** — all styles are hand-written via the `components` prop on `<ReactMarkdown>`. This keeps the typography plugin out of the build and avoids any `prose` class conflicts with existing bubble styles.
+
+**User messages** remain plain `<p className="whitespace-pre-wrap">` — not processed by react-markdown.
+
+### Build Result
+`pnpm run build` — **PASSED**. Zero type errors. 80 pages generated.
+
+### Blockers / Follow-ups
+- None. Clean build on first attempt.
+- Follow-up: test Google Docs seeding with non-empty content manually (auto-conversion is correct per Drive v3 API docs but live verification recommended).
+- Follow-up: if Citlali wants support widget dismissal to survive browser restart, change `sessionStorage` → `localStorage` in ChatWidget.tsx (one-line change).
+
+---
+
 ## 2026-04-20 — Phase 2d Drive Tools + Date Injection (Phase 2d + Date Injection Agent)
 
 **Identity:** Phase 2d + Date Injection Agent

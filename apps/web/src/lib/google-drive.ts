@@ -247,36 +247,127 @@ export async function downloadFileContent({
   return { content: truncated };
 }
 
+// ---------------------------------------------------------------------------
+// Format → mimeType mapping for drive_create_file
+// ---------------------------------------------------------------------------
+
+/** Short user-facing format names accepted by drive_create_file. */
+export type DriveFileFormat =
+  | "google_doc"
+  | "google_sheet"
+  | "google_slide"
+  | "text"
+  | "markdown";
+
+const FORMAT_MIME_MAP: Record<DriveFileFormat, string> = {
+  google_doc: "application/vnd.google-apps.document",
+  google_sheet: "application/vnd.google-apps.spreadsheet",
+  google_slide: "application/vnd.google-apps.presentation",
+  text: "text/plain",
+  markdown: "text/markdown",
+};
+
 /**
- * Create a new plain text or markdown file in Drive.
- * Uses multipart upload to set both metadata and content in one request.
- * Default mimeType: text/plain.
+ * Resolve a DriveFileFormat or raw mimeType string to a final mimeType.
+ * Defaults to Google Doc if nothing is provided.
  */
-export async function createTextFile({
+function resolveMimeType(format?: DriveFileFormat | string): string {
+  if (!format) return FORMAT_MIME_MAP.google_doc;
+  if (format in FORMAT_MIME_MAP)
+    return FORMAT_MIME_MAP[format as DriveFileFormat];
+  return format; // caller passed a raw mimeType
+}
+
+/** Returns true if the mimeType is a native Google Workspace type (Doc/Sheet/Slide). */
+function isGoogleWorkspaceMime(mimeType: string): boolean {
+  return (
+    mimeType === "application/vnd.google-apps.document" ||
+    mimeType === "application/vnd.google-apps.spreadsheet" ||
+    mimeType === "application/vnd.google-apps.presentation"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Create file (Google Doc / Sheet / Slide / plain text / markdown)
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a new file in Drive.
+ *
+ * Supports two creation modes:
+ *
+ * 1. **Google Workspace types** (Doc / Sheet / Slide):
+ *    - Empty content → metadata-only POST to `/drive/v3/files` (creates a blank Doc).
+ *    - Non-empty content → multipart upload with `uploadType=multipart` and the
+ *      Google Workspace mimeType in metadata; Google auto-converts the plain-text
+ *      body into the native format.
+ *
+ * 2. **Plain text / Markdown**:
+ *    - Always uses multipart upload (existing behaviour).
+ *
+ * `format` accepts a short name (`"google_doc"`, `"google_sheet"`, `"google_slide"`,
+ * `"text"`, `"markdown"`) or a raw mimeType string. Defaults to `"google_doc"`.
+ *
+ * `mimeType` (legacy param) is still honoured when `format` is not provided.
+ */
+export async function createFile({
   accessToken,
   name,
-  content,
+  content = "",
   parents,
-  mimeType = "text/plain",
+  format,
+  mimeType: mimeTypeParam,
 }: {
   accessToken: string;
   name: string;
-  content: string;
+  content?: string;
   parents?: string[];
+  format?: DriveFileFormat | string;
   mimeType?: string;
 }): Promise<{ file: DriveFile }> {
+  // Resolve final mimeType — format wins over legacy mimeType param.
+  const mimeType = format
+    ? resolveMimeType(format)
+    : mimeTypeParam
+    ? resolveMimeType(mimeTypeParam)
+    : FORMAT_MIME_MAP.google_doc;
+
+  const isWorkspaceType = isGoogleWorkspaceMime(mimeType);
+
+  // ── Path 1: Google Workspace, empty content → metadata-only create ──────
+  if (isWorkspaceType && content.trim() === "") {
+    const metadata: Record<string, unknown> = { name, mimeType };
+    if (parents?.length) metadata.parents = parents;
+
+    const params = new URLSearchParams({ fields: FILE_FIELDS });
+    const url = `${DRIVE_BASE}/files?${params}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify(metadata),
+    });
+
+    const raw = await handleResponse<Record<string, unknown>>(response);
+    return { file: parseFile(raw) };
+  }
+
+  // ── Path 2: Multipart upload (Workspace with content, or plain text) ─────
+  // For Workspace types the body is plain text; Google auto-converts.
+  // For text/markdown the body IS the final content.
+  const uploadContentType = isWorkspaceType ? "text/plain" : mimeType;
+
   const boundary = "-------edify_drive_boundary_314159";
   const metadata: Record<string, unknown> = { name, mimeType };
   if (parents?.length) metadata.parents = parents;
 
-  const metadataPart = JSON.stringify(metadata);
   const body = [
     `--${boundary}`,
     "Content-Type: application/json; charset=UTF-8",
     "",
-    metadataPart,
+    JSON.stringify(metadata),
     `--${boundary}`,
-    `Content-Type: ${mimeType}`,
+    `Content-Type: ${uploadContentType}`,
     "",
     content,
     `--${boundary}--`,
@@ -299,6 +390,26 @@ export async function createTextFile({
 
   const raw = await handleResponse<Record<string, unknown>>(response);
   return { file: parseFile(raw) };
+}
+
+/**
+ * @deprecated Use `createFile` instead.
+ * Kept for backwards-compatibility; delegates to createFile with format="text".
+ */
+export async function createTextFile({
+  accessToken,
+  name,
+  content,
+  parents,
+  mimeType = "text/plain",
+}: {
+  accessToken: string;
+  name: string;
+  content: string;
+  parents?: string[];
+  mimeType?: string;
+}): Promise<{ file: DriveFile }> {
+  return createFile({ accessToken, name, content, parents, mimeType });
 }
 
 /**

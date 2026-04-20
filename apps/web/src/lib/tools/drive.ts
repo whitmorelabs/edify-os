@@ -13,10 +13,11 @@ import {
   listFiles,
   searchFiles,
   getFile,
-  createTextFile,
+  createFile,
   shareFile,
   downloadFileContent,
   DriveError,
+  type DriveFileFormat,
 } from "@/lib/google-drive";
 
 // ---------------------------------------------------------------------------
@@ -24,7 +25,7 @@ import {
 // Kept here so it stays co-located with the tool definitions it describes.
 // ---------------------------------------------------------------------------
 
-export const DRIVE_TOOLS_ADDENDUM = `\nYou have access to the user's Google Drive via tools. Prefer drive_search_files over drive_list_files when looking for specific documents — Drive can contain thousands of files and full-list calls are noisy. Always confirm a file's name before creating — never silently overwrite. Never fabricate file contents; call drive_get_file or drive_download_content to see what's actually there. For Google Docs and Sheets, content is exported as plain text. Binary files (images, PDFs, Office binaries) cannot be inlined — use drive_get_file for metadata only.`;
+export const DRIVE_TOOLS_ADDENDUM = `\nYou have access to the user's Google Drive via tools. Prefer drive_search_files over drive_list_files when looking for specific documents — Drive can contain thousands of files and full-list calls are noisy. Always confirm a file's name before creating — never silently overwrite. Never fabricate file contents; call drive_get_file or drive_download_content to see what's actually there. For Google Docs and Sheets, content is exported as plain text. Binary files (images, PDFs, Office binaries) cannot be inlined — use drive_get_file for metadata only. When creating a document, the default format is 'google_doc' (a real Google Doc). Only use format='text' or format='markdown' when the user explicitly asks for a plain text or markdown file.`;
 
 // ---------------------------------------------------------------------------
 // Tool definitions (model-facing)
@@ -99,22 +100,23 @@ export const driveTools: Anthropic.Tool[] = [
   {
     name: "drive_create_file",
     description:
-      "Create a new plain text or markdown file in Google Drive. Use when the user asks to save notes, create a document, or write content to Drive. Always confirm the desired file name and content before creating — this cannot be undone and does not overwrite existing files (a new file with the same name is created). Supports optional parent folder ID.",
+      "Create a new file in Google Drive. Default format is Google Doc (a real .gdoc that opens in Google Docs). Use when the user asks to create a document, save notes, draft a proposal, or write content to Drive. Always confirm the desired file name and content before creating — this cannot be undone and does not overwrite existing files (a new file with the same name is created). Supports optional parent folder ID.",
     input_schema: {
       type: "object" as const,
       properties: {
         name: {
           type: "string",
-          description: "File name (e.g. 'Meeting Notes 2026-04-20.txt' or 'Draft Proposal.md').",
+          description: "File name (e.g. 'Grant Draft' or 'Meeting Notes 2026-04-20').",
         },
         content: {
           type: "string",
-          description: "Text content to write to the file.",
+          description: "Text content to seed into the file. May be empty for a blank document.",
         },
-        mimeType: {
+        format: {
           type: "string",
+          enum: ["google_doc", "google_sheet", "google_slide", "text", "markdown"],
           description:
-            "MIME type for the file. Defaults to 'text/plain'. Use 'text/markdown' for Markdown files.",
+            "File format. Defaults to 'google_doc' (a real Google Doc). Use 'google_sheet' for spreadsheets, 'google_slide' for presentations, 'text' for plain .txt files, 'markdown' for .md files. When in doubt, use 'google_doc'.",
         },
         parents: {
           type: "array",
@@ -225,12 +227,19 @@ export async function executeDriveTool({
         if (typeof input.content !== "string") {
           return { content: "content is required and must be a string.", is_error: true };
         }
-        const result = await createTextFile({
+        const validFormats: DriveFileFormat[] = [
+          "google_doc", "google_sheet", "google_slide", "text", "markdown",
+        ];
+        const format =
+          typeof input.format === "string" && validFormats.includes(input.format as DriveFileFormat)
+            ? (input.format as DriveFileFormat)
+            : undefined;
+        const result = await createFile({
           accessToken,
           name: input.name,
           content: input.content,
           parents: input.parents as string[] | undefined,
-          mimeType: input.mimeType as string | undefined,
+          format,
         });
         return { content: JSON.stringify(result) };
       }
