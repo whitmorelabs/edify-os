@@ -13,10 +13,10 @@ import {
   Settings,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AGENT_COLORS, type AgentRoleSlug } from "@/lib/agent-colors";
 import { getHeartbeatHistory, type HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
 import { HeartbeatUpdate } from "@/app/dashboard/inbox/components/HeartbeatUpdate";
-import { useChatPanel } from "@/components/chat-provider";
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
 
@@ -110,7 +110,7 @@ type FilterTab = "all" | "pending" | "approved" | "rejected";
 type InboxSection = "approvals" | "team-updates";
 
 export default function InboxPage() {
-  const { openChat } = useChatPanel();
+  const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [filter, setFilter] = useState<FilterTab>("pending");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -407,10 +407,10 @@ export default function InboxPage() {
                 key={result.id}
                 result={result}
                 onDiscuss={(archetype) => {
-                  // Map archetype slugs that overlap with AgentRoleSlug
+                  // Route to the full-page chat for the given archetype
                   const validAgentSlugs = ["development_director", "marketing_director", "executive_assistant"];
                   if (validAgentSlugs.includes(archetype)) {
-                    openChat(archetype as AgentRoleSlug);
+                    router.push(`/dashboard/team/${archetype}`);
                   }
                 }}
               />

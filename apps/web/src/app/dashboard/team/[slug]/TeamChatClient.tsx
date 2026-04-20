@@ -188,17 +188,6 @@ export default function TeamChatClient({
   }, [activeConversation]);
 
   // ---------------------------------------------------------------------------
-  // Handle pending prompt (set from empty state)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (pendingPrompt && !isTyping) {
-      handleSend(pendingPrompt);
-      setPendingPrompt(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingPrompt]);
-
-  // ---------------------------------------------------------------------------
   // Handle sending a message
   // ---------------------------------------------------------------------------
   const handleSend = useCallback(
@@ -273,12 +262,21 @@ export default function TeamChatClient({
         setConversations((prev) =>
           prev.map((c) => (c.id === conv!.id ? updatedConv : c))
         );
-      } catch {
+      } catch (err) {
+        const rawMessage =
+          err instanceof Error ? err.message : String(err);
+        // Surface the real error so users know what failed (API key missing,
+        // auth error, network failure, etc.) rather than a generic message.
+        const friendlyContent = rawMessage.startsWith("No API key")
+          ? `Chat failed: ${rawMessage}`
+          : rawMessage.toLowerCase().includes("network") ||
+            rawMessage.toLowerCase().includes("failed to fetch")
+          ? `Chat failed: network error — check your connection and try again.`
+          : `Chat failed: ${rawMessage}`;
         const errorMsg: Message = {
           id: crypto.randomUUID(),
           role: "assistant",
-          content:
-            "I'm having trouble connecting right now. Please try again in a moment.",
+          content: friendlyContent,
           timestamp: new Date().toISOString(),
           conversationId: conv.id,
         };
@@ -289,6 +287,16 @@ export default function TeamChatClient({
     },
     [activeConversation, slug]
   );
+
+  // ---------------------------------------------------------------------------
+  // Handle pending prompt (set from empty state)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (pendingPrompt && !isTyping) {
+      handleSend(pendingPrompt);
+      setPendingPrompt(null);
+    }
+  }, [pendingPrompt, isTyping, handleSend]);
 
   // ---------------------------------------------------------------------------
   // Create new conversation
