@@ -2,6 +2,121 @@
 
 ---
 
+## 2026-04-19 — Phase 2c Gmail Tools (Phase 2c Gmail Agent)
+
+**Identity:** Phase 2c Gmail Agent
+**PRD:** PRD-phase-2c-gmail-tools.md
+**Commits:** `6b29668` (feat), `efdcf9e` (/simplify pass)
+
+### Pre-work Findings
+
+- OAuth scope `gmail.modify` already in `GOOGLE_INTEGRATION_TYPES` as `"gmail"` — no new token infrastructure needed.
+- `lib/google-calendar.ts` and `lib/tools/calendar.ts` are the direct pattern templates; both mirror almost exactly.
+- `lib/http.ts` shared `handleJsonResponse` already exists — used for `GmailError` extraction.
+- Chat route already has the H3 token pre-fetch pattern for calendar; Gmail pre-fetch is additive.
+- `buildSystemAddendums` in registry already handles the addendum chain via prefix scanning; adding `"gmail"` is one line.
+
+### What Was Built
+
+**`apps/web/src/lib/google-gmail.ts` (NEW)**
+- Types: `GmailMessage`, `GmailThread`, `GmailDraft`, `GmailLabel` (slim shapes)
+- `GmailError` class matching `GoogleCalendarError` shape exactly (status + message)
+- Internal helpers: `authHeaders`, `handleResponse` (wraps `handleJsonResponse`), `toBase64Url` (RFC 2822 base64url — replace +/- /_ strip = padding), `buildEncodedMime` (RFC 2822 MIME builder with threading headers), `parseMessage` (extracts From/Subject/Date headers + UNREAD label + Message-ID), `extractBody` (recursive multipart, 8000-char truncation), `decodeBase64Url`
+- Exported API functions: `listMessages`, `getMessage`, `listThreads`, `getThread`, `createDraft`, `sendMessage`, `modifyLabels`, `listLabels`
+
+**`apps/web/src/lib/tools/gmail.ts` (NEW)**
+- `GMAIL_TOOLS_ADDENDUM` — instructs Claude to prefer drafts, never fabricate content, use threadId/inReplyTo
+- `gmailTools: Anthropic.Tool[]` — 8 tool definitions with model-facing descriptions
+- `executeGmailTool({ name, input, accessToken })` — switch-based executor, required-field guards, `GmailError`-aware catch
+
+**`apps/web/src/lib/tools/registry.ts` (MODIFIED)**
+- Import + re-export `gmailTools`, `executeGmailTool`, `GMAIL_TOOLS_ADDENDUM`
+- `buildSystemAddendums`: added `families.has("gmail")` branch
+- `ARCHETYPE_TOOLS`: `executive_assistant` → `[...calendarTools, ...gmailTools]`; `development_director` → `[...grantsTools, ...crmTools, ...gmailTools]`; others unchanged
+- `executeTool`: added `gmail_` dispatch branch with pre-fetched token support, mirrors `calendar_` branch exactly
+
+**`apps/web/src/app/api/team/[slug]/chat/route.ts` (MODIFIED)**
+- Added `needsGmailToken` detection alongside `needsCalendarToken`
+- `/simplify`: refactored both token pre-fetches to run in `Promise.all` (calendar + gmail fetched in parallel when both needed in same round)
+
+### /simplify Fixes Applied (commit `efdcf9e`)
+1. Dead `metaParams` variable + `void metaParams` suppressor in `listMessages` — deleted, `msgParams` built inside the loop directly
+2. Spurious `format: "metadata"` param on `messages.list` URL (not valid for that endpoint) — removed
+3. `GmailLabel.type` narrowed from `string` to `"system" | "user" | undefined` — cast at mapping site
+4. What-not-why comments stripped (`btoa works in both...`, `// Convert base64url...`, `// Pad to 4-char...`, `// If this part is plain text...`, `// For multipart...`)
+5. Parallel token pre-fetch in chat route (both calendar + gmail tokens fetched concurrently via `Promise.all`)
+
+### Acceptance Criteria Check
+- ✅ EA can list inbox, create drafts (Gmail tools wired)
+- ✅ No Google connected → friendly error from `getValidGoogleAccessToken`
+- ✅ Development Director has grants + crm + gmail (verified in registry)
+- ✅ Marketing, Programs, Events, HR do NOT get gmail tools
+- ✅ Token pre-fetch deduplicates gmail lookups per round
+- ✅ `npx tsc --noEmit` passes with 0 errors
+- ✅ `npm run build` — compiled and type-checked cleanly; ENOENT on pages-manifest.json is a pre-existing env issue (reproduces on clean main, not caused by this PR)
+- ✅ Single feature commit `feat: Gmail tools (Phase 2c)` on main, then /simplify commit
+- ✅ /simplify pass complete
+
+### Open Questions / Notes for Lopmon
+- None blocking. The build ENOENT (`pages-manifest.json`) pre-dates this change — visible on bare `main` too. Not a Gmail issue.
+- `gmail.modify` scope was already on the consent screen per PRD — no Google re-verification needed for test users.
+
+---
+
+## 2026-04-17 — /simplify pass on Phase 3 (coding agent)
+
+**Task:** Apply /simplify findings to commit `83c2717` (Phase 3 Grants & CRM).
+
+### What Was Applied
+
+**H1 — Shared HTTP helper (`apps/web/src/lib/http.ts` — NEW FILE)**
+Created `handleJsonResponse<T>()` generic that accepts `extractMessage` and `makeError` callbacks. Refactored `google-calendar.ts` and `grants-gov.ts` to call it — the 204 No Content edge case in the calendar is handled by a short-circuit before the shared helper. Both modules keep their domain error classes (`GoogleCalendarError`, `GrantsGovError`).
+
+**H2 + H3 — Trigger full lifecycle + single aggregation query**
+Created `supabase/migrations/00017_donation_aggregates_full_lifecycle.sql`. Drops `donations_update_aggregates`, replaces `update_donor_aggregates()` to:
+- Handle DELETE via `coalesce(new.donor_id, old.donor_id)`
+- Run a single `SELECT sum/min/max INTO agg` instead of 3 independent subqueries
+- Fires on `AFTER INSERT OR UPDATE OR DELETE`
+Also applied to `supabase/combined_migration.sql` (same function + trigger definition).
+**Citlali must apply migration `00017` to the live Supabase project.**
+
+**M1 — `CrmError` class in `lib/crm.ts`**
+Added `CrmError` with `action` + `cause` fields. All five CRM lib functions now throw `new CrmError('action', supabaseError)`. `executeCrmTool` catches `instanceof CrmError` first and returns its `message` as `is_error: true`.
+
+**M2 — Fix `interactionType` cast**
+`input.interaction_type as Donor["donor_type"] extends string ? ... : never` → `input.interaction_type as Interaction["interaction_type"]`. Also added `Interaction` to the import from `@/lib/crm`.
+
+**M3 — `Math.max(1, ...)` guard on limit**
+`crm_list_donors` tool: `Math.min(input.limit, 25)` → `Math.max(1, Math.min(input.limit, 25))`.
+
+**M4 — Currency formatting**
+`centsToDollars(cents): number` → `centsToDollarsString(cents): string` returning `.toFixed(2)`. Updated all 4 callsites in `tools/crm.ts` (`slimDonor.lifetime_giving_dollars`, `crm_get_donor` output `lifetime_giving_dollars`, `crm_get_donor` `amount_dollars`, `crm_log_donation` `amount_dollars`).
+
+**M5 — `MAX_DONORS_LIMIT = 100` cap in `lib/crm.ts`**
+`listDonors` now computes `safeLimit = Math.max(1, Math.min(limit, MAX_DONORS_LIMIT))` before the Supabase query — defense in depth if the tool dispatcher is bypassed.
+
+**M6 — `buildSystemAddendums` + `getToolFamilies` in registry**
+Added both helpers to `lib/tools/registry.ts`. All three addendum constants now re-exported from registry (`CALENDAR_TOOLS_ADDENDUM`, `GRANTS_TOOLS_ADDENDUM`, `CRM_TOOLS_ADDENDUM`). Chat route `apps/web/src/app/api/team/[slug]/chat/route.ts` now calls `buildSystemAddendums(tools)` — three `.some()` scans + separate import of `CALENDAR_TOOLS_ADDENDUM` removed.
+
+**L1 — `eligibilityCategories` in grants_search slim projection**
+Added `eligibilityCategories: g.eligibilityCategories` to the mapped output in `tools/grants.ts` so Claude can answer eligibility questions from search results without N follow-up `grants_get_details` calls.
+
+### Build
+
+`npm run build` (web app): passed cleanly — 79 pages, 0 TS errors. Pre-existing `@edify/slack` failure (`@slack/types` missing) is unrelated to Phase 3 / /simplify changes.
+
+### Commit
+
+`e94be28` (`simplify: shared http helper, trigger lifecycle + perf, currency formatting, registry helpers`) pushed to origin/main.
+
+### Action Required
+
+**Apply migration 00017 to Supabase:**
+`supabase/migrations/00017_donation_aggregates_full_lifecycle.sql`
+This is a drop-and-recreate of the existing trigger — safe to run on empty or populated `donations` tables. No schema changes (no new columns, no table drops).
+
+---
+
 ## 2026-04-17 — Phase 3 Grants + CRM (coding agent)
 
 **Task:** Implement Phase 3 — Grants & Fundraising per PRD-phase-3-grants-and-crm.md.
@@ -2456,3 +2571,110 @@ Note: `@edify/slack` has pre-existing `@slack/types` import error unrelated to t
 **Build:** `npx turbo run build --filter=@edify/web` passed cleanly (79 pages, no TS errors). Note: `@edify/slack` has a pre-existing `@slack/types` missing dependency error unrelated to these changes.
 
 **Commit:** `85e5b38` (`simplify: tool-loop persistence + token dedup + result projection`) pushed to origin/main.
+
+---
+
+## Demo-Mode Gate Agent — 2026-04-19
+
+**Identity:** Demo-Mode Gate Agent (Sonnet)
+**PRD:** PRD-demo-mode-gate.md
+**Commit:** `2ce4b5b` (`fix: gate demo-mode bypass behind NEXT_PUBLIC_DEMO_MODE env var`)
+**Pushed to:** origin/main
+
+### Files changed
+
+- `apps/web/src/middleware.ts` — Added `demoModeEnabled = process.env.NEXT_PUBLIC_DEMO_MODE === "true"` gate. `isDemoMode` now short-circuits to `false` when the flag is unset, making the entire bypass block (cookie-set branch and pass-through branch) inert.
+- `apps/web/src/app/(auth)/login/page.tsx` — Wrapped the "or" divider + "Skip to Demo Dashboard" Link in `{process.env.NEXT_PUBLIC_DEMO_MODE === "true" && (<>...</>)}`. The "Don't have an account?" prompt is always rendered.
+- `apps/web/src/app/(auth)/signup/page.tsx` — Same gate applied. Milo's 1-line change (commit `c5388de`) was `href="/dashboard"` → `href="/dashboard?demo=true"` on the signup page's own "Skip to Demo Dashboard" link — clearly demo-related, so it received the same treatment.
+
+### Manual reasoning checks
+
+1. **Without env var, `/dashboard?demo=true` → `/login`:** `demoModeEnabled` is `false` at build time, so `isDemoMode` is always `false`. The `if (isDemoMode && isProtected)` block is never entered. The next guard (`if (isProtected && !session)`) fires and redirects to `/login`. ✅
+2. **Without env var, login page has no demo button:** `process.env.NEXT_PUBLIC_DEMO_MODE === "true"` inlines to `false` at build time; the JSX block is compiled away. ✅
+3. **With `NEXT_PUBLIC_DEMO_MODE=true`, `/dashboard?demo=true` works as Milo intended:** `demoModeEnabled` is `true`, cookie check or query param check succeeds, cookie is set (24h), request passes through. ✅
+4. **With `NEXT_PUBLIC_DEMO_MODE=true`, login page renders the button:** condition inlines to `true`, block renders. ✅
+5. **Stale `edify_demo=true` cookie doesn't bypass auth when flag is unset:** `demoModeEnabled` is `false` → `isDemoMode` short-circuits to `false` regardless of cookie value. Cookie is never read as a bypass signal. ✅
+
+### Signup page finding
+
+Milo's 1-line change in `c5388de` changed `href="/dashboard"` to `href="/dashboard?demo=true"` on an existing "Skip to Demo Dashboard" link in `signup/page.tsx`. This is identical in intent to the login page's link, so it was gated the same way. No ambiguity — gated and confirmed.
+
+### /simplify pass
+
+One what-comment trimmed from `middleware.ts` (first line of the 3-line block was redundant given the variable name `demoModeEnabled`). No other issues found: no duplicated logic warranting extraction (2 call sites, build-time inlined), no quality or efficiency issues.
+
+### Build result
+
+`npm run build` from `apps/web/` — SUCCESS. 79 static pages, no type errors, middleware compiled.
+
+### Open questions for Lopmon / Citlali
+
+- Vercel preview envs inherit production env vars by default. If Z or Milo wants demo-mode on a preview deploy but off on production, they'll need to set `NEXT_PUBLIC_DEMO_MODE=true` with **Preview** scope only in the Vercel project env UI. Worth flagging in the Telegram summary.
+
+---
+
+## 2026-04-19 — Dashboard Polish Agent
+
+**Identity:** Dashboard Polish Agent (Sonnet)
+**PRD:** PRD-dashboard-polish.md
+**Commit:** `bb623cc` (`feat: real dashboard stats + delete stale banner + fix user label`)
+**Pushed to:** origin/main
+
+### Files Deleted
+- `apps/web/src/components/NoApiKeyBanner.tsx` — stale localStorage-based banner; key is stored server-side in `orgs.anthropic_api_key_encrypted`
+
+### Files NOT Deleted (by design)
+- `apps/web/src/lib/api-key.ts` — retained; imported by `apps/web/src/app/dashboard/team/[slug]/api.ts`, `apps/web/src/app/dashboard/decision-lab/api.ts`, and `apps/web/src/app/dashboard/admin/ai-config/page.tsx`. Deleting it would break those files. Logged per PRD protocol.
+
+### Files Changed
+- `apps/web/src/app/dashboard/layout.tsx` — removed `<NoApiKeyBanner />` import and mount. (The Chat Reliability agent also removed `ChatPanelProvider` and `ChatPanel` in parallel; both sets of deletions are now live.)
+- `apps/web/src/app/dashboard/page.tsx` — replaced hardcoded `stats` and `activities` arrays with live `useEffect` fetch from `/api/dashboard/summary`. Added `StatsSkeleton` and `ActivitySkeleton` loading states. Empty-state activity feed copy added. `Avg Confidence` stat card dropped (not tracked). No fake trend arrows. `quickActions` descriptions no longer contain hardcoded counts.
+- `apps/web/src/components/sidebar.tsx` — imported `useAuth` from `@/components/AuthProvider`; derived `displayName` from `user_metadata.full_name > name > email local-part` with capitalization fallback; avatar initial updated to match.
+- `apps/web/src/app/api/dashboard/summary/route.ts` — NEW. GET route returning `{ stats: { tasksCompleted, pendingApprovals, activeAgents }, recentActivity[] }`.
+
+### New Route Shape: GET /api/dashboard/summary
+```ts
+{
+  stats: {
+    tasksCompleted: number;       // COUNT tasks WHERE status = 'completed'
+    pendingApprovals: number;     // COUNT approvals WHERE status = 'pending'
+    activeAgents: number;         // COUNT distinct archetypes in conversations last 7d
+  };
+  recentActivity: Array<{
+    id: string;
+    agent: AgentRoleSlug;
+    action: string;               // first 80 chars of assistant message content
+    time: string;                 // ISO timestamp (formatted client-side)
+    status: "completed" | "awaiting_approval";
+  }>;
+}
+```
+
+### Messages Table Schema (relevant columns)
+- `id uuid` — primary key
+- `conversation_id uuid` — FK to conversations(id)
+- `role text` — 'user' | 'assistant' | 'system'
+- `content text` — message body
+- `metadata jsonb` — optional
+- `task_id uuid` — optional FK to tasks(id)
+- `created_at timestamptz`
+- No direct `org_id` column — org is reached via conversations → org_id
+- The summary route joins: `messages → conversations!inner(org_id, agent_config_id, agent_configs(role_slug))`
+
+### "Brief Your Team" Setup Badge — Decision: KEPT
+The badge is a real feature, not stale mock. In `sidebar.tsx`, it reads `localStorage.getItem('edify_briefing_completed')` on mount (defaulting to `true` to avoid flash). The badge and link only render when `briefingComplete === false`. The `BriefingComplete.tsx` component in `/dashboard/briefing/` sets this key to `'true'` when the org briefing wizard is finished. This is a legitimate "incomplete setup" indicator that surfaces until the org has been briefed. No change made.
+
+### Parallel Agent Coordination
+The Chat Reliability Agent ran concurrently and modified `dashboard/layout.tsx` (removed `ChatPanelProvider`/`ChatPanel`), `sidebar.tsx` (converted archetype buttons to Links), and introduced a declaration-order bug in `TeamChatClient.tsx`.
+
+The bug: the other agent added `handleSend` to the dependency array of a `useEffect` that fires before `handleSend` is declared via `useCallback`. TypeScript reported: `Block-scoped variable 'handleSend' used before its declaration`. Fixed by reordering: moved the `handleSend` `useCallback` block above the `useEffect` that depends on it. Logged here as it was outside my original scope but was blocking the build.
+
+Both agents' changes merged cleanly into a single commit. No conflicts.
+
+### Build Result
+- `npx tsc --noEmit` — 0 errors
+- `npm run build` — compiles and type-checks successfully; fails at manifest collection step with pre-existing `ENOENT: build-manifest.json` environment issue (noted in previous session logs, reproducible on clean main, not caused by this PR)
+
+### Open Questions for Lopmon
+- `lib/api-key.ts` is still used by the chat route client (`team/[slug]/api.ts`) and decision-lab (`api.ts`) to pass the key from localStorage to the server. This pattern is inconsistent with the BYOK model (key is also stored server-side). These files are getting the key from BOTH localStorage and the server. Whether to unify that is a future scope question — not touching it here.
+- The `messages` table has no direct `org_id` — the join to conversations is required for all message queries. This is fine for the summary query (single join) but worth noting if the activity feed needs to scale.
