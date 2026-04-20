@@ -1,11 +1,23 @@
 // Types for the team chat system
 
+/** A skill-generated file returned with an assistant message. */
+export interface GeneratedFile {
+  /** Original filename (e.g. "grant-proposal.docx") */
+  name: string;
+  /** MIME type (e.g. "application/vnd.openxmlformats-officedocument.wordprocessingml.document") */
+  mimeType: string;
+  /** URL for the proxy download route (/api/files/:fileId) */
+  downloadUrl: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: string; // ISO 8601
   conversationId?: string;
+  /** Skill-generated files attached to this message (assistant messages only). */
+  files?: GeneratedFile[];
 }
 
 export interface Conversation {
@@ -23,6 +35,8 @@ export interface AssistantMessage {
   content: string;
   timestamp: string;
   conversationId: string;
+  /** Skill-generated files produced during this response. */
+  files?: GeneratedFile[];
 }
 
 // ---------------------------------------------------------------------------
@@ -62,6 +76,7 @@ export async function sendMessage(
     content: data.content,
     timestamp: data.timestamp,
     conversationId: data.conversationId,
+    ...(data.files && data.files.length > 0 ? { files: data.files as GeneratedFile[] } : {}),
   };
 }
 

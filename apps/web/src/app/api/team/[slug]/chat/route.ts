@@ -7,6 +7,13 @@ import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import { ARCHETYPE_TOOLS, executeTool, buildSystemAddendums } from "@/lib/tools/registry";
 import { getValidGoogleAccessToken } from "@/lib/google";
 import type { ArchetypeNamesMap } from "@/app/api/members/archetype-names/route";
+import {
+  ARCHETYPE_SKILLS,
+  SKILLS_ADDENDUM,
+  SKILLS_BETA_HEADERS,
+  CODE_EXECUTION_TOOL,
+  buildContainer,
+} from "@/lib/skills/registry";
 
 const TOOL_USE_LOOP_MAX = 8;
 const MAX_RESPONSE_TOKENS = 4096;
@@ -133,11 +140,15 @@ export async function POST(
     ? `\n\n## Organization Context\nOrg name: ${orgName}\nMission: ${mission}`
     : `\n\n## Organization Context\nOrg name: ${orgName}`;
 
-  // Look up tools for this archetype
+  // Look up tools and skills for this archetype
   const tools = ARCHETYPE_TOOLS[slug as ArchetypeSlug] ?? [];
+  const archetypeSkillIds = ARCHETYPE_SKILLS[slug as ArchetypeSlug] ?? [];
 
   // Build addendum chain based on which tool families this archetype has (single pass).
   const toolAddendums = buildSystemAddendums(tools);
+
+  // Append skills addendum when this archetype has skills enabled.
+  const skillsAddendum = archetypeSkillIds.length > 0 ? SKILLS_ADDENDUM : "";
 
   // Inject current date/time so Claude can interpret relative time expressions correctly.
   // Without this, Claude guesses "now" from training data and gets the date wildly wrong.
@@ -156,7 +167,7 @@ export async function POST(
   });
   const temporalBlock = `Current date and time: ${nowUtc.toISOString()} (${nowLocal} America/New_York — UTC-4)\nWhen the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.\n`;
 
-  const fullSystemPrompt = temporalBlock + systemPrompt + orgContext + toolAddendums;
+  const fullSystemPrompt = temporalBlock + systemPrompt + orgContext + toolAddendums + skillsAddendum;
 
   // H1: Persist user message immediately — before entering the tool-use loop.
   // This ensures that if Claude's API errors mid-loop, the user's message is
@@ -178,16 +189,79 @@ export async function POST(
   // real partial output over the canned fallback message.
   let lastAssistantText = "";
 
+  // Skills: collect file outputs across all rounds.
+  // Shape: { name, mimeType, downloadUrl }
+  const generatedFiles: Array<{ name: string; mimeType: string; downloadUrl: string }> = [];
+
+  // Build skills-enabled tools array and container param (used for every round).
+  const hasSkills = archetypeSkillIds.length > 0;
+  const allTools = hasSkills
+    ? [...tools, CODE_EXECUTION_TOOL]
+    : tools;
+  const containerParam = buildContainer(archetypeSkillIds);
+
+  // MIME type lookup for skill-generated files.
+  const SKILL_MIME: Record<string, string> = {
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    pdf: "application/pdf",
+  };
+
   try {
     for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: MAX_RESPONSE_TOKENS,
-        temperature: 0.3,
-        system: fullSystemPrompt,
-        messages: loopMessages,
-        ...(tools.length > 0 ? { tools } : {}),
-      });
+      // When skills are present, use client.beta.messages.create with beta headers
+      // and container.skills. Otherwise, fall back to the standard path.
+      const response = hasSkills
+        ? await anthropic.beta.messages.create({
+            betas: [...SKILLS_BETA_HEADERS],
+            model: "claude-sonnet-4-6",
+            max_tokens: MAX_RESPONSE_TOKENS,
+            temperature: 0.3,
+            system: fullSystemPrompt,
+            messages: loopMessages,
+            ...(allTools.length > 0 ? { tools: allTools as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] } : {}),
+            ...(containerParam ? { container: containerParam } : {}),
+          })
+        : await anthropic.messages.create({
+            model: "claude-sonnet-4-6",
+            max_tokens: MAX_RESPONSE_TOKENS,
+            temperature: 0.3,
+            system: fullSystemPrompt,
+            messages: loopMessages,
+            ...(tools.length > 0 ? { tools } : {}),
+          });
+
+      // Skills: extract any code_execution file outputs from this round.
+      // The code_execution tool returns bash_code_execution_tool_result blocks
+      // which contain bash_code_execution_result with content: [{type: "bash_code_execution_output", file_id}]
+      // OR code_execution_tool_result blocks with code_execution_result.content: [{type: "code_execution_output", file_id}].
+      if (hasSkills) {
+        for (const block of response.content) {
+          // bash_code_execution_tool_result (skills execution path)
+          if (block.type === "bash_code_execution_tool_result") {
+            const result = (block as { type: string; content: { type: string; content?: Array<{ type: string; file_id?: string }> } }).content;
+            if (result?.type === "bash_code_execution_result" && Array.isArray(result.content)) {
+              for (const output of result.content) {
+                if (output.type === "bash_code_execution_output" && output.file_id) {
+                  await collectFileOutput(output.file_id, anthropic, generatedFiles, SKILL_MIME);
+                }
+              }
+            }
+          }
+          // code_execution_tool_result (direct code execution path)
+          if (block.type === "code_execution_tool_result") {
+            const result = (block as { type: string; content: { type: string; content?: Array<{ type: string; file_id?: string }> } }).content;
+            if (result?.type === "code_execution_result" && Array.isArray(result.content)) {
+              for (const output of result.content) {
+                if (output.type === "code_execution_output" && output.file_id) {
+                  await collectFileOutput(output.file_id, anthropic, generatedFiles, SKILL_MIME);
+                }
+              }
+            }
+          }
+        }
+      }
 
       // H2: Capture any text in this response before deciding what to do with it.
       const textInThisResponse = response.content
@@ -198,7 +272,7 @@ export async function POST(
 
       if (response.stop_reason === "tool_use") {
         // Append the assistant turn (may contain text + tool_use blocks)
-        loopMessages.push({ role: "assistant", content: response.content });
+        loopMessages.push({ role: "assistant", content: response.content as Anthropic.MessageParam["content"] });
 
         // Execute all tool_use blocks in this turn in parallel
         const toolUseBlocks = response.content.filter(
@@ -321,5 +395,44 @@ export async function POST(
     content: finalAssistantText,
     timestamp: new Date().toISOString(),
     conversationId: activeConversationId,
+    ...(generatedFiles.length > 0 ? { files: generatedFiles } : {}),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Helper: fetch file metadata + build proxy download URL for a skill-generated file
+// ---------------------------------------------------------------------------
+async function collectFileOutput(
+  fileId: string,
+  anthropic: Anthropic,
+  generatedFiles: Array<{ name: string; mimeType: string; downloadUrl: string }>,
+  mimeMap: Record<string, string>
+): Promise<void> {
+  try {
+    let filename = fileId;
+    let mimeType = "application/octet-stream";
+
+    try {
+      const meta = await anthropic.beta.files.retrieveMetadata(fileId, {
+        headers: { "anthropic-beta": "files-api-2025-04-14" },
+      } as Parameters<typeof anthropic.beta.files.retrieveMetadata>[1]);
+      if (meta.filename) {
+        filename = meta.filename;
+        const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+        if (ext && mimeMap[ext]) mimeType = mimeMap[ext];
+      }
+    } catch {
+      // Non-fatal — use fileId as fallback name
+    }
+
+    generatedFiles.push({
+      name: filename,
+      mimeType,
+      // Proxy route: /api/files/:fileId — server fetches from Anthropic using the org key
+      downloadUrl: `/api/files/${encodeURIComponent(fileId)}`,
+    });
+  } catch (err) {
+    // Log but don't fail the request — files are bonus output
+    console.warn("[chat] Could not collect file output", { fileId, error: err });
+  }
 }

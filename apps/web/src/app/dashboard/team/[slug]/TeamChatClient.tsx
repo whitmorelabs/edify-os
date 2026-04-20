@@ -255,6 +255,7 @@ export default function TeamChatClient({
           content: response.content,
           timestamp: response.timestamp,
           conversationId: serverConvId,
+          ...(response.files && response.files.length > 0 ? { files: response.files } : {}),
         };
         setMessages((prev) => [...prev, assistantMsg]);
         saveMessage(serverConvId, assistantMsg);

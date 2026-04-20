@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { Message } from "../api";
+import { Download } from "lucide-react";
+import type { Message, GeneratedFile } from "../api";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { ARCHETYPE_CONFIG } from "@/lib/archetype-config";
 import { cn } from "@/lib/utils";
@@ -127,6 +128,44 @@ function AssistantMarkdown({ content }: { content: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// File download chip — shown below assistant message when a skill generated a file
+// ---------------------------------------------------------------------------
+const FILE_EXT_LABEL: Record<string, string> = {
+  docx: "Word Doc",
+  xlsx: "Excel",
+  pptx: "PowerPoint",
+  pdf: "PDF",
+};
+
+function FileChip({ file }: { file: GeneratedFile }) {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const label = FILE_EXT_LABEL[ext] ?? "File";
+
+  return (
+    <a
+      href={file.downloadUrl}
+      download={file.name}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 hover:border-brand-300 transition"
+    >
+      <Download size={12} className="shrink-0" />
+      <span className="truncate max-w-[200px]">{file.name}</span>
+      <span className="text-brand-400">({label})</span>
+    </a>
+  );
+}
+
+function FileChips({ files }: { files: GeneratedFile[] }) {
+  if (!files || files.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2 mt-2">
+      {files.map((f) => (
+        <FileChip key={f.downloadUrl} file={f} />
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Typing indicator
 // ---------------------------------------------------------------------------
 function TypingBubble() {
@@ -223,6 +262,9 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
                   ) : (
                     <div className="space-y-0.5">
                       <AssistantMarkdown content={msg.content} />
+                      {msg.files && msg.files.length > 0 && (
+                        <FileChips files={msg.files} />
+                      )}
                     </div>
                   )}
                 </div>
