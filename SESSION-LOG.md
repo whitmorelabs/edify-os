@@ -2678,3 +2678,79 @@ Both agents' changes merged cleanly into a single commit. No conflicts.
 ### Open Questions for Lopmon
 - `lib/api-key.ts` is still used by the chat route client (`team/[slug]/api.ts`) and decision-lab (`api.ts`) to pass the key from localStorage to the server. This pattern is inconsistent with the BYOK model (key is also stored server-side). These files are getting the key from BOTH localStorage and the server. Whether to unify that is a future scope question — not touching it here.
 - The `messages` table has no direct `org_id` — the join to conversations is required for all message queries. This is fine for the summary query (single join) but worth noting if the activity feed needs to scale.
+
+---
+
+## 2026-04-20 — Chat Reliability Agent
+
+**Identity:** Chat Reliability Agent (Sonnet)
+**PRD:** PRD-chat-reliability.md
+**Date:** 2026-04-20 (EDT evening)
+**Commit SHA:** bb623cc (Dashboard Polish Agent committed our shared changes; see coordination note below)
+
+### Task summary
+
+Three defects fixed per PRD:
+1. Delete side-panel chat stub (`chat-provider.tsx`, `chat-panel.tsx`) — returns hardcoded simulated response
+2. Fix full-page chat input focus/disabled bug — textarea greys out after any click
+3. Surface real errors instead of opaque "I'm having trouble connecting" catch
+
+### Files deleted
+
+- `apps/web/src/components/chat-provider.tsx` — Side-panel chat provider with hardcoded setTimeout stub response
+- `apps/web/src/components/chat-panel.tsx` — Side-panel UI component
+- `apps/web/src/components/chat-message.tsx` — Orphaned component (only used by chat-panel; imported ChatMessage type from chat-provider)
+
+### Files changed (my scope)
+
+- `apps/web/src/app/dashboard/layout.tsx` — Removed `<ChatPanelProvider>` wrapper and `<ChatPanel />` mount. Left `<NoApiKeyBanner />` for Dashboard Polish Agent (but they also removed it in bb623cc).
+- `apps/web/src/app/dashboard/page.tsx` — Removed `useChatPanel` import and `openChat("executive_assistant")` call; changed "Ask a Question" button to `<Link href="/dashboard/team/executive_assistant">`. All quickActions now use `href`.
+- `apps/web/src/components/sidebar.tsx` — Removed `useChatPanel` import and `{ openChat, activeAgent, isOpen }` destructure; changed "YOUR AI TEAM" section from `<button onClick={() => openChat(slug)}>` to `<Link href="/dashboard/team/${slug}">`. Active state now uses `pathname.startsWith()` instead of `isOpen && activeAgent === slug`.
+- `apps/web/src/app/dashboard/inbox/page.tsx` — Removed `useChatPanel` import; replaced `openChat(archetype)` with `router.push("/dashboard/team/${archetype}")` using `useRouter`.
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx` — Two changes:
+  1. Error surfacing: replaced opaque catch with `err instanceof Error ? err.message : String(err)`, friendly formatting for "No API key", "network error", and generic API errors (uses server's own error string from claude-client.ts which already parses error.message from Anthropic API).
+  2. Stale closure fix: removed `// eslint-disable-next-line react-hooks/exhaustive-deps` suppression and added `handleSend` + `isTyping` to pendingPrompt useEffect deps.
+
+### Root cause of the focus bug
+
+**Primary cause:** `ChatPanelProvider` wrapped `dashboard/layout.tsx` in a `Suspense` boundary (via `ChatPanelProviderInner` which called `useSearchParams()`). Any URL state change within the dashboard — including route params when navigating between pages — could cause React to re-suspend the subtree. This created intermediate states where the `ChatInput` inside `TeamChatClient` could be unmounted mid-send or have its `isTyping` state orphaned. When `isTyping=true` and the component re-suspended and remounted without the `finally { setIsTyping(false) }` completing (because the component was unmounted), the new mount had `isTyping=false` initially but the old async callback could still run `setMessages` on the stale mounted state. **Fix: removing `ChatPanelProvider` entirely eliminates the Suspense boundary.**
+
+**Secondary cause (hardened):** The `pendingPrompt` useEffect had a stale closure on `handleSend` (suppressed with eslint-disable). If `handleSend` was stale and captured `activeConversation=null` while the real conversation had been created, the re-run could trigger an unexpected double-send or leave `isTyping=true` if the stale closure threw before `finally`. **Fix: added `handleSend` and `isTyping` to deps array** (Dashboard Polish Agent also moved `handleSend` declaration before the useEffect to satisfy JavaScript hoisting — `const` inside useCallback is not hoisted, so it was a real declared-before-use bug).
+
+### Parallel agent coordination
+
+The Dashboard Polish Agent ran concurrently and committed its work as `bb623cc` which included all of this agent's file changes. When this agent ran `git pull origin main`, the fast-forward brought in `bb623cc`, which already had:
+- chat-provider.tsx deleted
+- chat-panel.tsx deleted  
+- chat-message.tsx deleted
+- layout.tsx updated (ChatPanelProvider removed)
+- sidebar.tsx updated (useAuth dynamic name + my Link routing changes)
+- dashboard/page.tsx updated (live stats + my quickActions Link fix)
+- TeamChatClient.tsx updated (error surfacing + stale closure fix + hoisting fix)
+- inbox/page.tsx updated
+
+This agent verified all changes were correct and complete in the working tree, confirmed `npm run build` passes (zero type errors, 80 static pages), then wrote this SESSION-LOG entry.
+
+### Build result
+
+`npm run build` from `apps/web/` — SUCCESS. Zero TypeScript errors. 80 static pages rendered cleanly. `/dashboard/team/[slug]` generates 6 static paths (all archetype slugs).
+
+### Verification checklist
+
+- [x] `components/chat-provider.tsx` deleted — confirmed
+- [x] `components/chat-panel.tsx` deleted — confirmed
+- [x] `components/chat-message.tsx` deleted (orphan cleanup) — confirmed
+- [x] `<ChatPanelProvider>` and `<ChatPanel />` removed from `dashboard/layout.tsx` — confirmed
+- [x] "Ask a Question" navigates to `/dashboard/team/executive_assistant` — confirmed via Link in page.tsx
+- [x] Sidebar "YOUR AI TEAM" uses `<Link href="/dashboard/team/${slug}">` — confirmed
+- [x] Inbox "Discuss" button uses `router.push("/dashboard/team/${archetype}")` — confirmed
+- [x] Error catch in TeamChatClient surfaces real error message — confirmed
+- [x] Stale closure on pendingPrompt useEffect fixed — confirmed (deps include handleSend, isTyping)
+- [x] No remaining references to `openChat`, `useChatPanel`, `ChatPanelProvider`, `ChatPanel` in codebase (support/ excluded) — confirmed via grep
+- [x] `npm run build` zero errors — confirmed
+
+### Open questions for Lopmon
+
+1. The `middleware.ts` has a minor unstaged comment-only diff (1 line reformatted). It did not affect this task. Consider whether to stage it separately or leave it.
+2. The Dashboard Polish Agent's `bb623cc` commit message says "Fix TeamChatClient.tsx handleSend declared-before-use order bug (introduced by chat-reliability agent)". This was a real issue: my original edit placed the pendingPrompt useEffect BEFORE the handleSend useCallback declaration, and `const` is not hoisted. Dashboard Polish Agent caught this and fixed the order. The final file has handleSend declared before its use in the useEffect.
+3. No `ChatInput.tsx` changes were needed beyond the parent fix — the component's own `disabled={isDisabled}` logic is correct; the bug was entirely in the parent `ChatPanelProvider` Suspense wrapper.
