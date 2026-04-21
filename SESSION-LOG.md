@@ -2,6 +2,40 @@
 
 ---
 
+## 2026-04-21 — Simplify Pass Agent — Unsplash + OG Renderer
+
+**Identity:** Simplify Pass Agent (Sonnet, spawned by Lopmon)
+**Date:** 2026-04-21
+**Task:** Run `/simplify` over commits `9152a2b` (Unsplash tool) and `a2cdc74` (HTML-to-PNG renderer). Only touch files from those commits; don't modify the Anthropic Files API upload path; don't change tool signatures.
+
+### Findings
+
+Three duplications introduced across the two commits:
+
+1. `sanitizeFilename` defined byte-identically in both `apps/web/src/lib/tools/render.ts` and `apps/web/src/app/api/render/og/route.ts`.
+2. Preset-vs-custom-dimension resolution + 64–2400 clamp duplicated in the same two files (~25 lines each).
+3. PNG/JPG MIME entries added to both `SKILL_MIME` (in `lib/skills/registry.ts`) and a new `EXTRA_FILE_MIME` map (in `api/files/[fileId]/route.ts`) within the same commit — only one is needed.
+
+Flagged but not touched (per constraints):
+- Anthropic Files API upload block (Blob→File→`beta.files.upload` with beta headers) is duplicated between `lib/tools/render.ts` and `api/render/og/route.ts`. Left as-is per "don't modify the Anthropic Files API upload path" constraint. **Future sweep candidate**: extract an `uploadPngToAnthropicFiles(anthropic, buffer, filename)` helper.
+- Unsplash `await Promise.all(...trackDownload)` fires pingbacks synchronously with the tool response. Switching to fire-and-forget would speed tool returns but pingbacks can be killed when a Vercel Node function resolves. Using `after()`/`waitUntil` would be the correct fix; punted to avoid ToS-risk on Unsplash attribution.
+- `getToolFamilies` returns `Set<string>` with stringly-typed keys. Pre-existing pattern, cross-cutting — not in scope for this simplify.
+
+### Changes Applied
+
+- `apps/web/src/lib/render/og.ts` — added `resolveRenderDimensions({ preset, width, height })` (returns `{ok, width, height}` or `{ok:false, error}`) and `sanitizePngFilename(name?)`. Exported `RENDER_MIN_DIMENSION`/`RENDER_MAX_DIMENSION` constants.
+- `apps/web/src/lib/tools/render.ts` — imports `resolveRenderDimensions` + `sanitizePngFilename`, drops local `sanitizeFilename` and the custom dimension block. Preserved existing error-message suffix "(satori OOMs at larger sizes)." for continuity.
+- `apps/web/src/app/api/render/og/route.ts` — same refactor as render.ts. Dropped local `sanitizeFilename` and dimension resolution.
+- `apps/web/src/app/api/files/[fileId]/route.ts` — removed the redundant `EXTRA_FILE_MIME` map; `SKILL_MIME` now has png/jpg/jpeg entries so the single lookup is enough.
+- `apps/web/src/lib/skills/registry.ts` — updated the `SKILL_MIME` jsdoc to reflect that it's the canonical MIME map for all files served via `/api/files/[fileId]`, not just Anthropic Skill outputs.
+
+### Verification
+
+`npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+No changes to tool signatures, tool dispatch, or the `anthropic.beta.files.upload` call site. Unsplash code untouched.
+
+---
+
 ## 2026-04-21 — HTML-to-PNG Renderer Agent
 
 **Identity:** HTML-to-PNG Renderer Agent

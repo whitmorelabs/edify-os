@@ -64,13 +64,16 @@ export const SKILLS_BETA_HEADERS = [
   "skills-2025-10-02",
 ] as const;
 
-/** MIME types for skill-generated files, keyed by lowercase extension. */
+/**
+ * MIME types for files served via /api/files/[fileId], keyed by lowercase extension.
+ * Covers both Anthropic Skill outputs (docx/xlsx/pptx/pdf) and tool outputs that
+ * upload to the same Anthropic Files store (png/jpg from render_design_to_image).
+ */
 export const SKILL_MIME: Record<string, string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   pdf: "application/pdf",
-  // Raster images produced by the render_design_to_image tool (Marketing Director)
   png: "image/png",
   jpg: "image/jpeg",
   jpeg: "image/jpeg",

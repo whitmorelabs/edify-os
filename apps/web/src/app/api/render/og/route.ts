@@ -26,7 +26,11 @@
 import { NextResponse } from "next/server";
 import { getAuthContext, createServiceRoleClient } from "@/lib/supabase/server";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
-import { renderHtmlToPng, SOCIAL_PRESETS, type SocialPreset } from "@/lib/render/og";
+import {
+  renderHtmlToPng,
+  resolveRenderDimensions,
+  sanitizePngFilename,
+} from "@/lib/render/og";
 
 export const runtime = "nodejs";
 
@@ -56,34 +60,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "html is required and must be a string" }, { status: 400 });
   }
 
-  const presetKey: SocialPreset | undefined =
-    typeof preset === "string" && preset in SOCIAL_PRESETS ? (preset as SocialPreset) : undefined;
-  const customWidth = typeof width === "number" ? Math.round(width) : undefined;
-  const customHeight = typeof height === "number" ? Math.round(height) : undefined;
-
-  let finalWidth: number;
-  let finalHeight: number;
-  if (customWidth && customHeight) {
-    finalWidth = customWidth;
-    finalHeight = customHeight;
-  } else if (presetKey) {
-    ({ width: finalWidth, height: finalHeight } = SOCIAL_PRESETS[presetKey]);
-  } else {
-    ({ width: finalWidth, height: finalHeight } = SOCIAL_PRESETS.og);
+  const dimensions = resolveRenderDimensions({ preset, width, height });
+  if (!dimensions.ok) {
+    return NextResponse.json({ error: dimensions.error }, { status: 400 });
   }
+  const { width: finalWidth, height: finalHeight } = dimensions;
 
-  // Clamp to sane bounds — satori can OOM on 4K+ renders in a Node lambda.
-  if (finalWidth < 64 || finalHeight < 64 || finalWidth > 2400 || finalHeight > 2400) {
-    return NextResponse.json(
-      { error: "width/height must be between 64 and 2400 px" },
-      { status: 400 }
-    );
-  }
-
-  const safeFilename =
-    typeof filename === "string" && filename.trim()
-      ? sanitizeFilename(filename)
-      : `design-${Date.now()}.png`;
+  const safeFilename = sanitizePngFilename(typeof filename === "string" ? filename : undefined);
 
   let pngBuffer: Buffer;
   try {
@@ -143,10 +126,4 @@ export async function POST(request: Request) {
       "Cache-Control": "private, no-store",
     },
   });
-}
-
-function sanitizeFilename(name: string): string {
-  const trimmed = name.trim().replace(/[\\/:*?"<>|]/g, "_");
-  if (!trimmed) return `design-${Date.now()}.png`;
-  return trimmed.toLowerCase().endsWith(".png") ? trimmed : `${trimmed}.png`;
 }

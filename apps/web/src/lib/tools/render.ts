@@ -11,7 +11,11 @@
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
-import { renderHtmlToPng, SOCIAL_PRESETS, type SocialPreset } from "@/lib/render/og";
+import {
+  renderHtmlToPng,
+  resolveRenderDimensions,
+  sanitizePngFilename,
+} from "@/lib/render/og";
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum when render tool is active.
@@ -99,35 +103,18 @@ export async function executeRenderTool({
     return { content: "html is required and must be a non-empty string.", is_error: true };
   }
 
-  const presetKey: SocialPreset | undefined =
-    typeof input.preset === "string" && (input.preset as string) in SOCIAL_PRESETS
-      ? (input.preset as SocialPreset)
-      : undefined;
-  const customWidth = typeof input.width === "number" ? Math.round(input.width) : undefined;
-  const customHeight = typeof input.height === "number" ? Math.round(input.height) : undefined;
-
-  let width: number;
-  let height: number;
-  if (customWidth && customHeight) {
-    width = customWidth;
-    height = customHeight;
-  } else if (presetKey) {
-    ({ width, height } = SOCIAL_PRESETS[presetKey]);
-  } else {
-    ({ width, height } = SOCIAL_PRESETS.og);
+  const dimensions = resolveRenderDimensions({
+    preset: input.preset,
+    width: input.width,
+    height: input.height,
+  });
+  if (!dimensions.ok) {
+    return { content: `${dimensions.error} (satori OOMs at larger sizes).`, is_error: true };
   }
+  const { width, height } = dimensions;
 
-  if (width < 64 || height < 64 || width > 2400 || height > 2400) {
-    return {
-      content: "width/height must be between 64 and 2400 px (satori OOMs at larger sizes).",
-      is_error: true,
-    };
-  }
-
-  const filename = sanitizeFilename(
-    typeof input.filename === "string" && input.filename.trim()
-      ? input.filename
-      : `design-${Date.now()}.png`
+  const filename = sanitizePngFilename(
+    typeof input.filename === "string" ? input.filename : undefined
   );
 
   let pngBuffer: Buffer;
@@ -181,10 +168,4 @@ export async function executeRenderTool({
       downloadUrl,
     },
   };
-}
-
-function sanitizeFilename(name: string): string {
-  const trimmed = name.trim().replace(/[\\/:*?"<>|]/g, "_");
-  if (!trimmed) return `design-${Date.now()}.png`;
-  return trimmed.toLowerCase().endsWith(".png") ? trimmed : `${trimmed}.png`;
 }
