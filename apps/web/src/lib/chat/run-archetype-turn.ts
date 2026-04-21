@@ -54,6 +54,12 @@ export interface RunArchetypeTurnOptions {
   orgName: string;
   /** Optional org mission statement. */
   mission?: string | null;
+  /**
+   * IANA timezone for the org (e.g. "America/New_York").
+   * Used to format the local-time label in the temporal context block.
+   * Defaults to "America/New_York" for backward compatibility.
+   */
+  timezone?: string;
   /** Prior conversation history (empty for heartbeats). */
   history?: Array<{ role: "user" | "assistant"; content: string }>;
   /** Custom name the member has assigned to this archetype. */
@@ -79,6 +85,7 @@ export async function runArchetypeTurn({
   client: anthropic,
   orgName,
   mission,
+  timezone = "America/New_York",
   history = [],
   customArchetypeName,
 }: RunArchetypeTurnOptions): Promise<RunArchetypeTurnResult> {
@@ -92,17 +99,12 @@ export async function runArchetypeTurn({
     : `\n\n## Organization Context\nOrg name: ${orgName}`;
 
   const nowUtc = new Date();
-  const nowLocal = nowUtc.toLocaleString("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-  const temporalBlock = `Current date and time: ${nowUtc.toISOString()} (${nowLocal} America/New_York — UTC-4)\nWhen the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.\n`;
+  const nowLocal = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    dateStyle: "full",
+    timeStyle: "short",
+  }).format(nowUtc);
+  const temporalBlock = `Current date and time: ${nowUtc.toISOString()} (${nowLocal} — ${timezone})\nWhen the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.\n`;
 
   const tools = ARCHETYPE_TOOLS[archetype] ?? [];
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];

@@ -36,10 +36,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId, ["mission"]);
+  const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId, ["mission", "timezone"]);
   if ("error" in anthropicResult) return anthropicResult.error;
   const { client: anthropic, orgName, org } = anthropicResult;
   const mission = org.mission as string | null;
+  const orgTimezone = (org.timezone as string | null) ?? "America/New_York";
 
   // Upsert heartbeat_jobs row for (org, archetype) so a job record always exists
   const jobName = `${archetype} heartbeat`;
@@ -110,6 +111,7 @@ export async function POST(request: Request) {
       client: anthropic,
       orgName,
       mission,
+      timezone: orgTimezone,
       customArchetypeName,
     });
     finalText = text;
