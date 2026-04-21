@@ -4359,6 +4359,6 @@ Schema migrations (`supabase/migrations/00019_task_artifacts.sql`, `combined_mig
 - `npx tsc --noEmit -p apps/web/tsconfig.json` — clean, exit 0.
 
 ### Commit
-- SHA: <pending>
+- SHA: a87d63b
 - Message: `simplify: cleanup after inbox-split + task artifacts routing`
 - Pushed to main
