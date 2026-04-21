@@ -148,92 +148,32 @@ export async function getScenario(id: string): Promise<ScenarioResult> {
 }
 
 // -------------------------------------------------------------------
-// Ask a follow-up to a specific team member
-// NOTE: No server route exists for follow-ups yet — this remains a
-// client-side call using getApiKey until a /api/decision-lab/follow-up
-// route is built.  Tracked for a future PRD.
+// Ask a follow-up to a specific team member (server-side route)
+// POST /api/decision-lab/follow-up — uses org's encrypted API key.
 // -------------------------------------------------------------------
 export async function askFollowUp(
   scenarioId: string,
   archetype: string,
   question: string
 ): Promise<ArchetypeResponse> {
-  const { getApiKey } = await import("@/lib/api-key");
-  const { getOrgContext } = await import("@/lib/org-context");
-  const { getSystemPrompt } = await import("@/lib/archetype-prompts");
-  const { callClaude } = await import("@/lib/claude-client");
+  const res = await fetch("/api/decision-lab/follow-up", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      scenarioId,
+      archetype_slug: archetype,
+      question,
+    }),
+  });
 
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error("No API key set. Please add your Claude API key in AI Configuration.");
+  if (!res.ok) {
+    let serverMsg = "Server error";
+    try {
+      const data = await res.json();
+      if (data?.error) serverMsg = data.error;
+    } catch { /* ignore parse */ }
+    throw new Error(`${res.status}: ${serverMsg}`);
   }
 
-  const orgContext = getOrgContext();
-  const systemPrompt = getSystemPrompt(archetype, orgContext);
-
-  // Load the original scenario for context
-  const scenario = loadScenarioResult(scenarioId);
-  const originalResponse = scenario?.responses.find(
-    (r) => r.role_slug === archetype
-  );
-
-  const contextMessage = scenario
-    ? `The original scenario was: "${scenario.scenario_text}"\n\nYour initial response was: "${originalResponse?.response_text ?? ""}"\n\nFollow-up question: ${question}`
-    : question;
-
-  const response = await callClaude(
-    apiKey,
-    systemPrompt,
-    [{ role: "user", content: contextMessage }],
-    { maxTokens: 2048, temperature: 0.25 }
-  );
-
-  // Inline parse (no longer importing the deleted helper)
-  const lowerText = response.content.toLowerCase();
-  let stance: Stance = "Caution";
-  if (
-    lowerText.includes("i support") ||
-    lowerText.includes("support this") ||
-    lowerText.includes("recommend moving forward") ||
-    lowerText.match(/stance:?\s*support/)
-  ) {
-    stance = "Support";
-  } else if (
-    lowerText.includes("i oppose") ||
-    lowerText.includes("oppose this") ||
-    lowerText.includes("recommend against") ||
-    lowerText.match(/stance:?\s*oppose/)
-  ) {
-    stance = "Oppose";
-  }
-
-  let confidence: Confidence = "Medium";
-  if (lowerText.match(/confidence:?\s*high/) || lowerText.includes("high confidence")) {
-    confidence = "High";
-  } else if (lowerText.match(/confidence:?\s*low/) || lowerText.includes("low confidence")) {
-    confidence = "Low";
-  }
-
-  // Reconstruct display_name / icon from slug
-  const ARCHETYPE_META: Record<string, { display_name: string; icon: string }> = {
-    development_director: { display_name: "Development Director", icon: "Landmark" },
-    marketing_director:   { display_name: "Marketing Director",   icon: "Megaphone" },
-    executive_assistant:  { display_name: "Executive Assistant",  icon: "CalendarCheck" },
-    programs_director:    { display_name: "Programs Director",    icon: "BookOpen" },
-    hr_volunteer_coordinator: { display_name: "HR & Volunteer Coordinator", icon: "UserCheck" },
-    events_director:      { display_name: "Events Director",      icon: "CalendarDays" },
-  };
-  const meta = ARCHETYPE_META[archetype] ?? {
-    display_name: archetype.replace(/_/g, " "),
-    icon: "MessageCircle",
-  };
-
-  return {
-    role_slug: archetype,
-    display_name: meta.display_name,
-    icon: meta.icon,
-    stance,
-    response_text: response.content,
-    confidence,
-  };
+  return res.json() as Promise<ArchetypeResponse>;
 }
