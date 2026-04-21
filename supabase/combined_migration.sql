@@ -734,3 +734,43 @@ alter table tasks
 create index if not exists idx_tasks_org_kind
   on tasks(org_id, kind)
   where kind is not null;
+
+-- Migration 00020: Composio social-media connection references
+--
+-- Stores cross-references between (org_id, toolkit) and Composio connection IDs.
+-- Composio handles the OAuth tokens server-side; we only hold the reference so
+-- we can show connection state in Settings and disconnect cleanly. NOTE: this
+-- file is also in migrations/00020_composio_connections.sql — needs a manual
+-- apply alongside 00019 the first time it lands.
+
+create table if not exists composio_connections (
+  id uuid primary key default uuid_generate_v4(),
+  org_id uuid not null references orgs(id) on delete cascade,
+  toolkit text not null,
+  composio_connection_id text not null,
+  composio_user_id text,
+  display_name text,
+  status text not null default 'active' check (status in ('active', 'revoked', 'expired')),
+  connected_by uuid references members(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(org_id, toolkit)
+);
+
+create index if not exists idx_composio_connections_org
+  on composio_connections(org_id);
+
+create index if not exists idx_composio_connections_connection_id
+  on composio_connections(composio_connection_id);
+
+alter table composio_connections enable row level security;
+
+create policy "Tenant isolation — composio_connections"
+  on composio_connections
+  for all using (
+    org_id in (select org_id from members where user_id = auth.uid())
+  );
+
+create trigger composio_connections_updated_at
+  before update on composio_connections
+  for each row execute function update_updated_at();

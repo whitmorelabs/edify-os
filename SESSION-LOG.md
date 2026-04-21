@@ -2,6 +2,96 @@
 
 ---
 
+## 2026-04-21 — Composio Social Posting Integration Agent
+
+**Identity:** Composio Social Posting Agent (Sonnet, spawned by Lopmon)
+**Date:** 2026-04-21
+**Task:** Wire Composio (https://composio.dev) into Marketing Director as the backend for social posting. Zero-BYOK friction — Composio handles per-user OAuth to Instagram, Facebook, LinkedIn, TikTok, X, Threads via their hosted redirect flow.
+
+### SDK
+
+- Installed `@composio/core@^0.6.10` via pnpm. Single client instance memoized in `apps/web/src/lib/composio.ts`; throws `ComposioError(503)` when `COMPOSIO_API_KEY` is absent.
+- Key SDK surface used: `composio.toolkits.authorize(userId, toolkitSlug)` for OAuth initiation, `composio.connectedAccounts.waitForConnection(connectionId, timeout)` for callback completion, `composio.tools.execute(slug, { userId, arguments })` for posting, `composio.connectedAccounts.list({ userIds })` for the Settings UI status check.
+- We pass the **org UUID** as the Composio `user_id`. One Composio user == one Edify org.
+
+### Files Added
+
+- `apps/web/src/lib/composio.ts` — typed wrapper. Exports `getConnectedAccounts(orgId)`, `initiateConnection(orgId, toolkit, callbackUrl)`, `completeConnection(connectionId, timeout?)`, `postToSocial({ orgId, platform, content, imageUrl?, scheduledAt? })`, constants `SOCIAL_PLATFORMS`, `TOOLKIT_SLUG`, `POST_ACTION_SLUG`, and a `ComposioError` class following the `GrantsGovError` pattern. v1 actions mapped: `INSTAGRAM_CREATE_POST`, `FACEBOOK_CREATE_POST`, `LINKEDIN_CREATE_POST`, `TIKTOK_POST_VIDEO`, `TWITTER_CREATION_OF_A_POST`, `THREADS_CREATE_POST` — these are v1 guesses based on Composio's TOOLKIT_VERB convention, swappable without touching the tool schema if runtime shows different slugs.
+- `apps/web/src/lib/tools/social.ts` — Anthropic tool `social_post` + `SOCIAL_TOOLS_ADDENDUM` + executor. Input schema: `{ platform, content, image_file_id?, schedule_at? }`. Output: `{ platform, status, post_url, scheduled_at }`. Addendum includes HARD RULES: always confirm with user before posting, never post on "draft"/"preview" intent, relay connection errors with a Settings → Integrations link.
+- `apps/web/src/app/api/integrations/composio/connect/route.ts` — `POST { toolkit }` → `{ redirectUrl, connectionId }`. Stashes the pending connection id + CSRF state + orgId + memberId in an httpOnly base64-JSON cookie.
+- `apps/web/src/app/api/integrations/composio/callback/route.ts` — `GET`. Validates cookie state, confirms orgId matches session, polls Composio for connection completion (10s timeout), upserts into `composio_connections`, redirects to `/dashboard/integrations?composio=connected&reason=<platform>` or `?composio=denied&reason=<code>`.
+- `apps/web/src/app/api/integrations/composio/route.ts` — `GET` returns the org's active `composio_connections` rows; `DELETE ?toolkit=<platform>` soft-revokes (status = 'revoked'). Note: does NOT call `client.connectedAccounts.delete` yet — tracked as a follow-up.
+- `supabase/migrations/00020_composio_connections.sql` — new `composio_connections` table keyed on `(org_id, toolkit)`, with RLS tenant isolation policy. Indexes on `org_id` and `composio_connection_id`. Manual apply required like 00019.
+
+### Files Changed
+
+- `apps/web/package.json` + `pnpm-lock.yaml` — `@composio/core@^0.6.10`.
+- `apps/web/src/lib/tools/registry.ts` — imports `socialTools`, `executeSocialTool`, `SOCIAL_TOOLS_ADDENDUM`. Adds `SOCIAL_TOOL_NAMES` set, extends `getToolFamilies` + `buildSystemAddendums` with a `social` branch, appends `...socialTools` to `ARCHETYPE_TOOLS.marketing_director` **only**, extends `executeTool` with a `SOCIAL_TOOL_NAMES` dispatch branch that passes `orgId` + `serviceClient` for the fast-path connection check.
+- `apps/web/src/app/dashboard/integrations/page.tsx` — added Composio connection loader (`GET /api/integrations/composio`), `?composio=connected/denied` toast handler, routing for `instagram`/`facebook`/`linkedin`/`twitter` catalog ids through the Composio connect endpoint, disconnect via the Composio DELETE endpoint. `COMPOSIO_INTEGRATION_TO_PLATFORM` maps catalog id → platform key (e.g. `twitter` → `x`).
+- `apps/web/src/app/api/integrations/google/callback/route.ts` untouched.
+- `apps/web/.env.example` + `apps/web/.env.local.example` — `COMPOSIO_API_KEY=` placeholder with signup instructions.
+- `supabase/combined_migration.sql` — appended 00020 inline for fresh bootstraps.
+
+### Tool Signature
+
+```
+social_post({
+  platform: 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'x' | 'threads',
+  content: string,
+  image_file_id?: string,  // Anthropic Files ID from render_design_to_image
+  schedule_at?: string,    // ISO 8601
+}) → { platform, status: 'published' | 'scheduled', post_url: string | null, scheduled_at: string | null }
+```
+
+NO-connection error shape: `{ error: 'not_connected', platform, platform_label, message, settings_url }` with `is_error: true` so Claude renders a useful coach-the-user response instead of a canned failure.
+
+### OAuth Flow
+
+1. UI POST `/api/integrations/composio/connect { toolkit: 'x' }`.
+2. Server calls `composio.toolkits.authorize(orgId, 'twitter')`, gets `{ id, redirectUrl }`.
+3. Server sets `composio_oauth_state` cookie (base64 JSON: `{ state, connectionId }` where `state` is `{ orgId, platform, memberId }`). TTL 10 min.
+4. UI follows `redirectUrl` → Composio → user authenticates on platform → Composio redirects to our callback.
+5. Callback validates cookie's `orgId` === session's `orgId`, polls `composio.connectedAccounts.waitForConnection` (10s), upserts the `composio_connections` row, redirects to Settings with toast.
+6. Image posts re-host via `${getAppOrigin()}/api/files/${fileId}` so Composio and the downstream platform can fetch the PNG as a public HTTPS URL.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+- No live Composio calls attempted (API key not yet in env, per PRD).
+- No Playwright — pure API integration only.
+
+### v1 Scope vs. Deferred
+
+**In v1:**
+- `social_post` tool on Marketing Director only
+- OAuth connect + callback + disconnect for IG / FB / LinkedIn / Twitter
+- Fast-path "not connected" check from our DB before hitting Composio
+- Image attachment via existing `render_design_to_image` → `/api/files` proxy
+- HARD-RULE addendum: always confirm, never post on "draft" intent
+
+**Deliberately deferred:**
+- TikTok + Threads UI cards (tool supports them, catalog cards not yet added — small follow-up)
+- Scheduling cron/queue (relies on Composio's built-in `schedule_at` where supported; may silently fail on platforms without it, tool result's `scheduled_at` field tells user)
+- Composio-side connection revocation via `connectedAccounts.delete(id)` (we soft-revoke on our side; Composio session persists until the user nukes it in their dashboard)
+- Events Director access to `social_post` (Marketing only per PRD; easy to extend later)
+- Custom Composio auth configs per org (we use Composio-managed auth configs via `toolkits.authorize` — works out of the box but gives users Composio branding on the consent screen. Swap to custom auth configs when we want Edify branding.)
+- Toolkit slug runtime validation — if Composio renames e.g. `twitter` → `x`, we get a 400 from the `tools.execute` call. Tracked as a config knob in `TOOLKIT_SLUG` / `POST_ACTION_SLUG` maps.
+
+### Composio Docs Surprises
+
+- `toolkits.authorize(userId, toolkitSlug)` auto-creates/reuses a managed auth config — no need to pre-create in the dashboard. Big ergonomic win.
+- `connectedAccounts.list({ userIds })` — plural `userIds` even for single-user filter, per the SDK type.
+- Tool execution response shape is `{ data, error, successful, logId? }` — we project to `{ platform, status, post_url, scheduled_at }`.
+- Composio runtime toolkit slugs were not exhaustively listed in the docs; v1 uses conservative `TWITTER_CREATION_OF_A_POST` / `INSTAGRAM_CREATE_POST` style. If tool names drift, only the `POST_ACTION_SLUG` constant needs updating.
+
+### Manual Apply Required
+
+- Run `supabase/migrations/00020_composio_connections.sql` against Supabase prod (alongside 00019 if not yet applied).
+- Set `COMPOSIO_API_KEY` in Vercel (prod + preview). Citlali has the OneTimeSecret flow set up.
+- In the Composio dashboard, set the post-connect redirect URL to `https://<app-origin>/api/integrations/composio/callback`.
+
+---
+
 ## 2026-04-21 — Simplify Pass Agent — Unsplash + OG Renderer
 
 **Identity:** Simplify Pass Agent (Sonnet, spawned by Lopmon)

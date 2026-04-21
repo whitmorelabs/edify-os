@@ -20,6 +20,7 @@ import {
   RENDER_TOOLS_ADDENDUM,
   type RenderToolGeneratedFile,
 } from "@/lib/tools/render";
+import { socialTools, executeSocialTool, SOCIAL_TOOLS_ADDENDUM } from "@/lib/tools/social";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
@@ -33,6 +34,7 @@ export {
   DRIVE_TOOLS_ADDENDUM,
   UNSPLASH_TOOLS_ADDENDUM,
   RENDER_TOOLS_ADDENDUM,
+  SOCIAL_TOOLS_ADDENDUM,
 };
 export type { RenderToolGeneratedFile };
 
@@ -40,6 +42,7 @@ export type { RenderToolGeneratedFile };
 // Kept as a Set so dispatch is O(1) and easy to extend if we add more photo tools.
 const UNSPLASH_TOOL_NAMES = new Set(unsplashTools.map((t) => t.name));
 const RENDER_TOOL_NAMES = new Set(renderTools.map((t) => t.name));
+const SOCIAL_TOOL_NAMES = new Set(socialTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -63,6 +66,10 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("render");
       continue;
     }
+    if (SOCIAL_TOOL_NAMES.has(t.name)) {
+      families.add("social");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -83,6 +90,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("drive")) parts.push(DRIVE_TOOLS_ADDENDUM);
   if (families.has("unsplash")) parts.push(UNSPLASH_TOOLS_ADDENDUM);
   if (families.has("render")) parts.push(RENDER_TOOLS_ADDENDUM);
+  if (families.has("social")) parts.push(SOCIAL_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -95,7 +103,7 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools],
   development_director: [...grantsTools, ...crmTools, ...gmailTools, ...driveTools],
-  marketing_director: [...driveTools, ...unsplashTools, ...renderTools],
+  marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools],
   programs_director: [...grantsTools, ...driveTools],
   hr_volunteer_coordinator: [],
 };
@@ -194,6 +202,10 @@ export async function executeTool({
       };
     }
     return executeRenderTool({ name, input, anthropic });
+  }
+
+  if (SOCIAL_TOOL_NAMES.has(name)) {
+    return executeSocialTool({ name, input, orgId, serviceClient });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };

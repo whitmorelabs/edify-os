@@ -507,6 +507,28 @@ function countByCategory(cat: string) {
 /** Integration types backed by real Google OAuth. */
 const GOOGLE_INTEGRATION_IDS = new Set(['gmail', 'google_calendar', 'google_drive']);
 
+/**
+ * Integration ids that are brokered through Composio (OAuth on their end, we
+ * just hold the connection reference). Keep in sync with TOOLKIT_SLUG in
+ * apps/web/src/lib/composio.ts. The `twitter` slug here matches the integration
+ * catalog id; the platform key we send to /api/integrations/composio/connect
+ * is mapped via COMPOSIO_INTEGRATION_TO_PLATFORM below.
+ */
+const COMPOSIO_INTEGRATION_IDS = new Set([
+  'instagram',
+  'facebook',
+  'linkedin',
+  'twitter',
+]);
+
+/** integration card id → platform key the Composio connect API expects. */
+const COMPOSIO_INTEGRATION_TO_PLATFORM: Record<string, string> = {
+  instagram: 'instagram',
+  facebook: 'facebook',
+  linkedin: 'linkedin',
+  twitter: 'x',
+};
+
 function IntegrationsPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -538,6 +560,51 @@ function IntegrationsPageInner() {
     }
     loadGoogleStatus();
   }, []);
+
+  /* ---------- load Composio (social) connection status ---------- */
+
+  useEffect(() => {
+    async function loadComposioStatus() {
+      try {
+        const res = await fetch('/api/integrations/composio');
+        if (!res.ok) return;
+        const data = await res.json() as {
+          connections: Array<{ toolkit: string; status: string }>;
+        };
+        // Composio `toolkit` values ("twitter", "instagram", etc.) match
+        // our catalog ids 1:1 — see COMPOSIO_INTEGRATION_TO_PLATFORM for the
+        // platform-key mapping (reverse direction, not needed here).
+        const ids = data.connections
+          .filter((c) => c.status === 'active')
+          .map((c) => c.toolkit);
+        if (ids.length > 0) {
+          setConnected((prev) => new Set([...prev, ...ids]));
+        }
+      } catch {
+        // Non-fatal — UI degrades to disconnected state
+      }
+    }
+    loadComposioStatus();
+  }, []);
+
+  /* ---------- handle ?composio=connected / denied toast ---------- */
+
+  useEffect(() => {
+    const composioParam = searchParams.get('composio');
+    if (composioParam === 'connected') {
+      const platform = searchParams.get('reason') ?? 'social account';
+      setToast({ message: `${platform} connected successfully!`, kind: 'success' });
+      router.replace('/dashboard/integrations', { scroll: false });
+    } else if (composioParam === 'denied') {
+      const rawReason = searchParams.get('reason') ?? 'unknown_error';
+      const reason = rawReason.slice(0, 100);
+      setToast({
+        message: `Social connection was not completed (${reason}). Please try again.`,
+        kind: 'error',
+      });
+      router.replace('/dashboard/integrations', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   /* ---------- handle ?google=connected / denied toast ---------- */
 
@@ -590,6 +657,42 @@ function IntegrationsPageInner() {
       return;
     }
 
+    // Composio-brokered social platforms — POST to initiate, then open the
+    // returned redirectUrl in a new tab. We use a new tab rather than a
+    // full-page redirect so the user can come back to the Settings page if
+    // they dismiss the OAuth screen.
+    if (COMPOSIO_INTEGRATION_IDS.has(id)) {
+      const platform = COMPOSIO_INTEGRATION_TO_PLATFORM[id];
+      if (!platform) {
+        setToast({ message: 'Internal error: unknown social platform.', kind: 'error' });
+        return;
+      }
+      // Fire and forget — we let the callback route handle upsert on return.
+      (async () => {
+        try {
+          const res = await fetch('/api/integrations/composio/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ toolkit: platform }),
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            setToast({
+              message: body?.error ?? `Failed to start ${integration.name} connection.`,
+              kind: 'error',
+            });
+            return;
+          }
+          const data = (await res.json()) as { redirectUrl: string };
+          window.location.href = data.redirectUrl;
+        } catch (err) {
+          console.error('[composio connect]', err);
+          setToast({ message: `Failed to reach Composio. Please try again.`, kind: 'error' });
+        }
+      })();
+      return;
+    }
+
     if (integration.connectionType === 'oauth') {
       setOauthModalId(id);
     } else {
@@ -617,6 +720,31 @@ function IntegrationsPageInner() {
   }
 
   async function handleDisconnect(id: string) {
+    // Composio social connections: call our DELETE endpoint with toolkit param
+    if (COMPOSIO_INTEGRATION_IDS.has(id)) {
+      const platform = COMPOSIO_INTEGRATION_TO_PLATFORM[id];
+      try {
+        const res = await fetch(
+          `/api/integrations/composio?toolkit=${encodeURIComponent(platform)}`,
+          { method: 'DELETE' }
+        );
+        if (!res.ok) {
+          setToast({ message: `Failed to disconnect ${id}. Please try again.`, kind: 'error' });
+          return;
+        }
+        setConnected((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        setExpandedId(null);
+        setToast({ message: `${id} disconnected.`, kind: 'success' });
+      } catch {
+        setToast({ message: `Failed to disconnect ${id}. Please try again.`, kind: 'error' });
+      }
+      return;
+    }
+
     // Google integrations: call real DELETE endpoint, removes all 3 rows
     if (GOOGLE_INTEGRATION_IDS.has(id)) {
       try {
