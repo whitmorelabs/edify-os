@@ -3,6 +3,7 @@ import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
 import { ARCHETYPE_PROMPTS } from '@/lib/archetype-prompts';
 import { ARCHETYPE_LABELS } from '@/lib/archetypes';
 import { getAnthropicClientForOrg } from '@/lib/anthropic';
+import { ARCHETYPE_META, parseDecisionResponse } from './_shared';
 
 export interface ArchetypeResponse {
   role_slug: string;
@@ -28,16 +29,6 @@ export interface ScenarioResult {
   synthesis: SynthesisResult;
 }
 
-// Icons are UI-only strings (not Lucide components) — safe to keep here
-const ARCHETYPE_META: Record<string, { icon: string }> = {
-  executive_assistant:      { icon: 'Star' },
-  development_director:     { icon: 'Landmark' },
-  marketing_director:       { icon: 'Megaphone' },
-  programs_director:        { icon: 'Heart' },
-  hr_volunteer_coordinator: { icon: 'Users' },
-  events_director:          { icon: 'Calendar' },
-};
-
 const DECISION_LAB_SUFFIX = `
 
 ## Decision Lab Response Format
@@ -50,29 +41,6 @@ Format exactly as:
 STANCE: [Support|Caution|Oppose]
 CONFIDENCE: [Low|Medium|High]
 RESPONSE: [your analysis]`;
-
-function parseDecisionResponse(text: string): { stance: string; confidence: string; response_text: string } {
-  const lines = text.split('\n').map((l) => l.trim());
-  let stance = 'Caution';
-  let confidence = 'Medium';
-  let responseText = text;
-
-  for (const line of lines) {
-    if (line.startsWith('STANCE:')) stance = line.replace('STANCE:', '').trim();
-    if (line.startsWith('CONFIDENCE:')) confidence = line.replace('CONFIDENCE:', '').trim();
-    if (line.startsWith('RESPONSE:')) responseText = line.replace('RESPONSE:', '').trim();
-  }
-
-  // Validate
-  if (!['Support', 'Caution', 'Oppose'].includes(stance)) stance = 'Caution';
-  if (!['Low', 'Medium', 'High'].includes(confidence)) confidence = 'Medium';
-
-  return {
-    stance,
-    confidence,
-    response_text: responseText,
-  };
-}
 
 export async function POST(req: NextRequest) {
   const { user, orgId, memberId } = await getAuthContext();
@@ -128,8 +96,8 @@ export async function POST(req: NextRequest) {
           role_slug: slug,
           display_name: ARCHETYPE_LABELS[slug as keyof typeof ARCHETYPE_LABELS] ?? slug,
           icon: meta?.icon ?? 'Star',
-          stance: parsed.stance as 'Support' | 'Caution' | 'Oppose',
-          confidence: parsed.confidence as 'Low' | 'Medium' | 'High',
+          stance: parsed.stance,
+          confidence: parsed.confidence,
           response_text: parsed.response_text,
         };
       })

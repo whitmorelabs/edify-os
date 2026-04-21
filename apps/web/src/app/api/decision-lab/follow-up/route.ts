@@ -3,16 +3,7 @@ import { createServiceRoleClient, getAuthContext } from '@/lib/supabase/server';
 import { ARCHETYPE_PROMPTS } from '@/lib/archetype-prompts';
 import { ARCHETYPE_LABELS } from '@/lib/archetypes';
 import { getAnthropicClientForOrg } from '@/lib/anthropic';
-
-// Icons are UI-only strings — keep in sync with decision-lab/route.ts
-const ARCHETYPE_META: Record<string, { icon: string }> = {
-  executive_assistant:      { icon: 'Star' },
-  development_director:     { icon: 'Landmark' },
-  marketing_director:       { icon: 'Megaphone' },
-  programs_director:        { icon: 'Heart' },
-  hr_volunteer_coordinator: { icon: 'Users' },
-  events_director:          { icon: 'Calendar' },
-};
+import { ARCHETYPE_META, parseDecisionResponse } from '../_shared';
 
 const FOLLOW_UP_SUFFIX = `
 
@@ -27,30 +18,6 @@ At the top of your response, restate your stance and confidence using exactly:
 STANCE: [Support|Caution|Oppose]
 CONFIDENCE: [Low|Medium|High]
 RESPONSE: [your analysis]`;
-
-function parseDecisionResponse(
-  text: string,
-): { stance: 'Support' | 'Caution' | 'Oppose'; confidence: 'Low' | 'Medium' | 'High'; response_text: string } {
-  const lines = text.split('\n').map((l) => l.trim());
-  let stance: string = 'Caution';
-  let confidence: string = 'Medium';
-  let responseText = text;
-
-  for (const line of lines) {
-    if (line.startsWith('STANCE:')) stance = line.replace('STANCE:', '').trim();
-    if (line.startsWith('CONFIDENCE:')) confidence = line.replace('CONFIDENCE:', '').trim();
-    if (line.startsWith('RESPONSE:')) responseText = line.replace('RESPONSE:', '').trim();
-  }
-
-  if (!['Support', 'Caution', 'Oppose'].includes(stance)) stance = 'Caution';
-  if (!['Low', 'Medium', 'High'].includes(confidence)) confidence = 'Medium';
-
-  return {
-    stance: stance as 'Support' | 'Caution' | 'Oppose',
-    confidence: confidence as 'Low' | 'Medium' | 'High',
-    response_text: responseText,
-  };
-}
 
 export async function POST(req: NextRequest) {
   const { user, orgId } = await getAuthContext();
