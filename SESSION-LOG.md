@@ -2,6 +2,72 @@
 
 ---
 
+## 2026-04-21 — HTML-to-PNG Renderer Agent
+
+**Identity:** HTML-to-PNG Renderer Agent
+**Date:** 2026-04-21
+**Task:** Close the Frontend Design skill → social-ready raster image gap for Marketing Director. The skill produces brilliant HTML/Tailwind compositions but nonprofits need PNG/JPG for IG, LinkedIn, Twitter. Clean path: render HTML → PNG server-side via `@vercel/og` (satori + resvg, free, ships natively on Next.js + Vercel). No image-generation APIs.
+
+### Files Added
+
+- `apps/web/src/lib/render/og.ts` — shared renderer. Exports `renderHtmlToPng({ html, width, height }): Promise<Buffer>` and `SOCIAL_PRESETS` (`ig_square` 1080x1080, `ig_story` 1080x1920, `linkedin` 1200x628, `twitter` 1200x675, `og` 1200x630). Internally runs the HTML through `satori-html` to produce a Satori-compatible VDOM, then `@vercel/og`'s `ImageResponse` to rasterize to PNG. Factored out so both the HTTP route and the tool executor call the same function (tool doesn't need to loop back to its own server during a tool-use turn).
+- `apps/web/src/app/api/render/og/route.ts` — POST endpoint. Body: `{ html, preset?, width?, height?, filename?, upload? }`. Validates session cookie + org. When `upload=true`, uploads the PNG to Anthropic Files API (beta `files-api-2025-04-14`) using the org's Anthropic client, returns `{ fileId, name, downloadUrl, width, height, bytes }`. Otherwise streams the PNG bytes inline. Clamps dimensions to 64–2400 px. Handles sanitize-filename, graceful error surfacing. Runtime `nodejs`.
+- `apps/web/src/lib/tools/render.ts` — Anthropic tool `render_design_to_image` + executor + `RENDER_TOOLS_ADDENDUM`. Input schema `{ html (required), preset?: ig_square|ig_story|linkedin|twitter|og, width?, height?, filename? }`. Executor renders via `renderHtmlToPng`, uploads to Anthropic Files (same storage as skill-generated docx/xlsx/pptx/pdf), and returns a `RenderToolGeneratedFile` `{ name, mimeType: "image/png", downloadUrl: "/api/files/:id" }` on top of the standard `{content, is_error?}` so the outer run-archetype-turn can surface a FileChip alongside skill files.
+
+### Files Changed
+
+- `apps/web/package.json` + `pnpm-lock.yaml` — added `@vercel/og@^0.11.1` and `satori-html@^0.3.2` (Node-runtime renderer + HTML→VDOM bridge).
+- `apps/web/src/lib/tools/registry.ts` — imports `renderTools`, `executeRenderTool`, `RENDER_TOOLS_ADDENDUM`, `RenderToolGeneratedFile`. Added `RENDER_TOOL_NAMES` Set. `getToolFamilies` + `buildSystemAddendums` extended with a `render` family branch. `ARCHETYPE_TOOLS.marketing_director` gets `...renderTools` appended — **Marketing Director only**, no other archetype. `executeTool` extended with an optional `anthropic?: Anthropic` param (only render tool needs it, for the Files upload) and return type widened to `{ content, is_error?, generatedFile? }`. Render branch errors out with a clear string if the client is missing.
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — passes `anthropic` to `executeTool`; when a tool result carries `generatedFile`, pushes it into the turn's `generatedFiles` array. Wires render-tool outputs through the same FileChip path used by the docx/xlsx/pptx/pdf skills.
+- `apps/web/src/lib/skills/registry.ts` — `SKILL_MIME` extended with `png: "image/png"`, `jpg: "image/jpeg"`, `jpeg: "image/jpeg"` so the proxy returns accurate Content-Type for render-tool PNGs.
+- `apps/web/src/app/api/files/[fileId]/route.ts` — added an `EXTRA_FILE_MIME` fallback map (keyed by extension) so non-skill files still get accurate MIME; lookup falls back cleanly if neither table matches.
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — FileChip label map extended with `png: "PNG Image"`, `jpg`/`jpeg: "JPEG Image"`.
+
+### Tool Signature
+
+```
+render_design_to_image({
+  html: string,                 // required, self-contained HTML (no <script>, no external CSS/fonts)
+  preset?: "ig_square" | "ig_story" | "linkedin" | "twitter" | "og",
+  width?: number,               // optional custom width (64-2400 px)
+  height?: number,              // optional custom height (64-2400 px)
+  filename?: string             // optional; .png appended if missing
+}) → {
+  ok: true,
+  fileId: string,
+  name: string,
+  downloadUrl: "/api/files/:fileId",
+  width, height, bytes,
+  message: "PNG rendered and attached..."
+}
+// Plus: tool result surfaces a generatedFile entry into the turn's generatedFiles array.
+```
+
+### End-to-End Flow
+
+User: "Make me an Instagram square post for our spring gala" → Marketing Director picks up design intent → `FRONTEND_DESIGN_ADDENDUM` fires → model drafts distinctive HTML → model calls `render_design_to_image({ html, preset: "ig_square" })` → `renderHtmlToPng` rasterizes via satori + resvg → PNG uploads to Anthropic Files → tool returns fileId + `/api/files/:id` URL + sets `generatedFile` → runner threads it into `RunArchetypeTurnResult.generatedFiles` → UI renders a FileChip with "PNG Image" label → clicking the chip hits `/api/files/[fileId]`, which streams the PNG from Anthropic's Files API with `Content-Type: image/png`.
+
+### Verification
+
+- Direct smoke test: rendered a gradient hello-world composition via `@vercel/og` + `satori-html` to a 1200x630 PNG (50KB, valid PNG bytes). Confirmed the Node build of `@vercel/og` works on Windows + Node v22. Smoke script removed before commit.
+- `npx tsc --noEmit -p apps/web/tsconfig.json` clean.
+- Rebased on latest `origin/main` (Unsplash agent's `9152a2b`) before committing — no conflicts.
+
+### Edge Cases
+
+- Dimensions > 2400 px cause satori OOMs in Node lambdas — clamped at 64–2400. Larger canvases would need Puppeteer or an offloaded worker.
+- HTML must be self-contained: no `<script>`, no `<link>`, no external fonts (`@vercel/og` bundles Noto Sans by default). Complex CSS features (custom grids, filters, transforms) have partial Satori support — model is coached via `RENDER_TOOLS_ADDENDUM` to stick to inline styles + flex layouts + the experimental `tw=""` Tailwind attribute.
+- Anthropic Files upload can fail on quota / beta-disabled orgs; error surfaces as a string tool_result so the model explains to the user rather than 500ing.
+- Render tool is Marketing Director only — did NOT add to Events Director even though Events also has `unsplashTools`; per task spec.
+
+### Did NOT Touch
+
+- Unsplash-related code (`apps/web/src/lib/unsplash.ts`, `apps/web/src/lib/tools/unsplash.ts`) — parallel agent's domain.
+- Frontend Design skill itself (`FRONTEND_DESIGN_ADDENDUM`) — already works.
+- No image-generation APIs added (FLUX, DALL-E, etc.) — explicitly out of scope.
+
+---
+
 ## 2026-04-21 — Unsplash Stock Photo Tool Agent
 
 **Identity:** Unsplash Stock Photo Tool Agent

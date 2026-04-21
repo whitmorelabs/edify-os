@@ -70,6 +70,10 @@ export const SKILL_MIME: Record<string, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   pdf: "application/pdf",
+  // Raster images produced by the render_design_to_image tool (Marketing Director)
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
 };
 
 // ---------------------------------------------------------------------------

@@ -15,6 +15,15 @@ import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import { SKILL_MIME } from "@/lib/skills/registry";
 
+// Additional MIME types for non-skill tool outputs (e.g. the render_design_to_image
+// tool uploads PNGs to the same Anthropic Files store). Kept separate from
+// SKILL_MIME so the skills registry stays scoped to actual Anthropic Skills.
+const EXTRA_FILE_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+};
+
 export async function GET(
   _request: Request,
   { params }: { params: { fileId: string } }
@@ -53,7 +62,10 @@ export async function GET(
       if (metadata.filename) {
         filename = metadata.filename;
         const ext = filename.split(".").pop()?.toLowerCase();
-        if (ext && SKILL_MIME[ext]) contentType = SKILL_MIME[ext];
+        if (ext) {
+          if (SKILL_MIME[ext]) contentType = SKILL_MIME[ext];
+          else if (EXTRA_FILE_MIME[ext]) contentType = EXTRA_FILE_MIME[ext];
+        }
       }
     } catch {
       // Non-fatal — fall back to generic filename / octet-stream

@@ -286,7 +286,15 @@ export async function runArchetypeTurn({
               memberId,
               serviceClient,
               preFetchedTokens,
+              anthropic,
             });
+            // Tools that produce downloadable files (currently just the
+            // render tool) surface them via result.generatedFile — thread
+            // them into the outer-turn generatedFiles array so the UI's
+            // FileChip picks them up alongside skill-generated files.
+            if (result.generatedFile) {
+              generatedFiles.push(result.generatedFile);
+            }
             return {
               type: "tool_result" as const,
               tool_use_id: block.id,

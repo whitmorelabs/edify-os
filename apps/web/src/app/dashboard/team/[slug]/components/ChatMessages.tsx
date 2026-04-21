@@ -138,6 +138,9 @@ const FILE_EXT_LABEL: Record<string, string> = {
   xlsx: "Excel",
   pptx: "PowerPoint",
   pdf: "PDF",
+  png: "PNG Image",
+  jpg: "JPEG Image",
+  jpeg: "JPEG Image",
 };
 
 function FileChip({ file }: { file: GeneratedFile }) {
