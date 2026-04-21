@@ -2,6 +2,44 @@
 
 ---
 
+## 2026-04-21 — Admin Dashboard Real Data Agent
+
+**Identity:** Admin Dashboard Real Data Agent
+**Date:** 2026-04-21
+**Task:** Replace mock numbers (142 conversations / 63 tasks / 4 active members / 3 integrations) on the Admin Dashboard with real Supabase queries. Fix sidebar "Active" label that disagreed with admin card.
+
+### Files Changed
+
+- `apps/web/src/app/api/admin/stats/route.ts` — NEW. `GET /api/admin/stats` returns `{ teamConversationsThisWeek, tasksCompleted, activeTeamMembers, connectedIntegrations }` for the caller's org, all via `count: 'exact', head: true` queries in parallel.
+- `apps/web/src/app/dashboard/admin/page.tsx` — now `"use client"` + `useEffect` fetch against the new route. Skeleton while loading. Honest empty state: each card renders 0 in slate-300 with a descriptive label ("No team activity yet", "No tasks completed yet", "No teammates yet", "No integrations connected") instead of a bold bogus number.
+- `apps/web/src/app/api/team/enabled/route.ts` — NEW. `GET /api/team/enabled` returns `{ [slug]: enabled }` derived from `agent_configs.enabled`, merged with the same defaults that `/api/admin/ai-config` uses.
+- `apps/web/src/components/sidebar.tsx` — AI team list no longer hardcodes every archetype as "Active". Fetches `/api/team/enabled` on mount and renders "Active" / "Off" per slug (dot color muted + label dimmed when off). While the fetch is in flight, no badge flashes.
+
+### Queries Added
+
+| Card | Query |
+|---|---|
+| Team conversations this week | `conversations.count where org_id = orgId AND created_at >= now()-7d` |
+| Tasks completed | `tasks.count where org_id = orgId AND status = 'completed'` |
+| Team members | `members.count where org_id = orgId` (no active flag exists on members; every row is an active seat) |
+| Connected integrations | `integrations.count where org_id = orgId AND status = 'active'` |
+
+### Sidebar / Admin Source-of-Truth Fix
+
+Z flagged "side says all 6 are active, admin says 4 active" — those were measuring two different things (human members vs AI archetypes) and neither was truthful. Relabeled the admin card to "Team members" (it counts humans from `members`) and drove the sidebar's per-archetype "Active" badge from `agent_configs.enabled` so that an admin who disables an archetype in AI Configuration now sees "Off" in the sidebar immediately.
+
+### Empty-State Treatment
+
+Matches the existing main dashboard pattern — no fake "+12% this week" sparklines, no trend arrows, just a greyed-out 0 plus a plain explanatory label. No fabricated data anywhere.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+- Reviewed that `tasks.status = 'completed'` is still the canonical completed state after migration 00019 (which only added `kind`/`preview`/`agent_role` columns, not a new status column).
+- Did not touch Inbox / Tasks / Marketing Director files (other agents' domains).
+
+---
+
 ## 2026-04-21 — Frontend Design Skill Install Agent
 
 **Identity:** Frontend Design Skill Install Agent

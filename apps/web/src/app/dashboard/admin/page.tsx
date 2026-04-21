@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   MessageSquare,
@@ -10,33 +11,48 @@ import {
   Shield,
   BarChart2,
   Settings2,
+  type LucideIcon,
 } from "lucide-react";
+import type { AdminStats } from "@/app/api/admin/stats/route";
 
-const overviewCards = [
+type OverviewCard = {
+  key: keyof AdminStats;
+  label: string;
+  emptyLabel: string;
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+};
+
+const overviewCards: OverviewCard[] = [
   {
+    key: "teamConversationsThisWeek",
     label: "Team conversations this week",
-    value: "142",
+    emptyLabel: "No team activity yet",
     icon: MessageSquare,
     iconBg: "bg-brand-50",
     iconColor: "text-brand-500",
   },
   {
+    key: "tasksCompleted",
     label: "Tasks completed",
-    value: "63",
+    emptyLabel: "No tasks completed yet",
     icon: CheckSquare,
     iconBg: "bg-emerald-50",
     iconColor: "text-emerald-600",
   },
   {
-    label: "Active team members",
-    value: "4",
+    key: "activeTeamMembers",
+    label: "Team members",
+    emptyLabel: "No teammates yet",
     icon: Users,
     iconBg: "bg-sky-50",
     iconColor: "text-sky-600",
   },
   {
+    key: "connectedIntegrations",
     label: "Connected integrations",
-    value: "3",
+    emptyLabel: "No integrations connected",
     icon: Plug,
     iconBg: "bg-amber-50",
     iconColor: "text-amber-600",
@@ -70,7 +86,32 @@ const quickLinks = [
   },
 ];
 
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="card p-5 animate-pulse">
+          <div className="mb-3 h-10 w-10 rounded-lg bg-gray-200" />
+          <div className="h-8 w-12 rounded bg-gray-200" />
+          <div className="mt-2 h-4 w-32 rounded bg-gray-200" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminPage() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/stats")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: AdminStats | null) => setStats(data))
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -87,20 +128,37 @@ export default function AdminPage() {
       </div>
 
       {/* Overview cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {overviewCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} className="card p-5">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg} mb-3`}>
-                <Icon className={`h-5 w-5 ${card.iconColor}`} />
+      {loading ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {overviewCards.map((card) => {
+            const Icon = card.icon;
+            const value = stats?.[card.key] ?? 0;
+            const isEmpty = value === 0;
+            return (
+              <div key={card.key} className="card p-5">
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg} mb-3`}
+                >
+                  <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                </div>
+                {isEmpty ? (
+                  <>
+                    <p className="text-3xl font-bold text-slate-300">0</p>
+                    <p className="mt-1 text-sm text-slate-500">{card.emptyLabel}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold text-slate-900">{value}</p>
+                    <p className="mt-1 text-sm text-slate-500">{card.label}</p>
+                  </>
+                )}
               </div>
-              <p className="text-3xl font-bold text-slate-900">{card.value}</p>
-              <p className="mt-1 text-sm text-slate-500">{card.label}</p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Quick links */}
       <div>
@@ -114,7 +172,9 @@ export default function AdminPage() {
                 href={link.href}
                 className="card-interactive p-5 flex items-start gap-4"
               >
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${link.iconBg}`}>
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${link.iconBg}`}
+                >
                   <Icon className={`h-5 w-5 ${link.iconColor}`} />
                 </div>
                 <div className="flex-1 min-w-0">

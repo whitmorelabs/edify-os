@@ -25,6 +25,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useNotifications } from '@/components/notifications/NotificationProvider';
 import { useAuth } from '@/components/AuthProvider';
 import { useArchetypeNames } from '@/hooks/useArchetypeNames';
+import type { EnabledAgentsMap } from '@/app/api/team/enabled/route';
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -46,6 +47,16 @@ export function Sidebar() {
   const { names: archetypeNames } = useArchetypeNames();
   const [briefingComplete, setBriefingComplete] = useState(true); // default true to avoid flash
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [enabledAgents, setEnabledAgents] = useState<EnabledAgentsMap | null>(null);
+
+  useEffect(() => {
+    // Drive the "Active"/"Disabled" label from agent_configs so the sidebar
+    // matches the admin dashboard's source of truth instead of hardcoding "Active".
+    fetch('/api/team/enabled')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: EnabledAgentsMap | null) => setEnabledAgents(data))
+      .catch(() => setEnabledAgents(null));
+  }, []);
 
   // Derive display name: prefer full_name > name > email local-part, capitalised
   const displayName: string = (() => {
@@ -163,6 +174,9 @@ export function Sidebar() {
             const isChatActive = pathname.startsWith(`/dashboard/team/${slug}`);
             const customName = archetypeNames[slug];
             const displayLabel = customName ? `${customName} (${config.label})` : config.label;
+            // Until the enabled-agents fetch returns we simply hide the badge
+            // rather than flashing a stale "Active" label.
+            const enabled = enabledAgents ? enabledAgents[slug] : null;
 
             return (
               <Link
@@ -176,10 +190,25 @@ export function Sidebar() {
                 )}
               >
                 <span
-                  className={cn('w-2 h-2 rounded-full flex-shrink-0', config.bg)}
+                  className={cn(
+                    'w-2 h-2 rounded-full flex-shrink-0',
+                    enabled === false ? 'bg-slate-600' : config.bg,
+                  )}
                 />
-                <span className="flex-1 truncate">{displayLabel}</span>
-                <span className="text-[10px] text-brand-400">Active</span>
+                <span
+                  className={cn(
+                    'flex-1 truncate',
+                    enabled === false && 'text-brand-400/70',
+                  )}
+                >
+                  {displayLabel}
+                </span>
+                {enabled === true && (
+                  <span className="text-[10px] text-brand-400">Active</span>
+                )}
+                {enabled === false && (
+                  <span className="text-[10px] text-brand-400/70">Off</span>
+                )}
               </Link>
             );
           })}
