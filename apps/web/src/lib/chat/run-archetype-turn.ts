@@ -132,16 +132,15 @@ export async function runArchetypeTurn({
   const toolAddendums = buildSystemAddendums(tools);
 
   // C. Skills-on-demand — only attach skills when intent suggests doc generation.
-  const hasSkillsConfigured = archetypeSkillIds.length > 0;
-  const attachSkills = hasSkillsConfigured && shouldAttachSkills(userMessage);
+  const attachSkills = archetypeSkillIds.length > 0 && shouldAttachSkills(userMessage);
   const skillsAddendum = attachSkills ? SKILLS_ADDENDUM : "";
 
   // A. Cached system prompt — stable content only (no temporal block).
   // cache_control on the single text block marks everything up to (and including)
   // the tools array as a cache breakpoint per Anthropic's prefix-match semantics.
   const cachedSystemText = systemPrompt + orgContext + toolAddendums + skillsAddendum;
-  const systemBlocks: Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }> = [
-    { type: "text", text: cachedSystemText, cache_control: { type: "ephemeral" } },
+  const systemBlocks = [
+    { type: "text" as const, text: cachedSystemText, cache_control: { type: "ephemeral" as const } },
   ];
 
   // Tool list for this call — include code_execution only when skills are attached.

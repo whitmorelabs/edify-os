@@ -65,7 +65,7 @@ export const SKILL_MIME: Record<string, string> = {
 
 const SKILLS_TRIGGER_PATTERNS = [
   /\b(draft|create|generate|build|make|write|produce|compose)\b.*\b(doc|document|deck|slide|presentation|spreadsheet|excel|word|pdf|report|proposal|letter|email|newsletter|memo|policy)\b/i,
-  /\b(can you)\s+(draft|create|generate|build|make|write|produce|compose)/i,
+  /\bcan you\s+(draft|create|generate|build|make|write|produce|compose)/i,
   /\b(as a |in a )?(\.docx|\.xlsx|\.pptx|\.pdf|google doc|powerpoint|excel)\b/i,
   /\b(put it in|save it as|export as)\b/i,
 ];
