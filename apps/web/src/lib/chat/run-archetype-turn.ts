@@ -25,6 +25,9 @@ import {
   CODE_EXECUTION_TOOL,
   buildContainer,
   shouldAttachSkills,
+  FRONTEND_DESIGN_ARCHETYPES,
+  FRONTEND_DESIGN_ADDENDUM,
+  shouldAttachFrontendDesign,
 } from "@/lib/skills/registry";
 import type { ArchetypeSlug } from "@/lib/archetypes";
 
@@ -135,10 +138,18 @@ export async function runArchetypeTurn({
   const attachSkills = archetypeSkillIds.length > 0 && shouldAttachSkills(userMessage);
   const skillsAddendum = attachSkills ? SKILLS_ADDENDUM : "";
 
+  // D. Frontend Design — inject when archetype is eligible AND design intent is detected.
+  // Independent of the docx/xlsx/pptx/pdf skills beta: this is a pure system-prompt
+  // augmentation (no code execution, no container, no beta headers).
+  const attachFrontendDesign =
+    FRONTEND_DESIGN_ARCHETYPES.has(archetype) && shouldAttachFrontendDesign(userMessage);
+  const frontendDesignAddendum = attachFrontendDesign ? FRONTEND_DESIGN_ADDENDUM : "";
+
   // A. Cached system prompt — stable content only (no temporal block).
   // cache_control on the single text block marks everything up to (and including)
   // the tools array as a cache breakpoint per Anthropic's prefix-match semantics.
-  const cachedSystemText = systemPrompt + orgContext + toolAddendums + skillsAddendum;
+  const cachedSystemText =
+    systemPrompt + orgContext + toolAddendums + skillsAddendum + frontendDesignAddendum;
   const systemBlocks = [
     { type: "text" as const, text: cachedSystemText, cache_control: { type: "ephemeral" as const } },
   ];

@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-04-21 — Frontend Design Skill Install Agent
+
+**Identity:** Frontend Design Skill Install Agent
+**Date:** 2026-04-21
+**Task:** Install Anthropic's official `frontend-design` Claude Skill into Edify OS's Marketing Director archetype — Z's 2026-04-21 review said Marketing Director "needs to be able to design content and be more sophisticated." Design capability is the wedge answer to the "feels like ChatGPT on a different website" critique.
+
+### Files Changed
+
+- `apps/web/src/lib/skills/registry.ts` — added `FRONTEND_DESIGN_ARCHETYPES` (set: `marketing_director` only), `FRONTEND_DESIGN_TRIGGER_PATTERNS`, `shouldAttachFrontendDesign(userMessage)`, and `FRONTEND_DESIGN_ADDENDUM` (the SKILL.md body from `anthropics/skills/skills/frontend-design/SKILL.md`, inlined as a system-prompt addendum).
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — imports the three new exports; appends `FRONTEND_DESIGN_ADDENDUM` to the cached system text when archetype is in `FRONTEND_DESIGN_ARCHETYPES` AND `shouldAttachFrontendDesign(userMessage)` fires.
+
+### Skill Details
+
+- **Source:** `anthropics/skills/skills/frontend-design/SKILL.md` (same content as `anthropics/claude-code/plugins/frontend-design/skills/frontend-design/SKILL.md`; 277k+ installs across both repos).
+- **Integration shape — NOT via the skills beta API.** The pre-built `skill_id` enum on Anthropic's skills beta is restricted to `docx | xlsx | pptx | pdf` (the four document-generator skills we already wire via `container.skills[]`). `frontend-design` is an open-source skill published in `anthropics/skills` but not exposed as a pre-built `skill_id`; attempting to pass `skill_id: "frontend-design"` in `container.skills[]` would 400. The only two paths to use it via the API are: (a) upload it as a custom skill through `/v1/skills` endpoints (deferred — adds ZDR/infrastructure complexity for a skill whose entire payload is instructions), or (b) inject the SKILL.md body directly into the system prompt (what we did). Since frontend-design is a pure *design-reasoning* skill with no code execution or bundled scripts, path (b) is both sufficient and the simpler integration.
+- **Attachment rule — Marketing Director only, on design intent.** Trigger patterns cover: `design`, `mockup/wireframe/prototype`, `ui/ux`, `layout/composition`, `component`, `landing page/homepage`, `brand/branding/visual identity/aesthetic`, `hero section/cta section`, `website/microsite`, `html/css/tailwind/react component/jsx/tsx`, `palette/color scheme/typography`. When one matches AND archetype is `marketing_director`, the SKILL.md body is appended to the cached system text for that turn. Other archetypes never get the addendum, even on design-intent messages.
+- **No interference with existing skills.** The docx/xlsx/pptx/pdf skills beta flow (`shouldAttachSkills` / `buildContainer` / `SKILLS_BETA_HEADERS` / `CODE_EXECUTION_TOOL`) is completely untouched. Both can coexist on the same turn: e.g. "design a landing page and draft a one-pager .pdf brief" would attach both the frontend-design addendum AND the pdf skill via container.
+- **Caching preserved.** The addendum is appended inside the `cachedSystemText` block, which is marked `cache_control: ephemeral`. Design-intent turns will miss the cache once per aesthetic-topic change (expected; system-prompt prefix churn) but cache normally across repeated design-intent turns.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` on `apps/web` — clean, zero errors.
+- No live test — this is a config-shape addition, not a behavior rewrite. The code path only activates for Marketing Director + design-intent user messages.
+
+### Notes
+
+- License: Anthropic's frontend-design skill is Apache 2.0 (per `LICENSE.txt` in `anthropics/skills/skills/frontend-design/`). Inlining the SKILL.md text is permitted; attribution comment added at the `FRONTEND_DESIGN_ADDENDUM` definition pointing back to the source.
+- The one word change in the inlined body is "you are capable" instead of "Claude is capable" in the final paragraph — makes the addendum read naturally as second-person guidance to the archetype, rather than a third-person reference to the underlying model.
+- Scope held to exactly the ask: Marketing Director only. Other five archetypes' skill lists untouched. `shouldAttachSkills()` detector unchanged.
+
+---
+
 ## 2026-04-21 — Grants.gov API Fix Agent
 
 **Identity:** Grants.gov API Fix Agent
