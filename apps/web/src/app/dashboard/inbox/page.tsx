@@ -107,26 +107,18 @@ export default function InboxPage() {
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status } : i))
     );
+    const rollback = () =>
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
+      );
     // Persist to DB (every inbox item now comes from the approvals table)
     fetch(`/api/inbox/pending/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     })
-      .then((res) => {
-        if (!res.ok) {
-          // Roll back optimistic update on failure
-          setItems((prev) =>
-            prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
-          );
-        }
-      })
-      .catch(() => {
-        // Roll back on network error
-        setItems((prev) =>
-          prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
-        );
-      });
+      .then((res) => { if (!res.ok) rollback(); })
+      .catch(rollback);
   };
 
   const bulkApproveHighConfidence = () => {

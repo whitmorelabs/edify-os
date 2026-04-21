@@ -43,6 +43,9 @@ export async function GET() {
   }
 
   const validSlugs = ARCHETYPE_SLUGS as readonly string[];
+  const validStatuses: readonly TaskStatus[] = [
+    "pending", "planning", "executing", "awaiting_approval", "completed", "failed",
+  ];
 
   function resolveAgentSlug(roleSlug: string | undefined | null): AgentRoleSlug {
     return roleSlug && validSlugs.includes(roleSlug)
@@ -78,7 +81,7 @@ export async function GET() {
   // conversations as pseudo-completed tasks so the page isn't a ghost town
   // on a fresh install. Once real chat-artifact tasks start flowing in, this
   // fallback goes dormant automatically.
-  let conversationTasks: TaskRow[] = [];
+  const conversationTasks: TaskRow[] = [];
   if (!tasksData || tasksData.length === 0) {
     const { data: convData } = await serviceClient
       .from("conversations")
@@ -114,9 +117,6 @@ export async function GET() {
     const agentSlug = resolveAgentSlug(directRole ?? configRole);
 
     const rawStatus = task.status as string;
-    const validStatuses: TaskStatus[] = [
-      "pending", "planning", "executing", "awaiting_approval", "completed", "failed",
-    ];
     const status: TaskStatus = validStatuses.includes(rawStatus as TaskStatus)
       ? (rawStatus as TaskStatus)
       : "pending";

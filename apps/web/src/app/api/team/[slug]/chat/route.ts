@@ -197,7 +197,15 @@ export async function POST(
 // ---------------------------------------------------------------------------
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
-async function recordChatArtifact(params: {
+async function recordChatArtifact({
+  serviceClient,
+  orgId,
+  slug,
+  userMessage,
+  assistantText,
+  hasGeneratedFiles,
+  memberId,
+}: {
   serviceClient: NonNullable<ServiceClient>;
   orgId: string;
   slug: ArchetypeSlug;
@@ -206,16 +214,6 @@ async function recordChatArtifact(params: {
   hasGeneratedFiles: boolean;
   memberId: string | null;
 }) {
-  const {
-    serviceClient,
-    orgId,
-    slug,
-    userMessage,
-    assistantText,
-    hasGeneratedFiles,
-    memberId,
-  } = params;
-
   try {
     // Skip trivially short replies — "Sure!" / "OK" don't belong on the Tasks page.
     const trimmed = assistantText.trim();

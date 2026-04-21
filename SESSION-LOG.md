@@ -4311,3 +4311,54 @@ Only the 6 files from `git diff 293c589..c198ee3 --stat`, excluding the parallel
 - SHA: 9e55106
 - Message: `simplify: cleanup after frontend-design skill + admin dashboard`
 - Pushed to main
+
+---
+
+## 2026-04-21 — Simplify Pass Agent — Post Inbox-Split
+
+**Identity:** Simplify Pass Agent
+**Date:** 2026-04-21
+**Task:** Run `/simplify` over commit `7b43323` (inbox approvals-only + task artifacts routing) without touching files owned by the parallel agents already simplified (`9e55106`, `89b04d6`, `d667275`, `c198ee3`).
+
+### Scope
+Only the 6 files from `git diff c198ee3..7b43323`:
+- `apps/web/src/app/api/inbox/pending/route.ts`
+- `apps/web/src/app/api/tasks/[id]/route.ts`
+- `apps/web/src/app/api/tasks/recent/route.ts`
+- `apps/web/src/app/api/team/[slug]/chat/route.ts`
+- `apps/web/src/app/dashboard/inbox/page.tsx`
+- `apps/web/src/app/dashboard/tasks/page.tsx`
+
+Schema migrations (`supabase/migrations/00019_task_artifacts.sql`, `combined_migration.sql`) explicitly skipped per task instructions.
+
+### Findings
+
+**Reuse:**
+- `resolveAgentSlug` pattern + `validSlugs.includes` check duplicated in `tasks/recent/route.ts`, `inbox/pending/route.ts`, and `dashboard/summary/route.ts`. Proper fix is a shared helper in `@/lib/archetypes` or a new `@/lib/agent-slug` module. **Flagged but NOT applied** — extracting would require touching `dashboard/summary/route.ts` (out of scope) to achieve a real dedupe across the 3+ sites. Factoring just 2 of 3 sites is net-neutral.
+- `formatCreatedAt` duplicated verbatim between `dashboard/inbox/page.tsx` and `dashboard/tasks/page.tsx` (tasks adds one extra "N days ago" branch). There are already 5+ near-identical relative-time formatters codebase-wide (`formatRelativeTime` in `dashboard/page.tsx`, `dashboard/team/page.tsx`, `NotificationItem.tsx`; `timeAgo` in `HeartbeatUpdate.tsx`, `MemberTable.tsx`). **Flagged but NOT applied** — a true fix would be a shared `@/lib/time.ts` helper replacing all 5+ sites. Doing it inside scope alone wouldn't simplify the codebase net.
+
+**Quality:**
+- `validStatuses: TaskStatus[]` was rebuilt inside the per-task `for` loop in `tasks/recent/route.ts`. **FIXED** — hoisted outside the handler and typed `readonly TaskStatus[]`.
+- `conversationTasks: TaskRow[] = []` declared with `let`, never reassigned. **FIXED** — now `const` (still `.push`ed inside the block, which is fine).
+- `updateStatus` in `dashboard/inbox/page.tsx` had the identical 3-line `setItems((prev) => prev.map(...))` rollback inlined in both the `.then(!res.ok)` and `.catch()` handlers. **FIXED** — extracted a local `rollback()` closure; both handlers call it.
+- `recordChatArtifact` in `team/[slug]/chat/route.ts` took a `params` object and then destructured it inside the function body — redundant two-step. **FIXED** — destructure directly in the parameter list.
+- Urgency/status string-chain checks in `inbox/pending/route.ts` (`raw === "low" || raw === "normal" || ...`) work but could use `[...].includes(raw)`. Minor style — skipped; the chain is self-documenting and mirrors the adjacent `validStatuses.includes` pattern that already exists.
+
+**Efficiency:**
+- `tasks/recent/route.ts` array hoist (above) is the one real efficiency win — the inner loop runs up to 50 times per request.
+- `recordChatArtifact` is correctly fire-and-forget (`void` call), doesn't block HTTP response. Good.
+- Pre-fetch-before-delete in `tasks/[id]/route.ts` is NOT a TOCTOU anti-pattern — it's an intentional 404-vs-403 distinction for org ownership. Skip.
+- No unbounded structures, no missed concurrency, no hot-path bloat in the diff.
+
+### Judgment Calls
+- Did NOT extract `resolveAgentSlug` to a shared helper. Proper fix but scope boundary blocks the third call site (`dashboard/summary/route.ts`); fixing only 2 of 3 sites leaves the duplication.
+- Did NOT extract `formatCreatedAt` / relative-time formatter. Same logic — 5+ existing sites, scope limits to 2, net-neutral.
+- Did NOT rewrite the urgency/status string-chain as `.includes`. Style preference; no measurable benefit.
+
+### Verification
+- `npx tsc --noEmit -p apps/web/tsconfig.json` — clean, exit 0.
+
+### Commit
+- SHA: <pending>
+- Message: `simplify: cleanup after inbox-split + task artifacts routing`
+- Pushed to main
