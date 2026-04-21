@@ -82,7 +82,6 @@ export async function runArchetypeTurn({
   history = [],
   customArchetypeName,
 }: RunArchetypeTurnOptions): Promise<RunArchetypeTurnResult> {
-  // Build system prompt
   const basePrompt = ARCHETYPE_PROMPTS[archetype] ?? "";
   const systemPrompt =
     buildCustomNameInstruction(customArchetypeName) +
@@ -92,7 +91,6 @@ export async function runArchetypeTurn({
     ? `\n\n## Organization Context\nOrg name: ${orgName}\nMission: ${mission}`
     : `\n\n## Organization Context\nOrg name: ${orgName}`;
 
-  // Temporal block so Claude knows the current date/time
   const nowUtc = new Date();
   const nowLocal = nowUtc.toLocaleString("en-US", {
     timeZone: "America/New_York",
@@ -106,7 +104,6 @@ export async function runArchetypeTurn({
   });
   const temporalBlock = `Current date and time: ${nowUtc.toISOString()} (${nowLocal} America/New_York — UTC-4)\nWhen the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.\n`;
 
-  // Tools and skills for this archetype
   const tools = ARCHETYPE_TOOLS[archetype] ?? [];
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];
   const toolAddendums = buildSystemAddendums(tools);
@@ -118,7 +115,6 @@ export async function runArchetypeTurn({
   const allTools = hasSkills ? [...tools, CODE_EXECUTION_TOOL] : tools;
   const containerParam = buildContainer(archetypeSkillIds);
 
-  // Build initial message list
   const loopMessages: Anthropic.MessageParam[] = [
     ...history,
     { role: "user", content: userMessage },
@@ -151,36 +147,25 @@ export async function runArchetypeTurn({
           ...(tools.length > 0 ? { tools } : {}),
         });
 
-    // Collect any skill-generated file outputs
+    // Collect any skill-generated file outputs (two block-type variants from the beta API)
     if (hasSkills) {
+      const FILE_RESULT_TYPES: Record<string, string> = {
+        bash_code_execution_tool_result: "bash_code_execution_result",
+        code_execution_tool_result: "code_execution_result",
+      };
       for (const block of response.content) {
-        if (block.type === "bash_code_execution_tool_result") {
-          const result = (
-            block as {
-              type: string;
-              content: { type: string; content?: Array<{ type: string; file_id?: string }> };
-            }
-          ).content;
-          if (result?.type === "bash_code_execution_result" && Array.isArray(result.content)) {
-            for (const output of result.content) {
-              if (output.type === "bash_code_execution_output" && output.file_id) {
-                await collectFileOutput(output.file_id, anthropic, generatedFiles, SKILL_MIME);
-              }
-            }
+        const expectedResultType = FILE_RESULT_TYPES[block.type];
+        if (!expectedResultType) continue;
+        const result = (
+          block as {
+            type: string;
+            content: { type: string; content?: Array<{ type: string; file_id?: string }> };
           }
-        }
-        if (block.type === "code_execution_tool_result") {
-          const result = (
-            block as {
-              type: string;
-              content: { type: string; content?: Array<{ type: string; file_id?: string }> };
-            }
-          ).content;
-          if (result?.type === "code_execution_result" && Array.isArray(result.content)) {
-            for (const output of result.content) {
-              if (output.type === "code_execution_output" && output.file_id) {
-                await collectFileOutput(output.file_id, anthropic, generatedFiles, SKILL_MIME);
-              }
+        ).content;
+        if (result?.type === expectedResultType && Array.isArray(result.content)) {
+          for (const output of result.content) {
+            if (output.file_id) {
+              await collectFileOutput(output.file_id, anthropic, generatedFiles, SKILL_MIME);
             }
           }
         }
@@ -315,29 +300,25 @@ async function collectFileOutput(
   generatedFiles: GeneratedFile[],
   mimeMap: Record<string, string>
 ): Promise<void> {
+  let filename = fileId;
+  let mimeType = "application/octet-stream";
+
   try {
-    let filename = fileId;
-    let mimeType = "application/octet-stream";
-
-    try {
-      const meta = await anthropic.beta.files.retrieveMetadata(fileId, {
-        headers: { "anthropic-beta": "files-api-2025-04-14" },
-      } as Parameters<typeof anthropic.beta.files.retrieveMetadata>[1]);
-      if (meta.filename) {
-        filename = meta.filename;
-        const ext = filename.split(".").pop()?.toLowerCase() ?? "";
-        if (ext && mimeMap[ext]) mimeType = mimeMap[ext];
-      }
-    } catch {
-      // Non-fatal — use fileId as fallback name
+    const meta = await anthropic.beta.files.retrieveMetadata(fileId, {
+      headers: { "anthropic-beta": "files-api-2025-04-14" },
+    } as Parameters<typeof anthropic.beta.files.retrieveMetadata>[1]);
+    if (meta.filename) {
+      filename = meta.filename;
+      const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+      if (ext && mimeMap[ext]) mimeType = mimeMap[ext];
     }
-
-    generatedFiles.push({
-      name: filename,
-      mimeType,
-      downloadUrl: `/api/files/${encodeURIComponent(fileId)}`,
-    });
-  } catch (err) {
-    console.warn("[runArchetypeTurn] Could not collect file output", { fileId, error: err });
+  } catch {
+    // Non-fatal — use fileId as fallback name
   }
+
+  generatedFiles.push({
+    name: filename,
+    mimeType,
+    downloadUrl: `/api/files/${encodeURIComponent(fileId)}`,
+  });
 }

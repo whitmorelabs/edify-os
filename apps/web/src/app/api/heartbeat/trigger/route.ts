@@ -11,7 +11,6 @@ import type { HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  // 1. Auth check
   const { user, orgId, memberId } = await getAuthContext();
   if (!user || !orgId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,7 +21,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
-  // 2. Parse + validate request body
   let archetype: ArchetypeSlug;
   try {
     const body = await request.json();
@@ -38,13 +36,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  // 3. Get org's Anthropic client (BYOK)
   const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId, ["mission"]);
   if ("error" in anthropicResult) return anthropicResult.error;
   const { client: anthropic, orgName, org } = anthropicResult;
   const mission = org.mission as string | null;
 
-  // 4. Upsert heartbeat_jobs row for (org, archetype) so a job record always exists
+  // Upsert heartbeat_jobs row for (org, archetype) so a job record always exists
   const jobName = `${archetype} heartbeat`;
   const { data: jobRow, error: upsertError } = await serviceClient
     .from("heartbeat_jobs")
@@ -67,42 +64,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to initialize heartbeat job" }, { status: 500 });
   }
 
-  const jobId: string = jobRow.id;
+  const jobId = jobRow.id;
 
-  // 5. Insert a heartbeat_runs row with status="running"
+  // Insert a heartbeat_runs row with status="running". Also prefetch the custom
+  // archetype name in parallel since it doesn't depend on the run row.
   const startedAt = new Date().toISOString();
-  const { data: runRow, error: insertError } = await serviceClient
-    .from("heartbeat_runs")
-    .insert({
-      job_id: jobId,
-      status: "running",
-      started_at: startedAt,
-      findings_summary: null,
-      completed_at: null,
-    })
-    .select("id")
-    .single();
+  const [runResult, memberResult] = await Promise.all([
+    serviceClient
+      .from("heartbeat_runs")
+      .insert({
+        job_id: jobId,
+        status: "running",
+        started_at: startedAt,
+        findings_summary: null,
+        completed_at: null,
+      })
+      .select("id")
+      .single(),
+    memberId
+      ? serviceClient.from("members").select("archetype_names").eq("id", memberId).single()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
+  const { data: runRow, error: insertError } = runResult;
   if (insertError || !runRow) {
     console.error("[heartbeat/trigger] Failed to insert heartbeat_runs:", insertError);
     return NextResponse.json({ error: "Failed to start heartbeat run" }, { status: 500 });
   }
 
-  const runId: string = runRow.id;
+  const runId = runRow.id;
+  const namesMap = (memberResult.data?.archetype_names as Record<string, string>) ?? {};
+  const customArchetypeName = namesMap[archetype] ?? null;
 
-  // 6. Fetch optional custom archetype name for this member
-  let customArchetypeName: string | null = null;
-  if (memberId) {
-    const { data: memberRow } = await serviceClient
-      .from("members")
-      .select("archetype_names")
-      .eq("id", memberId)
-      .single();
-    const namesMap = (memberRow?.archetype_names as Record<string, string>) ?? {};
-    customArchetypeName = namesMap[archetype] ?? null;
-  }
-
-  // 7. Run the archetype's proactive prompt through the tool-use loop
   const proactivePrompt = ARCHETYPE_HEARTBEAT_PROMPTS[archetype];
   let finalText: string;
   let runStatus: "completed" | "error" = "completed";
@@ -117,7 +110,6 @@ export async function POST(request: Request) {
       client: anthropic,
       orgName,
       mission,
-      history: [],
       customArchetypeName,
     });
     finalText = text;
@@ -127,25 +119,19 @@ export async function POST(request: Request) {
     runStatus = "error";
   }
 
-  // 8. Update heartbeat_runs with result
   const completedAt = new Date().toISOString();
-  await serviceClient
-    .from("heartbeat_runs")
-    .update({
-      status: runStatus,
-      findings_summary: finalText,
-      completed_at: completedAt,
-    })
-    .eq("id", runId);
+  await Promise.all([
+    serviceClient
+      .from("heartbeat_runs")
+      .update({ status: runStatus, findings_summary: finalText, completed_at: completedAt })
+      .eq("id", runId),
+    serviceClient
+      .from("heartbeat_jobs")
+      .update({ last_run_at: completedAt })
+      .eq("id", jobId),
+  ]);
 
-  // Also update last_run_at on the job
-  await serviceClient
-    .from("heartbeat_jobs")
-    .update({ last_run_at: completedAt })
-    .eq("id", jobId);
-
-  // 9. Shape the HeartbeatResult response
-  // Title = first non-empty line of the findings text
+  // Title = first non-empty line of the findings text (strips markdown headers, etc.)
   const firstLine =
     finalText
       .split("\n")

@@ -76,7 +76,6 @@ export default function InboxPage() {
   // Heartbeat state
   const [heartbeats, setHeartbeats] = useState<HeartbeatResult[]>([]);
   const [heartbeatsLoading, setHeartbeatsLoading] = useState(false);
-  // Per-archetype trigger state: tracks which archetypes are currently running a check-in
   const [triggeringArchetypes, setTriggeringArchetypes] = useState<Set<ArchetypeSlug>>(new Set());
 
   useEffect(() => {
@@ -187,7 +186,6 @@ export default function InboxPage() {
     setTriggeringArchetypes((prev) => new Set(prev).add(archetype));
     try {
       const result = await triggerHeartbeat(archetype);
-      // Prepend the new result into the heartbeats list so it appears at top
       setHeartbeats((prev) => [result, ...prev]);
     } catch (err) {
       console.error("[inbox] runCheckIn failed:", err);
