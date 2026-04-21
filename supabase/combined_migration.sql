@@ -717,3 +717,20 @@ create trigger donations_update_aggregates
 
 alter table members
   add column if not exists archetype_names jsonb not null default '{}'::jsonb;
+
+-- Migration 00019: Route completed agent artifacts to the Tasks page
+--
+-- Adds `kind`, `preview`, and `agent_role` columns to `tasks` so that chat
+-- replies and other completed agent artifacts can be stored with enough
+-- metadata to render rich cards on the Tasks page. Inbox no longer reads
+-- assistant messages; it reads only from `approvals` (items that truly need
+-- a user decision).
+
+alter table tasks
+  add column if not exists kind text,
+  add column if not exists preview text,
+  add column if not exists agent_role text;
+
+create index if not exists idx_tasks_org_kind
+  on tasks(org_id, kind)
+  where kind is not null;

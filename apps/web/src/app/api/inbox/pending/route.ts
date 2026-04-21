@@ -13,8 +13,14 @@ export interface InboxItem {
   urgency: "low" | "normal" | "high" | "critical";
   status: "pending" | "approved" | "rejected";
   createdAt: string;
-  /** "approvals" = real DB row that can be PATCHed; "messages" = fallback, localStorage only */
-  source: "approvals" | "messages";
+  /**
+   * All inbox items now come from the `approvals` table — items that
+   * genuinely require a user decision (approve / edit / reject). The old
+   * "messages" fallback (long assistant replies surfaced as fake inbox items)
+   * was removed because it leaked completed agent work into the decision queue.
+   * Completed artifacts now live on the Tasks page instead.
+   */
+  source: "approvals";
 }
 
 export async function GET() {
@@ -31,7 +37,9 @@ export async function GET() {
   const validSlugs = ARCHETYPE_SLUGS as readonly string[];
   const items: InboxItem[] = [];
 
-  // 1. Real approvals from the approvals table
+  // Inbox = strictly approvals. Heartbeat findings also arrive as approvals
+  // when the triage path decides user attention is warranted; non-decision
+  // artifacts (chat drafts, social posts, etc.) go to /api/tasks/recent.
   const { data: approvalsData } = await serviceClient
     .from("approvals")
     .select(`
@@ -82,55 +90,6 @@ export async function GET() {
       createdAt: ap.created_at as string,
       source: "approvals",
     });
-  }
-
-  // 2. If no approvals, pull long assistant messages as inbox items
-  if (items.length === 0) {
-    const { data: messagesData } = await serviceClient
-      .from("messages")
-      .select(`
-        id,
-        content,
-        created_at,
-        conversations!inner(org_id, agent_config_id, agent_configs(role_slug))
-      `)
-      .eq("conversations.org_id", orgId)
-      .eq("role", "assistant")
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    for (const msg of messagesData ?? []) {
-      const content = (msg.content as string) ?? "";
-      if (content.length < 300) continue; // skip short messages
-
-      const convMeta = msg.conversations as {
-        org_id?: string;
-        agent_config_id?: string;
-        agent_configs?: { role_slug?: string } | null;
-      } | null;
-      const slug = convMeta?.agent_configs?.role_slug;
-      const agentSlug =
-        slug && validSlugs.includes(slug)
-          ? (slug as AgentRoleSlug)
-          : ("executive_assistant" as AgentRoleSlug);
-
-      // Build a title from the first line of the content
-      const firstLine = content.split("\n")[0].replace(/^#+\s*/, "").slice(0, 80);
-      const title = firstLine || "Assistant Draft";
-
-      items.push({
-        id: msg.id as string,
-        agent: agentSlug,
-        title,
-        summary: content.slice(0, 150) + (content.length > 150 ? "..." : ""),
-        preview: content,
-        confidence: 0.8,
-        urgency: "normal",
-        status: "pending",
-        createdAt: msg.created_at as string,
-        source: "messages",
-      });
-    }
   }
 
   return NextResponse.json(items);

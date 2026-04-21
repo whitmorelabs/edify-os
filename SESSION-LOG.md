@@ -2,6 +2,81 @@
 
 ---
 
+## 2026-04-21 — Inbox / Tasks Split Agent
+
+**Identity:** Inbox/Tasks Split Agent
+**Date:** 2026-04-21
+**Task:** Restructure Inbox so only approval-required items live there, and route completed agent artifacts (drafted emails, social posts, chat replies) to the Tasks page. Z's review: "All messages are filtering into Inbox instead of completed tasks." Citlali chose Option B — Inbox = decisions, Tasks = artifacts.
+
+### Tables Changed (Migration 00019)
+
+- `tasks.kind text` — artifact type (chat_reply, email_draft, social_post, grant_note, document). Nullable for legacy rows.
+- `tasks.preview text` — short preview of the artifact output (first ~400 chars). Nullable.
+- `tasks.agent_role text` — archetype slug of the producer (mirrors `task_steps.agent_role`). Removes the mandatory `agent_configs` join for web-chat tasks (which rarely have an `agent_config_id`).
+- Partial index `idx_tasks_org_kind` on `(org_id, kind) where kind is not null` for fast kind-filtered lookups.
+
+**File:** `supabase/migrations/00019_task_artifacts.sql` + appended to `supabase/combined_migration.sql`. **NEW MIGRATION — Citlali must apply manually via Supabase SQL Editor before chat-artifact rows will save.** Until applied, the chat route's `recordChatArtifact()` insert will silently fail (wrapped in try/catch, non-fatal).
+
+### Routing Logic
+
+- **Inbox (`/api/inbox/pending/route.ts`)** — removed the `messages` fallback entirely. Now returns **only** `approvals` rows for the org. This is the root fix for Z's complaint: long assistant replies will never again masquerade as inbox items.
+- **Chat route (`/api/team/[slug]/chat/route.ts`)** — after `runArchetypeTurn` completes successfully, a fire-and-forget `recordChatArtifact()` inserts a `tasks` row with `status='completed'`, `kind=<classified>`, `agent_role=<slug>`, `title=<first line ≤80>`, `preview=<first 400 chars>`. Trivial replies (<80 chars, no files) are skipped. `classifyArtifact()` labels by keyword: email → email_draft, social → social_post, grant → grant_note, generated files → document, else chat_reply.
+- **Approvals write-path** — untouched. `apps/api/src/queues/workers/agent-task.worker.ts` remains the sole writer of `approvals`; it fires only when the agent service returns `status='awaiting_approval'` with `approval_needed`. So the Inbox only grows when the agent-service layer genuinely decides a user decision is required.
+- **Heartbeats → Inbox (Team Updates tab)** — untouched. That flow writes to `heartbeat_runs` (not `approvals`), read by `/api/heartbeat/history`, shown in the inbox's "Team Updates" section. No regression.
+
+### Inbox UX
+
+- Empty state updated to Option B copy: "Nothing needs your attention right now. Your team is working — see the Tasks page for completed work." (with a link to `/dashboard/tasks`).
+- Visual/filter layout unchanged; removed `item.source === "approvals"` branching and localStorage fallback path since every inbox item is now backed by a real approvals row. `InboxItem.source` is now a literal `"approvals"`.
+
+### Tasks UX
+
+- Full redesign from a flat table to rich card list. Each card shows:
+  - Archetype badge (colored icon + label, left border color)
+  - Title (first line of artifact, truncated 80ch)
+  - Kind pill (Chat reply / Email draft / Social post / Grant note / Document)
+  - Status pill
+  - Relative timestamp
+  - 2-line preview
+  - "Open" action → modal with full preview
+  - Delete action (trash icon with confirm) — wires to new `DELETE /api/tasks/[id]` route.
+- Empty state: "No completed work yet. Ask your team to get started — drafts, replies, and artifacts will show up here." Kept the existing conversation-fallback so a fresh install still has something to show.
+- Old expandable task-steps table dropped — wasn't being populated by web-chat flow anyway, and agent-task worker tasks have `status` transitions shown by the status pill.
+
+### New API Route
+
+- `DELETE /api/tasks/[id]/route.ts` — deletes a task after verifying `org_id` match. Cascade on `task_steps` via existing FK.
+
+### Migration Safety
+
+- **No backfill.** Existing `approvals` and `tasks` rows untouched. Old "leaked" long-message inbox items were read-only synthesizations from `messages` (never persisted to `approvals`), so simply cutting the read-path eliminates them. Nothing to clean up.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → clean, exit 0.
+- Heartbeat → inbox "Team Updates" flow preserved (`/api/heartbeat/history` unchanged, heartbeat section of inbox page untouched).
+- Dashboard summary route (`/api/dashboard/summary`) already reads `tasks.status='completed'` + `approvals.status='pending'` — both counts remain accurate; adding chat-artifact tasks will increase the `tasksCompleted` counter naturally (which is the desired outcome per Z's feedback — "Tasks page feels fake" is now solved).
+
+### Edge Cases / Notes
+
+- Chat route's task insert is fire-and-forget. If Supabase is down, the chat response still returns to the user successfully — only the Tasks page misses the row.
+- Heartbeat route does NOT write to `tasks`. Heartbeats already have their own `heartbeat_runs` persistence and show in the Team Updates tab. Writing a second tasks row would be double-surfacing.
+- The apps/api agent-task worker already writes tasks rows on completion — unchanged. Those rows will simply have `kind=null` and `agent_role=null` until the worker is updated (out of scope; separate flow).
+- Classification is heuristic. If Citlali wants richer categorization later, the clean hook is to extend `classifyArtifact()` in `apps/web/src/app/api/team/[slug]/chat/route.ts`.
+
+### Files Changed
+
+- **NEW** `supabase/migrations/00019_task_artifacts.sql`
+- `supabase/combined_migration.sql` — appended migration 00019
+- `apps/web/src/app/api/inbox/pending/route.ts` — removed messages fallback
+- `apps/web/src/app/dashboard/inbox/page.tsx` — empty state copy + dead-branch cleanup
+- `apps/web/src/app/api/tasks/recent/route.ts` — kind/preview/agent_role in TaskRow
+- `apps/web/src/app/dashboard/tasks/page.tsx` — rich card UI + open/delete modal
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — `recordChatArtifact()` hook
+- **NEW** `apps/web/src/app/api/tasks/[id]/route.ts` — DELETE handler
+
+---
+
 ## 2026-04-21 — Admin Dashboard Real Data Agent
 
 **Identity:** Admin Dashboard Real Data Agent

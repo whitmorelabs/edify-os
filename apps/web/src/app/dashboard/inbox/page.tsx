@@ -102,32 +102,31 @@ export default function InboxPage() {
 
   const updateStatus = (id: string, status: ApprovalStatus) => {
     const item = items.find((i) => i.id === id);
+    if (!item) return;
     // Optimistic local update first for snappy UI
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status } : i))
     );
-    // Only persist to DB if this came from the approvals table
-    if (item?.source === "approvals") {
-      fetch(`/api/inbox/pending/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      })
-        .then((res) => {
-          if (!res.ok) {
-            // Roll back optimistic update on failure
-            setItems((prev) =>
-              prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
-            );
-          }
-        })
-        .catch(() => {
-          // Roll back on network error
+    // Persist to DB (every inbox item now comes from the approvals table)
+    fetch(`/api/inbox/pending/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          // Roll back optimistic update on failure
           setItems((prev) =>
             prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
           );
-        });
-    }
+        }
+      })
+      .catch(() => {
+        // Roll back on network error
+        setItems((prev) =>
+          prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
+        );
+      });
   };
 
   const bulkApproveHighConfidence = () => {
@@ -138,39 +137,28 @@ export default function InboxPage() {
   };
 
   const openEdit = (item: InboxItem) => {
-    // Check localStorage for saved edits
-    const saved = localStorage.getItem(`edify_inbox_edits_${item.id}`);
-    setEditContent(saved ?? item.preview);
+    setEditContent(item.preview);
     setEditingId(item.id);
     setExpandedModalId(null);
   };
 
   const saveEdit = (id: string) => {
-    const item = items.find((i) => i.id === id);
     const captured = editContent;
 
-    if (item?.source === "approvals") {
-      // Persist to DB; update local state on success
-      fetch(`/api/inbox/pending/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ output_preview: captured }),
+    // Every inbox item is backed by a real approvals row now — persist to DB.
+    fetch(`/api/inbox/pending/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ output_preview: captured }),
+    })
+      .then((res) => {
+        if (res.ok) {
+          setItems((prev) =>
+            prev.map((i) => (i.id === id ? { ...i, preview: captured } : i))
+          );
+        }
       })
-        .then((res) => {
-          if (res.ok) {
-            setItems((prev) =>
-              prev.map((i) => (i.id === id ? { ...i, preview: captured } : i))
-            );
-          }
-        })
-        .catch(() => {/* ignore — user can retry */});
-    } else {
-      // messages fallback: localStorage only
-      localStorage.setItem(`edify_inbox_edits_${id}`, captured);
-      setItems((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, preview: captured } : i))
-      );
-    }
+      .catch(() => {/* ignore — user can retry */});
 
     setEditingId(null);
     setEditContent("");
@@ -336,10 +324,14 @@ export default function InboxPage() {
               <div className="card p-12 text-center">
                 <Filter className="mx-auto h-10 w-10 text-slate-300" />
                 <p className="mt-4 font-medium text-slate-700">
-                  Nothing waiting for your review right now.
+                  Nothing needs your attention right now.
                 </p>
                 <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
-                  Your team will flag items here when they draft emails, posts, or proposals.
+                  Your team is working — see the{" "}
+                  <Link href="/dashboard/tasks" className="text-brand-600 hover:underline">
+                    Tasks page
+                  </Link>{" "}
+                  for completed work.
                 </p>
               </div>
             ) : filtered.length === 0 ? (

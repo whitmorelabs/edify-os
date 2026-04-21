@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, Search, Filter, MessageSquare } from "lucide-react";
+import {
+  Search,
+  Filter,
+  MessageSquare,
+  Maximize2,
+  Trash2,
+  FileText,
+  Mail,
+  Share2,
+  Landmark,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { AGENT_COLORS, type AgentRoleSlug } from "@/lib/agent-colors";
 import type { TaskRow, TaskStatus } from "@/app/api/tasks/recent/route";
@@ -26,6 +37,18 @@ const statusConfig: Record<
   failed: { label: "Failed", bg: "bg-red-50", text: "text-red-700" },
 };
 
+// Kind -> { label, icon, color } for the small pill on each task card.
+const kindConfig: Record<
+  string,
+  { label: string; icon: typeof FileText; bg: string; text: string }
+> = {
+  chat_reply: { label: "Chat reply", icon: MessageSquare, bg: "bg-slate-100", text: "text-slate-600" },
+  email_draft: { label: "Email draft", icon: Mail, bg: "bg-sky-50", text: "text-sky-700" },
+  social_post: { label: "Social post", icon: Share2, bg: "bg-amber-50", text: "text-amber-700" },
+  grant_note: { label: "Grant note", icon: Landmark, bg: "bg-emerald-50", text: "text-emerald-700" },
+  document: { label: "Document", icon: FileText, bg: "bg-violet-50", text: "text-violet-700" },
+};
+
 function formatCreatedAt(iso: string): string {
   if (!iso) return "";
   const date = new Date(iso);
@@ -43,9 +66,9 @@ function formatCreatedAt(iso: string): string {
 }
 
 export default function TasksPage() {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,12 +94,28 @@ export default function TasksPage() {
     return true;
   });
 
+  const openTask = openTaskId ? tasks.find((t) => t.id === openTaskId) : null;
+
+  const deleteTask = async (id: string) => {
+    if (!window.confirm("Delete this task? This cannot be undone.")) return;
+    // Optimistic remove
+    const prev = tasks;
+    setTasks((curr) => curr.filter((t) => t.id !== id));
+    try {
+      const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("delete failed");
+    } catch {
+      // Roll back on failure
+      setTasks(prev);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="heading-1">Tasks</h1>
         <p className="mt-1 text-slate-500">
-          Track all work being done by your AI team.
+          Completed work from your AI team — drafts, replies, and artifacts.
         </p>
       </div>
 
@@ -106,174 +145,161 @@ export default function TasksPage() {
         </select>
       </div>
 
-      {/* Task Table */}
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-8 space-y-3">
-            <div className="h-12 rounded-lg bg-slate-100 animate-pulse" />
-            <div className="h-12 rounded-lg bg-slate-100 animate-pulse" />
-            <div className="h-12 rounded-lg bg-slate-100 animate-pulse" />
-          </div>
-        ) : error ? (
-          <div className="p-12 text-center">
-            <p className="text-sm text-red-500">{error}</p>
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="p-12 text-center">
-            <MessageSquare className="mx-auto h-10 w-10 text-slate-300" />
-            <p className="mt-4 font-medium text-slate-700">No tasks yet.</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Start a conversation with any team member to begin.
-            </p>
-            <Link
-              href="/dashboard/team"
-              className="btn-secondary mt-4 inline-flex items-center gap-1.5"
-            >
-              Go to Team
-            </Link>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Task
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Agent
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Status
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Confidence
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Created
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-12 text-center">
-                    <Filter className="mx-auto h-8 w-8 text-slate-300" />
-                    <p className="mt-3 text-sm text-slate-500">
-                      No tasks match your filters.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((task) => {
-                  const agentConfig = AGENT_COLORS[task.agent as AgentRoleSlug] ?? AGENT_COLORS.executive_assistant;
-                  const sc = statusConfig[task.status] ?? statusConfig.pending;
-                  const isExpanded = expandedId === task.id;
-                  const confidenceColor =
-                    task.confidence === null
-                      ? "bg-slate-200"
-                      : task.confidence >= 0.85
-                      ? "bg-emerald-500"
-                      : task.confidence >= 0.6
-                      ? "bg-amber-500"
-                      : "bg-red-500";
+      {/* Task cards */}
+      {loading ? (
+        <div className="space-y-3">
+          <div className="h-28 rounded-xl bg-slate-100 animate-pulse" />
+          <div className="h-28 rounded-xl bg-slate-100 animate-pulse" />
+          <div className="h-28 rounded-xl bg-slate-100 animate-pulse" />
+        </div>
+      ) : error ? (
+        <div className="card p-12 text-center">
+          <p className="text-sm text-red-500">{error}</p>
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="card p-12 text-center">
+          <MessageSquare className="mx-auto h-10 w-10 text-slate-300" />
+          <p className="mt-4 font-medium text-slate-700">No completed work yet.</p>
+          <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
+            Ask your team to get started — drafts, replies, and artifacts will show up here.
+          </p>
+          <Link
+            href="/dashboard/team"
+            className="btn-secondary mt-4 inline-flex items-center gap-1.5"
+          >
+            Go to Team
+          </Link>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="card p-12 text-center">
+          <Filter className="mx-auto h-8 w-8 text-slate-300" />
+          <p className="mt-3 text-sm text-slate-500">No tasks match your filters.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((task) => {
+            const agentConfig = AGENT_COLORS[task.agent as AgentRoleSlug] ?? AGENT_COLORS.executive_assistant;
+            const sc = statusConfig[task.status] ?? statusConfig.pending;
+            const kc = task.kind ? kindConfig[task.kind] : null;
+            const KindIcon = kc?.icon;
 
-                  return (
-                    <>
-                      <tr
-                        key={`row-${task.id}`}
-                        className="cursor-pointer hover:bg-slate-50 transition-colors"
-                        onClick={() =>
-                          setExpandedId(isExpanded ? null : task.id)
-                        }
+            return (
+              <div
+                key={task.id}
+                className={`card border-l-4 ${agentConfig.border} overflow-hidden`}
+              >
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${agentConfig.bg}`}
                       >
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-slate-400" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-slate-400" />
-                            )}
-                            <span className="text-sm font-medium text-slate-900">
-                              {task.title}
+                        <agentConfig.icon className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-slate-900 truncate">
+                          {task.title}
+                        </h3>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-slate-500">{agentConfig.label}</span>
+                          {kc && KindIcon && (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${kc.bg} ${kc.text}`}
+                            >
+                              <KindIcon className="h-3 w-3" />
+                              {kc.label}
                             </span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`h-2 w-2 rounded-full ${agentConfig.bg}`}
-                            />
-                            <span className="text-sm text-slate-600">
-                              {agentConfig.label}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
+                          )}
                           <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${sc.bg} ${sc.text}`}
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${sc.bg} ${sc.text}`}
                           >
                             {sc.label}
                           </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          {task.confidence !== null ? (
-                            <div className="flex items-center gap-2">
-                              <div className="h-1.5 w-16 rounded-full bg-slate-100">
-                                <div
-                                  className={`h-1.5 rounded-full ${confidenceColor}`}
-                                  style={{
-                                    width: `${task.confidence * 100}%`,
-                                  }}
-                                />
-                              </div>
-                              <span className="text-xs text-slate-500">
-                                {Math.round(task.confidence * 100)}%
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400">--</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-sm text-slate-500">
-                          {formatCreatedAt(task.createdAt)}
-                        </td>
-                      </tr>
+                          <span className="text-xs text-slate-400">
+                            {formatCreatedAt(task.createdAt)}
+                          </span>
+                        </div>
+                        {task.preview && (
+                          <p className="mt-2 text-sm text-slate-600 line-clamp-2">
+                            {task.preview}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                      {/* Expanded Steps */}
-                      {isExpanded && task.steps.length > 0 && (
-                        <tr key={`steps-${task.id}`}>
-                          <td colSpan={5} className="bg-slate-50 px-5 py-4">
-                            <div className="ml-6 space-y-3 border-l-2 border-brand-200 pl-4">
-                              {task.steps.map((step) => (
-                                <div
-                                  key={step.id}
-                                  className="relative flex items-start gap-3"
-                                >
-                                  <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-brand-400 ring-2 ring-white" />
-                                  <div>
-                                    <p className="text-sm text-slate-700">
-                                      {step.action}
-                                    </p>
-                                    <p className="text-xs text-slate-400">
-                                      Step {step.stepNumber}
-                                      {step.durationMs != null &&
-                                        ` · ${(step.durationMs / 1000).toFixed(1)}s`}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => setOpenTaskId(task.id)}
+                        className="btn-ghost text-xs"
+                        title="Open full content"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                        Open
+                      </button>
+                      <button
+                        onClick={() => deleteTask(task.id)}
+                        className="btn-ghost text-xs text-slate-500 hover:text-red-600"
+                        title="Delete task"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Open-task modal */}
+      {openTask && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setOpenTaskId(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl bg-white shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-slate-900 text-lg">{openTask.title}</h2>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {(AGENT_COLORS[openTask.agent as AgentRoleSlug] ?? AGENT_COLORS.executive_assistant).label}
+                  {openTask.kind ? ` · ${kindConfig[openTask.kind]?.label ?? openTask.kind}` : ""}
+                  {" · "}
+                  {formatCreatedAt(openTask.createdAt)}
+                </p>
+              </div>
+              <button
+                onClick={() => setOpenTaskId(null)}
+                className="ml-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">
+              {openTask.preview || "No preview available for this task."}
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => {
+                  deleteTask(openTask.id);
+                  setOpenTaskId(null);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+              <button onClick={() => setOpenTaskId(null)} className="btn-ghost ml-auto">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

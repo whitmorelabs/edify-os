@@ -160,6 +160,23 @@ export async function POST(
       .eq("id", activeConversationId),
   ]);
 
+  // Route completed artifact to the Tasks page (not the Inbox).
+  // Per Z's 2026-04-21 review + Citlali's Option B choice:
+  //   Inbox = items that need a user decision (approvals).
+  //   Tasks = completed agent work (drafts, replies, artifacts).
+  // Non-trivial responses get a tasks row with status='completed' + kind. The
+  // agent-task worker in apps/api is the write-path for approvals (when a
+  // response genuinely needs sign-off); it is the only producer of inbox items.
+  void recordChatArtifact({
+    serviceClient,
+    orgId,
+    slug: slug as ArchetypeSlug,
+    userMessage: message,
+    assistantText: text,
+    hasGeneratedFiles: generatedFiles.length > 0,
+    memberId: memberId ?? null,
+  });
+
   return NextResponse.json({
     id: crypto.randomUUID(),
     role: "assistant",
@@ -168,4 +185,91 @@ export async function POST(
     conversationId: activeConversationId,
     ...(generatedFiles.length > 0 ? { files: generatedFiles } : {}),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Helper: classify a chat response and log it to the `tasks` table so the
+// Tasks page can show archetype-badged cards of completed artifacts.
+//
+// Fire-and-forget: we do not block the HTTP response on this insert, and any
+// failure here is non-fatal (we just log). The source of truth for the chat
+// reply is still the `messages` table — tasks rows are an index/summary.
+// ---------------------------------------------------------------------------
+type ServiceClient = ReturnType<typeof createServiceRoleClient>;
+
+async function recordChatArtifact(params: {
+  serviceClient: NonNullable<ServiceClient>;
+  orgId: string;
+  slug: ArchetypeSlug;
+  userMessage: string;
+  assistantText: string;
+  hasGeneratedFiles: boolean;
+  memberId: string | null;
+}) {
+  const {
+    serviceClient,
+    orgId,
+    slug,
+    userMessage,
+    assistantText,
+    hasGeneratedFiles,
+    memberId,
+  } = params;
+
+  try {
+    // Skip trivially short replies — "Sure!" / "OK" don't belong on the Tasks page.
+    const trimmed = assistantText.trim();
+    if (!hasGeneratedFiles && trimmed.length < 80) return;
+
+    const kind = classifyArtifact(userMessage, assistantText, hasGeneratedFiles);
+
+    // Title = first non-empty line (strip markdown headers), max 80 chars.
+    const firstLine =
+      trimmed
+        .split("\n")
+        .map((l) => l.replace(/^#+\s*/, "").trim())
+        .find((l) => l.length > 0) ?? "Chat reply";
+    const title = firstLine.slice(0, 80);
+    const preview = trimmed.slice(0, 400) + (trimmed.length > 400 ? "…" : "");
+
+    // Resolve agent_config_id if one exists for this archetype (nullable).
+    const { data: agentConfig } = await serviceClient
+      .from("agent_configs")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("role_slug", slug)
+      .maybeSingle();
+
+    await serviceClient.from("tasks").insert({
+      org_id: orgId,
+      agent_config_id: agentConfig?.id ?? null,
+      agent_role: slug,
+      source: "user_request",
+      title,
+      description: userMessage.slice(0, 500),
+      status: "completed",
+      kind,
+      preview,
+      requested_by: memberId,
+      completed_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Non-fatal — artifact logging is a convenience, not critical path.
+    console.error("[team/chat] recordChatArtifact failed:", err);
+  }
+}
+
+function classifyArtifact(
+  userMessage: string,
+  assistantText: string,
+  hasGeneratedFiles: boolean,
+): string {
+  if (hasGeneratedFiles) return "document";
+  const msg = userMessage.toLowerCase();
+  const text = assistantText.toLowerCase();
+  if (/\b(email|draft.*email|reply to|send.*email)\b/.test(msg)) return "email_draft";
+  if (/\b(social|tweet|post|instagram|linkedin|facebook)\b/.test(msg)) return "social_post";
+  if (/\b(grant|proposal|application)\b/.test(msg)) return "grant_note";
+  if (/^subject:/i.test(assistantText) || /\nsubject:/i.test(text)) return "email_draft";
+  return "chat_reply";
 }
