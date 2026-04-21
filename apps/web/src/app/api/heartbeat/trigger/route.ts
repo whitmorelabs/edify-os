@@ -113,6 +113,7 @@ export async function POST(request: Request) {
       mission,
       timezone: orgTimezone,
       customArchetypeName,
+      model: "haiku", // B. Haiku routing — heartbeats are simple summaries, 5× cheaper
     });
     finalText = text;
   } catch (err) {

@@ -24,11 +24,18 @@ import {
   SKILLS_BETA_HEADERS,
   CODE_EXECUTION_TOOL,
   buildContainer,
+  shouldAttachSkills,
 } from "@/lib/skills/registry";
 import type { ArchetypeSlug } from "@/lib/archetypes";
 
 const TOOL_USE_LOOP_MAX = 8;
 const MAX_RESPONSE_TOKENS = 4096;
+
+// B. Model ID map — "sonnet" is the interactive default; "haiku" for cheap workloads.
+const MODEL_IDS: Record<"sonnet" | "haiku", string> = {
+  sonnet: "claude-sonnet-4-6",
+  haiku: "claude-haiku-4-5-20251001",
+};
 
 export interface GeneratedFile {
   name: string;
@@ -64,6 +71,12 @@ export interface RunArchetypeTurnOptions {
   history?: Array<{ role: "user" | "assistant"; content: string }>;
   /** Custom name the member has assigned to this archetype. */
   customArchetypeName?: string | null;
+  /**
+   * B. Haiku routing — which model to use for this turn.
+   * "sonnet" → claude-sonnet-4-6 (default, interactive chat)
+   * "haiku"  → claude-haiku-4-5-20251001 (heartbeats, simple Q&A, 5× cheaper)
+   */
+  model?: "sonnet" | "haiku";
 }
 
 export interface RunArchetypeTurnResult {
@@ -88,7 +101,10 @@ export async function runArchetypeTurn({
   timezone = "America/New_York",
   history = [],
   customArchetypeName,
+  model = "sonnet",
 }: RunArchetypeTurnOptions): Promise<RunArchetypeTurnResult> {
+  const modelId = MODEL_IDS[model];
+
   const basePrompt = ARCHETYPE_PROMPTS[archetype] ?? "";
   const systemPrompt =
     buildCustomNameInstruction(customArchetypeName) +
@@ -98,28 +114,57 @@ export async function runArchetypeTurn({
     ? `\n\n## Organization Context\nOrg name: ${orgName}\nMission: ${mission}`
     : `\n\n## Organization Context\nOrg name: ${orgName}`;
 
+  // A. Prompt caching — temporal block is volatile (changes every call), so it
+  // lives in the user message prefix rather than the cached system prompt.
+  // The stable portion (archetype prompt + org context + tool addendums) is
+  // marked cache_control: ephemeral so Anthropic caches it across requests.
   const nowUtc = new Date();
   const nowLocal = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     dateStyle: "full",
     timeStyle: "short",
   }).format(nowUtc);
-  const temporalBlock = `Current date and time: ${nowUtc.toISOString()} (${nowLocal} — ${timezone})\nWhen the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.\n`;
+  // Temporal prefix injected at the top of the user's message (not cached).
+  const temporalPrefix = `[Context: Today is ${nowLocal} (${nowUtc.toISOString()} UTC — ${timezone}). When the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.]\n\n`;
 
   const tools = ARCHETYPE_TOOLS[archetype] ?? [];
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];
   const toolAddendums = buildSystemAddendums(tools);
-  const skillsAddendum = archetypeSkillIds.length > 0 ? SKILLS_ADDENDUM : "";
 
-  const fullSystemPrompt = temporalBlock + systemPrompt + orgContext + toolAddendums + skillsAddendum;
+  // C. Skills-on-demand — only attach skills when intent suggests doc generation.
+  const hasSkillsConfigured = archetypeSkillIds.length > 0;
+  const attachSkills = hasSkillsConfigured && shouldAttachSkills(userMessage);
+  const skillsAddendum = attachSkills ? SKILLS_ADDENDUM : "";
 
-  const hasSkills = archetypeSkillIds.length > 0;
-  const allTools = hasSkills ? [...tools, CODE_EXECUTION_TOOL] : tools;
-  const containerParam = buildContainer(archetypeSkillIds);
+  // A. Cached system prompt — stable content only (no temporal block).
+  // cache_control on the single text block marks everything up to (and including)
+  // the tools array as a cache breakpoint per Anthropic's prefix-match semantics.
+  const cachedSystemText = systemPrompt + orgContext + toolAddendums + skillsAddendum;
+  const systemBlocks: Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }> = [
+    { type: "text", text: cachedSystemText, cache_control: { type: "ephemeral" } },
+  ];
+
+  // Tool list for this call — include code_execution only when skills are attached.
+  const allTools = attachSkills ? [...tools, CODE_EXECUTION_TOOL] : tools;
+
+  // A. Cache the last tool definition (breakpoint on the tools prefix).
+  // When tools are present we mark the last one; the API caches tools → system together.
+  const cachedTools =
+    allTools.length > 0
+      ? [
+          ...allTools.slice(0, -1),
+          { ...allTools[allTools.length - 1], cache_control: { type: "ephemeral" as const } },
+        ]
+      : allTools;
+
+  const containerParam = attachSkills ? buildContainer(archetypeSkillIds) : undefined;
+
+  // Prepend temporal prefix to the user message (volatile — stays uncached).
+  const userMessageWithTemporal = temporalPrefix + userMessage;
 
   const loopMessages: Anthropic.MessageParam[] = [
     ...history,
-    { role: "user", content: userMessage },
+    { role: "user", content: userMessageWithTemporal },
   ];
 
   const generatedFiles: GeneratedFile[] = [];
@@ -127,30 +172,31 @@ export async function runArchetypeTurn({
   let lastAssistantText = "";
 
   for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
-    const response = hasSkills
+    // A+B+C: use cached system blocks, haiku/sonnet model, and attach skills only on demand.
+    const response = attachSkills
       ? await anthropic.beta.messages.create({
           betas: [...SKILLS_BETA_HEADERS],
-          model: "claude-sonnet-4-6",
+          model: modelId,
           max_tokens: MAX_RESPONSE_TOKENS,
           temperature: 0.3,
-          system: fullSystemPrompt,
+          system: systemBlocks,
           messages: loopMessages,
-          ...(allTools.length > 0
-            ? { tools: allTools as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] }
+          ...(cachedTools.length > 0
+            ? { tools: cachedTools as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] }
             : {}),
           ...(containerParam ? { container: containerParam } : {}),
         })
       : await anthropic.messages.create({
-          model: "claude-sonnet-4-6",
+          model: modelId,
           max_tokens: MAX_RESPONSE_TOKENS,
           temperature: 0.3,
-          system: fullSystemPrompt,
+          system: systemBlocks,
           messages: loopMessages,
-          ...(tools.length > 0 ? { tools } : {}),
+          ...(cachedTools.length > 0 ? { tools: cachedTools as Parameters<typeof anthropic.messages.create>[0]["tools"] } : {}),
         });
 
     // Collect any skill-generated file outputs (two block-type variants from the beta API)
-    if (hasSkills) {
+    if (attachSkills) {
       const FILE_RESULT_TYPES: Record<string, string> = {
         bash_code_execution_tool_result: "bash_code_execution_result",
         code_execution_tool_result: "code_execution_result",

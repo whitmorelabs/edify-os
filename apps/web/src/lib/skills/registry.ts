@@ -59,6 +59,25 @@ export const SKILL_MIME: Record<string, string> = {
   pdf: "application/pdf",
 };
 
+// ---------------------------------------------------------------------------
+// C. Skills-on-demand — only attach skills when message suggests doc generation
+// ---------------------------------------------------------------------------
+
+const SKILLS_TRIGGER_PATTERNS = [
+  /\b(draft|create|generate|build|make|write|produce|compose)\b.*\b(doc|document|deck|slide|presentation|spreadsheet|excel|word|pdf|report|proposal|letter|email|newsletter|memo|policy)\b/i,
+  /\b(can you)\s+(draft|create|generate|build|make|write|produce|compose)/i,
+  /\b(as a |in a )?(\.docx|\.xlsx|\.pptx|\.pdf|google doc|powerpoint|excel)\b/i,
+  /\b(put it in|save it as|export as)\b/i,
+];
+
+/**
+ * Returns true when the user's message suggests a document-generation intent.
+ * Used to decide whether to attach skills to the API call.
+ */
+export function shouldAttachSkills(userMessage: string): boolean {
+  return SKILLS_TRIGGER_PATTERNS.some((re) => re.test(userMessage));
+}
+
 /**
  * Build the `container` parameter for `client.beta.messages.create()`.
  * Returns undefined when the archetype has no skills (avoids sending empty container).
