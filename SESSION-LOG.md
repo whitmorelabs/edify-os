@@ -2,6 +2,109 @@
 
 ---
 
+## 2026-04-19 — Afternoon Batch Simplify Agent
+
+**Identity:** Afternoon Batch Simplify Agent
+**Date:** 2026-04-19
+**Commit:** `cf61966`
+
+### Commits reviewed
+
+- `8d5c1cd` feat: team page custom names + settings real data
+- `5c6f1db` feat: real integration logos + real team last-active timestamps
+- `10a9fc1` feat: persistence for memory add + inbox approve/reject/edit
+
+### Simplifications applied
+
+**1. Deduplicated `AnyIcon` type (integrations/page.tsx + OAuthModal.tsx)**
+`AnyIcon = React.ComponentType<{ className?: string; size?: number | string }>` was defined identically in both files. Made it `export type AnyIcon` in `OAuthModal.tsx`, then imported it in `page.tsx` from there. Removed the duplicate definition and the now-unused `import type React` from `page.tsx`.
+
+**2. Removed what-not-why comments (inbox/pending/[id]/route.ts)**
+Three block comments — `// Validate status if provided`, `// Must provide at least one field to update`, `// Build update payload` — described what the next 3–4 lines of code do rather than explaining why. Removed all three.
+
+### Deliberate skips
+
+- **Auth+serviceClient boilerplate** — Identical pattern across 4 routes, but extracting a shared helper would add a new abstraction with no current reuse benefit beyond the 3 new routes. Complexity cost exceeds the gain.
+- **`roleCapitalized` pattern** — One-liner in a JSX loop, appears once. Not worth abstracting.
+- **`validCategories` array in memory POST** — Duplicates the union type at runtime, but is the correct and idiomatic way to validate unknown input. No simplification without a runtime enum.
+- **`fetchEntries` eslint-disable** — Correct pattern for a refetch trigger. Left alone.
+- **Sequential async calls in settings** — Two separate `useEffect` hooks for org + members both fire on mount (parallel in practice). No change needed.
+
+### Build result
+
+`npm run build` — ✓ Compiled successfully, zero type errors, 86 static pages generated.
+
+---
+
+## 2026-04-19 — Persistence Batch Agent B: Memory Add + Inbox Approve/Reject/Edit
+
+**Identity:** Persistence Batch Agent B
+**Date:** 2026-04-19
+**Commit:** `10a9fc1`
+
+### Schema Verification Findings
+
+Read `supabase/combined_migration.sql` before writing any code.
+
+- **`memory_entries`** — EXISTS. Columns: `id`, `org_id`, `category`, `title`, `content`, `embedding`, `source`, `created_by`, `auto_generated`, `created_at`, `updated_at`. Category check constraint includes 12 values: mission, programs, donors, grants, campaigns, brand_voice, contacts, processes, general, financials, volunteers, events (expanded in a later migration). **No migration needed.**
+- **`approvals`** — EXISTS. Status check constraint: `'pending', 'approved', 'rejected', 'expired', 'auto_approved'`. Has `decided_at` timestamp (no separate `approved_at`/`rejected_at`). Has `output_preview` column. **No migration needed.**
+
+**No new migration files created.**
+
+### Routes Added
+
+**A. `POST /api/memory/entries`**
+- Auth: `getAuthContext()` + `createServiceRoleClient()`; 401 if unauthenticated
+- Body: `{ category: MemoryEntryCategory, title: string, content: string, source?: string }`
+- Validates category against all 12 valid values; validates title/content non-empty
+- Inserts row with `auto_generated: false`, `created_by: memberId`
+- Returns 201 + the new `MemoryEntryRow`
+
+**B. `PATCH /api/inbox/pending/[id]`** (new file)
+- Auth: `getAuthContext()` + `createServiceRoleClient()`; 401 if unauthenticated
+- Body: `{ status?: "approved" | "rejected", output_preview?: string }` (either or both)
+- Verifies approval exists and belongs to caller's org (403 if mismatch)
+- On status change: sets `decided_at` timestamp
+- Returns updated approval row with `source: "approvals"` field
+
+### GET /api/inbox/pending — Modified
+
+Added `source: "approvals" | "messages"` field to every returned `InboxItem`. Items from the `approvals` table get `source: "approvals"`; items from the messages fallback get `source: "messages"`.
+
+### Client Updates
+
+**Memory page (`apps/web/src/app/dashboard/memory/page.tsx`):**
+- `fetchEntries()` extracted to named function so it can be called after save
+- `handleAddEntry()` added: POSTs to `/api/memory/entries`, refetches list on success, shows saving/error states
+- Save Entry button wired to `handleAddEntry`; disabled while saving or if title/content empty
+- Cancel clears `saveError`
+
+**Inbox page (`apps/web/src/app/dashboard/inbox/page.tsx`):**
+- `updateStatus()`: optimistic local update first; if `item.source === "approvals"`, fires `PATCH /api/inbox/pending/{id}`; rolls back on network error
+- `saveEdit()`: if `source === "approvals"` → PATCH `output_preview`; else → localStorage (existing behavior preserved)
+- `bulkApproveHighConfidence()`: now calls `updateStatus()` per item (so PATCH fires for approvals-source items)
+
+### Files Created
+
+- `apps/web/src/app/api/inbox/pending/[id]/route.ts` (new)
+
+### Files Modified
+
+- `apps/web/src/app/api/memory/entries/route.ts` — added `POST` handler
+- `apps/web/src/app/api/inbox/pending/route.ts` — added `source` field to `InboxItem` interface + both push paths
+- `apps/web/src/app/dashboard/memory/page.tsx` — wired Add Entry form to POST
+- `apps/web/src/app/dashboard/inbox/page.tsx` — wired approve/reject/edit to PATCH
+
+### Build Result
+
+`npm run build` — ✓ Compiled successfully, zero type errors, 86 static pages generated.
+
+### Migration Status
+
+No migration required. Both `memory_entries` and `approvals` tables already exist with correct columns.
+
+---
+
 ## 2026-04-19 — Polish Batch Agent A: Integration Logos + Team Last-Active
 
 **Identity:** Polish Batch Agent A
