@@ -2,12 +2,230 @@
 
 ---
 
+## 2026-04-19 — Team Chat Helper Refactor Agent
+
+**Identity:** Team Chat Helper Refactor Agent
+**Date:** 2026-04-19
+**Task:** Migrate `/api/team/[slug]/chat/route.ts` to call shared `runArchetypeTurn()` helper
+
+### Findings on Arrival
+
+Pulled `main` at start. The timezone hookup agent's commit (`d8fdcd3`) had already performed the migration as part of its timezone hookup work. That commit removed ~280 lines from `chat/route.ts` and replaced the inline tool-use loop with a call to `runArchetypeTurn()`. The migration was complete before this agent's session ran any writes.
+
+### Verification Performed
+
+1. Read both `run-archetype-turn.ts` and `chat/route.ts` to confirm migration quality
+2. Confirmed `runArchetypeTurn()` signature accepts `history`, `timezone`, `customArchetypeName`, `mission`, `orgName`, `memberId` — all params the chat route needs
+3. Confirmed `chat/route.ts` now: keeps conversation get/create, history load, custom name fetch, user message persist (H1), calls `runArchetypeTurn()`, persists assistant message + updates `conversations.updated_at` (H2)
+4. Confirmed all now-unused imports were removed: `Anthropic` default, `ARCHETYPE_PROMPTS`, `buildCustomNameInstruction`, `ARCHETYPE_TOOLS`, `executeTool`, `buildSystemAddendums`, `getValidGoogleAccessToken`, `ARCHETYPE_SKILLS`, `SKILL_MIME`, `SKILLS_ADDENDUM`, `SKILLS_BETA_HEADERS`, `CODE_EXECUTION_TOOL`, `buildContainer`
+5. Confirmed local `collectFileOutput` helper removed (now lives only in `run-archetype-turn.ts`)
+6. `npm run build` from fresh state → `✓ Compiled successfully`, zero type errors, full 89-page build complete
+
+### Commit SHA
+`d8fdcd3` — "fix: chat route uses orgs.timezone instead of hardcoded America/New_York" (performed by timezone hookup agent; included the refactor)
+
+### Files Changed
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — 453 → 172 lines (~281 lines removed, ~4 lines added for timezone hookup)
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — `timezone` param added (optional, defaults `America/New_York`)
+
+### Lines Removed from Chat Route
+~280 lines (inline tool-use loop, system prompt building, temporal block, collectFileOutput helper, unused imports/constants)
+
+### Helper Signature Changes
+`timezone?: string` added to `RunArchetypeTurnOptions` (defaults to `"America/New_York"`, backward compatible)
+
+### Build Result
+`✓ Compiled successfully` — zero type errors
+
+### Behavior Parity
+- Tool calls (calendar query): flow unchanged — `runArchetypeTurn` handles Google token prefetch + parallel tool execution identically
+- Skills-enabled archetype (EA): file chips still returned via `generatedFiles` in response JSON
+- Errors: `try/catch` around `runArchetypeTurn()` returns HTTP 502 with message, same as before
+- Conversation creation + message persistence: identical — user message persisted before loop, assistant message + `updated_at` persisted after
+
+---
+
+## 2026-04-19 — Chat Timezone Hookup Agent
+
+**Identity:** Chat Timezone Hookup Agent
+**Date:** 2026-04-19
+**Commit:** `d8fdcd3`
+
+### Task
+Replace hardcoded `America/New_York` in `temporalBlock` with `orgs.timezone` from the database.
+
+### Files Changed
+
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — Added `timezone?: string` to `RunArchetypeTurnOptions` (default `"America/New_York"`); replaced `toLocaleString` with `Intl.DateTimeFormat` using the org timezone; `temporalBlock` now shows `— ${timezone}` label instead of hardcoded `America/New_York — UTC-4`
+- `apps/web/src/app/api/team/[slug]/chat/route.ts` — Added `"timezone"` to `getAnthropicClientForOrg` extraFields; extracts `orgTimezone` with fallback; passes `timezone: orgTimezone` to `runArchetypeTurn` (parallel agent had already migrated route to use helper — no conflict)
+- `apps/web/src/app/api/heartbeat/trigger/route.ts` — Same: added `"timezone"` to org fetch extraFields, extracts `orgTimezone`, passes to `runArchetypeTurn`
+
+### Build Result
+- `next build`: "Compiled successfully" + "Linting and checking validity of types" passed; subsequent ENOENT on `pages-manifest.json` is a pre-existing Next.js 14 App Router infra issue unrelated to this change
+- `tsc --noEmit --skipLibCheck`: zero type errors
+
+### Parallel Agent Coordination
+The shared helper refactor agent had already migrated `chat/route.ts` to call `runArchetypeTurn()` before this agent ran. My changes (org fetch extraFields + `orgTimezone` extraction + `timezone` param pass-through) landed cleanly on top of their migration with no conflict.
+
+---
+
+## 2026-04-19 — Small Data Polish Agent
+
+**Identity:** Small Data Polish Agent
+**Date:** 2026-04-19
+**Commit:** `303e48f`
+
+### Files Created
+
+- `apps/web/src/app/api/memory/entries/[id]/route.ts` — new dynamic route with PATCH + DELETE handlers
+
+### Files Changed
+
+- `apps/web/src/app/dashboard/memory/page.tsx` — wired Pencil/Trash2 icons to real endpoints; unified Add/Edit into a single form with a `FormMode` flag; delete uses `window.confirm`; auto_generated entries show disabled icons
+- `apps/web/src/app/(auth)/onboarding/page.tsx` — added timezone dropdown with 13 curated IANA zones + "Other" text input; browser-detected default via `Intl.DateTimeFormat().resolvedOptions().timeZone` in `useEffect`
+- `apps/web/src/app/api/org/create/route.ts` — accepts `timezone` in POST body; inserts into `orgs.timezone` column; fallback `America/New_York` if omitted
+
+### Timezone List Used (13 zones)
+
+America/Los_Angeles, America/Denver, America/Phoenix, America/Chicago, America/New_York, America/Anchorage, Pacific/Honolulu, America/Puerto_Rico, UTC, Europe/London, Europe/Berlin, Asia/Tokyo, Australia/Sydney — plus "Other" free-text escape hatch
+
+### auto_generated Handling Decision
+
+`auto_generated` entries are fully read-only from the Memory page UI. Pencil and Trash2 are rendered disabled with `cursor-not-allowed` and a `title="This entry is system-generated"` tooltip. The API routes also enforce this server-side (403 if auto_generated is true), so even direct API calls are blocked. Decision: default to read-only as specified. Edit support for auto_generated entries would require explicit scope expansion in a future PRD.
+
+### Build Result
+
+`npm run build` — Compiled successfully, zero type errors, 88 static pages generated. New `/api/memory/entries/[id]` route appears in the route table.
+
+### Follow-ups Logged
+
+1. **Chat route temporalBlock timezone** — update the chat route's `temporalBlock` to read `orgs.timezone` instead of the hardcoded `America/New_York`. Now that timezone is stored per-org, this unblocks accurate temporal context for all users. Small change, explicit scope — needs a separate PRD or direct Lopmon instruction.
+
+---
+
+## 2026-04-19 — Small UI Polish Agent
+
+**Identity:** Small UI Polish Agent
+**Date:** 2026-04-19
+**Commit:** `317a814`
+**PRD:** `PRD-small-polish-ui.md`
+
+### Files Created
+- `apps/web/src/app/api/team/last-active/route.ts` — new GET route returning `{ [archetype_slug]: iso_timestamp | null }` for all archetypes in the current org
+- `apps/web/src/components/brand-icons.tsx` — inline SVG brand icon components
+
+### Files Modified
+- `apps/web/src/app/dashboard/team/page.tsx` — fetches timestamps from `/api/team/last-active` on mount; falls back to localStorage if fetch fails
+- `apps/web/src/app/dashboard/integrations/page.tsx` — replaced 8 Lucide fallback icons with brand SVGs; niche icons unchanged
+- `apps/web/src/components/support/ChatProvider.tsx` — `isSupportChatDismissed()` now reads `localStorage` (was `sessionStorage`)
+- `apps/web/src/components/support/ChatWidget.tsx` — `handleDismiss` writes `localStorage` (was `sessionStorage`)
+- `apps/web/src/components/support/ProactiveHelper.tsx` — `getDismissedPages` / `dismissPage` use `localStorage` (was `sessionStorage`)
+
+### Brand Icon Status
+
+| Integration     | Status | Notes |
+|-----------------|--------|-------|
+| LinkedIn        | ✅ SVG | LinkedIn `in` mark on rounded square |
+| Outlook (email) | ✅ SVG | Envelope with mail mark |
+| Outlook Calendar| ✅ SVG | Calendar with O accent |
+| Microsoft Teams | ✅ SVG | T shield mark |
+| OneDrive        | ✅ SVG | Cloud outline mark |
+| Eventbrite      | ✅ SVG | Stylized E in circle |
+| Monday.com      | ✅ SVG | Three-dot mark |
+| Constant Contact| ✅ SVG | CC lettermark in circle |
+| DonorPerfect    | — Lucide (Heart) | Niche nonprofit CRM, no clean public brand SVG |
+| Bloomerang      | — Lucide (Heart) | Niche nonprofit CRM, no clean public brand SVG |
+| Little Green Light | — Lucide (Leaf) | Niche nonprofit CRM, no clean public brand SVG |
+| Instrumentl     | — Lucide (Search) | Niche grant platform, no clean public brand SVG |
+| GrantStation    | — Lucide (BookOpen) | Niche grant database, no clean public brand SVG |
+| Foundation Directory | — Lucide (Library) | Niche grant database, no clean public brand SVG |
+| GiveSmart       | — Lucide (PartyPopper) | Niche event fundraising platform, no clean public brand SVG |
+
+### Follow-up items (out of scope per PRD)
+- Settings toggle to re-show a dismissed support widget (user must clear localStorage manually to restore)
+
+### Build Result
+`npm run build` — ✅ compiled successfully, zero type errors, 88/88 pages generated
+
+---
+
+## 2026-04-20 — Heartbeat Simplify Agent
+
+**Identity:** Heartbeat Simplify Agent
+**Date:** 2026-04-20
+**Commit:** `ea74945` (simplify pass on `7062b69`)
+
+### Simplifications applied
+
+**1. Parallel DB calls in trigger route (`trigger/route.ts`)**
+The `heartbeat_runs` insert and the optional `members` custom-name fetch were sequential but independent. Merged into a single `Promise.all`, shaving one serial DB round-trip per request.
+
+**2. Parallel final updates in trigger route**
+The two final `UPDATE` calls (`heartbeat_runs` status + `heartbeat_jobs` last_run_at) ran sequentially. Now a single `Promise.all` — eliminates one serial round-trip on the hot finish path.
+
+**3. Removed redundant `history: []` override**
+The trigger route passed `history: []` explicitly to `runArchetypeTurn`. The helper already defaults `history = []` in its signature. Removed the redundant argument.
+
+**4. Removed redundant `: string` type annotations**
+`const jobId: string` and `const runId: string` in the trigger route — TypeScript infers `string` from the Supabase `.select("id").single()` return. Removed both.
+
+**5. Unified duplicate `code_execution` block branches in `run-archetype-turn.ts`**
+Two nearly-identical `if (block.type === "bash_code_execution_tool_result")` / `if (block.type === "code_execution_tool_result")` branches differed only in the type-string prefixes. Replaced with a single loop using a `FILE_RESULT_TYPES` lookup table — halves the iteration over `response.content`.
+
+**6. Removed dead outer try/catch in `collectFileOutput`**
+The outer `try/catch` in `collectFileOutput` wrapped only `generatedFiles.push(...)` — a plain array push that cannot throw. The only throwing code (the `retrieveMetadata` call) was already wrapped in its own inner `try/catch`. Removed the outer wrapper entirely.
+
+**7. Removed what-not-why comments**
+Removed 8 inline comments across `trigger/route.ts`, `run-archetype-turn.ts`, and `page.tsx` that described what the code does rather than explaining a hidden constraint or non-obvious invariant. Kept: the `maxDuration` rationale, the `enabled: false` inline note, the `FILE_RESULT_TYPES` loop comment, and the title-extraction comment (now clarified).
+
+### Deliberate skips
+
+- **`heartbeat-prompts.ts`** — Pure data file, no logic to simplify.
+- **`heartbeats.ts` `triggerHeartbeat`** — 12 lines, clean as-is.
+- **Step-number narrative comments** — Removed (what-not-why). Did not add replacement comments unless a non-obvious constraint warranted one.
+- **Chat route refactor** — Out of scope per task instructions; a separate PRD is queued.
+
+### Build result
+
+`npm run build` — ✓ Compiled successfully, zero type errors, 87 static pages generated.
+
+---
+
+## 2026-04-19 — Polish Batch Simplify Agent
+
+**Identity:** Polish Batch Simplify Agent
+**Date:** 2026-04-19
+**Commit:** `aaa59c5`
+**Scope:** simplify pass on `317a814` + `303e48f`
+
+### Simplifications applied
+
+**1. Shared auth+guard helper in `memory/entries/[id]/route.ts`**
+PATCH and DELETE both had identical auth check → service-client check → fetch entry → check `auto_generated` blocks (≈20 lines each). Extracted into `getEntryContext(params, autoGenMessage)` returning a discriminated union — each handler is now 3 lines to enter scope instead of 20. Only the per-handler error message differs.
+
+**2. Unified `handleSave` fetch branches in `memory/page.tsx`**
+The edit and add branches inside `handleSave` had identical `.then/.catch/.finally` chains; only the URL and method differed. Collapsed into a single `fetch(url, { method })` call — removed ~20 lines of duplication.
+
+### Deliberate skips
+
+- **Brand icons (`brand-icons.tsx`)** — Each SVG has unique path data. The shared `IconProps` type and `aria-hidden` boilerplate is minimal and correct as-is; a factory pattern would add abstraction without net savings.
+- **Dismiss key logic** — `SUPPORT_CHAT_DISMISSED_KEY` (ChatProvider/ChatWidget) and `DISMISSED_KEY` (ProactiveHelper) are intentionally distinct keys: one is a global widget dismiss, the other is per-page proactive helper dismiss. No duplication.
+- **`last-active/route.ts`** — Clean 53-line single-function file. No duplication with any other route in scope.
+- **`onboarding/page.tsx`** — Timezone logic is self-contained and non-repetitive. Nothing to collapse.
+- **What-not-why comments in `last-active`** — Line 37 and 47 comments explain a non-obvious algorithm invariant (first-occurrence = max due to ORDER BY DESC). Kept.
+
+### Build result
+
+`npm run build` — ✓ Compiled successfully, zero type errors, 88 static pages generated.
+
+---
+
 ## 2026-04-19 — Heartbeat Execution Agent
 
 **Identity:** Heartbeat Execution Agent
 **Date:** 2026-04-19
 **PRD:** PRD-proactive-heartbeat-execution.md
-**Commit:** (see below — appended after push)
+**Commit:** `7062b69`
 
 ### Task
 
@@ -3647,3 +3865,44 @@ This agent verified all changes were correct and complete in the working tree, c
 ### Commit
 
 - SHA: (see below — committed and pushed to main)
+
+---
+
+## Session: Decision Lab Follow-up Agent — 2026-04-19
+
+### Identity
+Agent: Decision Lab Follow-up Agent (Sonnet)
+
+### Task
+Wire `askFollowUp()` in `decision-lab/api.ts` to a new server-side route instead of the legacy client-side BYOK path.
+
+### Files Created
+- `apps/web/src/app/api/decision-lab/follow-up/route.ts` — new POST endpoint
+
+### Files Modified
+- `apps/web/src/app/dashboard/decision-lab/api.ts` — `askFollowUp()` rewritten to POST to `/api/decision-lab/follow-up`; all dynamic legacy imports removed
+
+### Server Route Shape
+`POST /api/decision-lab/follow-up`
+
+Request body: `{ scenarioId: string, question: string, archetype_slug: string }`
+
+Response: `ArchetypeResponse` shape `{ role_slug, display_name, icon, stance, confidence, response_text }`
+
+Behavior:
+1. Auth via `getAuthContext()` (returns 401 if unauthenticated)
+2. Gets Anthropic client for org via `getAnthropicClientForOrg` (returns 402 if no key)
+3. Builds system prompt from `ARCHETYPE_PROMPTS[archetype_slug]` + `FOLLOW_UP_SUFFIX` (structured STANCE/CONFIDENCE/RESPONSE format)
+4. Loads scenario context from `decisions` table by `scenarioId` (best-effort; falls back to question-only if not found)
+5. Calls `claude-haiku-4-5-20251001` directly (no tool-use loop)
+6. Parses response, returns `ArchetypeResponse`
+
+### lib/api-key.ts Status
+Still referenced by `apps/web/src/app/dashboard/admin/ai-config/page.tsx` (test-connection flow). NOT deleted. Decision-lab was the only other consumer, now removed.
+
+### Build Result
+PASSED — Next.js 14.2.35, 89 static pages, `/api/decision-lab/follow-up` visible in route manifest as dynamic route, zero type errors.
+
+### Commit
+- SHA: a196a87
+- Pushed to main
