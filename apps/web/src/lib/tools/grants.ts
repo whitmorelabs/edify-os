@@ -70,7 +70,7 @@ export const grantsTools: Anthropic.Tool[] = [
         sortBy: {
           type: "string",
           description:
-            "Sort order. Default 'closeDate:asc' (soonest deadline first). Other options: 'openDate:desc' (newest posted), 'awardCeiling:desc' (largest award).",
+            "Sort order, pipe-separated as 'field|direction'. Default 'closeDate|asc' (soonest deadline first). Other options: 'openDate|desc' (newest posted), 'agency|asc'.",
         },
       },
       required: [],

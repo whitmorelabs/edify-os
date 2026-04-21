@@ -2,6 +2,180 @@
 
 ---
 
+## 2026-04-21 — Grants.gov API Fix Agent
+
+**Identity:** Grants.gov API Fix Agent
+**Date:** 2026-04-21
+**Task:** Fix Grants.gov integration — pre-diagnosed bugs in `apps/web/src/lib/grants-gov.ts` were returning 0 hits in production.
+
+### Files Changed
+
+- `apps/web/src/lib/grants-gov.ts` — full rewrite of request/response handling
+- `apps/web/src/lib/tools/grants.ts` — tool-schema `sortBy` description updated to match new format
+
+### Bugs Fixed
+
+1. **Array filters must be pipe-separated strings.** `oppStatuses`, `eligibilities`, `fundingCategories`, `agencies` were being sent as JSON arrays; the Grants.gov v1 API silently ignores non-string array filters and returns 0 hits. Now `.join("|")` on all four.
+2. **Response envelope unwrap.** The v1 API wraps results in `{ errorcode, msg, token, data: {...}, accessKey }`. Code was reading `oppHits`/`hitCount` at the top level — both undefined. Added `unwrapEnvelope()` helper used by both `searchGrants` and `fetchGrantDetails`.
+3. **Search-hit field mapping was wrong.** Search hits use `id`/`number`/`oppStatus`/`openDate`/`agency`/`agencyCode`/`docType`/`cfdaList` — NOT `opportunityId`/`opportunityNumber`/`opportunityStatus`/`postDate`. Split projection into `projectSearchHit` (search2 shape) and `projectDetailBase` (fetchOpportunity shape). Search hits do NOT carry award amounts / eligibility lists — those are now `null`/`[]` from search and populated from `data.synopsis.*` on detail fetches.
+4. **`errorcode !== 0` now throws `GrantsGovError`.** Previously any HTTP 200 was treated as success even when the business layer failed.
+5. **Bonus bug found during live verification:** `sortBy` uses pipe-separator too (`closeDate|asc`), not colon. The default `"closeDate:asc"` made the query return 0 hits even after the pipe-join fix for `oppStatuses`. Default changed to `closeDate|asc`; tool schema description updated to match.
+
+### Verification
+
+- `npx tsc --noEmit` on `apps/web` — clean, no errors.
+- Scratch smoke test (`node scratch-grants-test.mjs`) hitting the live API with `{rows:3, oppStatuses:["posted"], sortBy:"closeDate|asc"}` returned **total=1051, returned=3** with correctly mapped fields (id→opportunityId, number→opportunityNumber, oppStatus→status, openDate→postedDate). Matches the baseline in the task brief.
+- Detail smoke test on opportunityId=357994 correctly pulled `awardCeiling=25000`, `awardFloor=1000`, full `eligibilityCategories`, `fundingInstrumentTypes`, and description text from `data.synopsis.*`.
+- Scratch files deleted after runs — no test infrastructure exists in this repo so a persistent unit test would require a setup that's out of scope.
+
+### Public Shape
+
+`Grant` and `GrantDetail` type signatures are unchanged — `tools/grants.ts` slim projection continues to work with no edits to field names, preserving the model-facing contract.
+
+### Notes
+
+- Bug 5 (sortBy colon vs pipe) was NOT in the task brief. Caught it because the first smoke-test run still returned 0 hits even with all 4 documented fixes applied. Reported back instead of silently expanding scope.
+- The `awardCeiling`/`awardFloor` on search hits are now always `null` (they genuinely don't exist in search2 output). Callers that need amounts must call `grants_get_details`. This matches the task brief's explicit guidance.
+
+---
+
+## 2026-04-19 — Cost Controls Round 1 Agent
+
+**Identity:** Cost Controls Round 1 Agent
+**Date:** 2026-04-19
+**Commit:** `124d655`
+**PRD:** `PRD-cost-controls-round-1.md`
+**Task:** Three compounding cost optimizations — zero user-visible behavior change.
+
+### Files Changed
+
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — all three optimizations centralized here
+- `apps/web/src/lib/skills/registry.ts` — added `shouldAttachSkills()` export
+- `apps/web/src/app/api/heartbeat/trigger/route.ts` — added `model: "haiku"`
+
+### A. Prompt Caching
+
+**How temporal block was moved out of cached content:**
+Previously `temporalBlock` was prepended to the system prompt string (`temporalBlock + systemPrompt + orgContext + ...`), making the entire system prompt volatile (changes every call, invalidates cache every call). Now:
+- The temporal context is a `temporalPrefix` string injected at the top of the *user message* — e.g. `[Context: Today is Sunday, April 19, 2026 (2026-04-19T...UTC — America/New_York). ...]`
+- The stable portion (archetype prompt + org context + tool addendums + optional skills addendum) is an array of content blocks with `cache_control: { type: "ephemeral" }` on the single text block.
+
+**Cache breakpoint strategy:**
+- System prompt: one text block marked `cache_control: ephemeral` — caches the entire system prefix on the first call within a 5-minute window
+- Tools: the last tool in the array gets `{ ...tool, cache_control: { type: "ephemeral" } }` — Anthropic renders tools before system, so a breakpoint on the last tool caches the full tools+system prefix together
+- Max 2 breakpoints used (well within the 4-breakpoint limit)
+- Minimum cache size: Sonnet 4.6 requires 2048 tokens; most archetype prompts + org context + tool definitions easily clear this (~1,500–3,000 tokens for typical archetypes). If any archetype is borderline, the cache simply won't activate — no error.
+
+**Why option 1 (temporal in user message) was chosen over option 2 (separate non-cached system block):**
+Cleaner — avoids a two-block system array where the first block is never cached. The temporal prefix reads naturally in the user message and Claude parses it reliably. The PRD confirms this is the preferred approach.
+
+### B. Haiku Routing
+
+**Model ID map (module-level constant):**
+```
+"sonnet" → "claude-sonnet-4-6"   (default — interactive chat)
+"haiku"  → "claude-haiku-4-5-20251001"  (heartbeats — 5× cheaper)
+```
+
+**Defaults per caller:**
+- `/api/team/[slug]/chat/route.ts` — omits `model` param → defaults to `"sonnet"` → `claude-sonnet-4-6`. No change from previous behavior.
+- `/api/heartbeat/trigger/route.ts` — explicitly passes `model: "haiku"` → `claude-haiku-4-5-20251001`.
+- `/api/decision-lab` — unchanged (calls Claude directly, not via `runArchetypeTurn`).
+- `/api/decision-lab/follow-up` — already on Haiku as of commit `a196a87`, unchanged.
+
+Both the standard `messages.create` path and the beta skills path use `modelId`, so Haiku routing applies regardless of whether skills are attached.
+
+### C. Skills-on-demand
+
+**`shouldAttachSkills()` in `registry.ts` — regex patterns:**
+```
+/\b(draft|create|generate|build|make|write|produce|compose)\b.*\b(doc|document|deck|slide|presentation|spreadsheet|excel|word|pdf|report|proposal|letter|email|newsletter|memo|policy)\b/i
+/\b(can you)\s+(draft|create|generate|build|make|write|produce|compose)/i
+/\b(as a |in a )?(\.docx|\.xlsx|\.pptx|\.pdf|google doc|powerpoint|excel)\b/i
+/\b(put it in|save it as|export as)\b/i
+```
+
+**Logic in `runArchetypeTurn`:**
+- `hasSkillsConfigured = archetypeSkillIds.length > 0` (archetype has skills at all)
+- `attachSkills = hasSkillsConfigured && shouldAttachSkills(userMessage)` (intent detected)
+- If `attachSkills` is false: uses standard `anthropic.messages.create` path, no beta headers, no code_execution tool, no container param, no SKILLS_ADDENDUM in system prompt
+- If `attachSkills` is true: uses `anthropic.beta.messages.create` path with full skills setup
+
+**Skills addendum behavior:** The SKILLS_ADDENDUM ("You have access to file-generation skills...") is now only injected into the system prompt when `attachSkills` is true. This means the cached system prefix differs between skill/no-skill calls — two separate cache entries per archetype. Acceptable trade-off: the skill-trigger path is the minority of calls.
+
+**Heartbeat safety:** Heartbeat prompts are short summaries like "check my calendar today" — none match the doc-generation regex → `shouldAttachSkills` returns false → Haiku + no skills + cached system = maximum savings per call.
+
+**File collection guard:** Changed from `if (hasSkills)` to `if (attachSkills)` to match the actual path taken.
+
+### Projected Savings Estimate (rough, unmeasured)
+
+Typical interactive chat call (EA asking about calendar, no doc generation):
+- Before: ~2,000 input tokens × $3.00/1M = $0.006 per call
+- After caching (hit on 2nd+ call within 5 min): ~200 tokens uncached + ~1,800 cached × $0.30/1M = ~$0.0006 per call → ~90% savings on cached portion
+- After skills-on-demand: no skill tokens at all (~500 tokens saved per call)
+- Combined on a non-doc chat turn: ~55-65% reduction vs baseline
+
+Heartbeat call (moved to Haiku):
+- Before: ~2,000 tokens × Sonnet $3.00/1M = $0.006
+- After: ~2,000 tokens × Haiku $1.00/1M (+ caching) ≈ $0.0008 per heartbeat → ~87% savings
+
+Combined across typical usage (70% chat, 20% heartbeat, 10% doc generation): estimated 50-65% reduction in input token cost. Output tokens unchanged.
+
+### Verification Steps for Citlali
+
+1. **Calendar query (no skills, cached):** Ask EA "What's on my calendar this week?" — response should be identical. Ask again within 5 min — Anthropic Console billing dashboard should show `cache_read_input_tokens > 0` on the second call.
+
+2. **Heartbeat (Haiku, no skills):** Click "Run Check-in Now" for any archetype — result should be a normal summary. Console shows model `claude-haiku-4-5-20251001`.
+
+3. **Document generation (skills attach):** Ask Dev Director "Draft a grant proposal as a Word doc" — skills should attach, file should be generated and downloadable. Console shows beta path + `claude-sonnet-4-6`.
+
+4. **Non-doc query to archetype with skills configured:** Ask Dev Director "Summarize my tasks this week" — skills should NOT attach (regex miss). Faster + cheaper response. No `.docx` file generated.
+
+5. **Temporal context check:** Ask EA "What day is today?" — Claude should correctly identify the current date (temporal prefix is in the user message, fully visible to the model).
+
+### Build Result
+
+`npm run build` — Compiled successfully, zero type errors, 89 static pages generated.
+
+### Edge Cases Noted
+
+- **Cache miss on first call per archetype per 5-min window:** Expected behavior — `cache_creation_input_tokens` shows on first call, `cache_read_input_tokens` shows on subsequent calls.
+- **Skills-on-demand creates two cache keys per archetype:** One for "no skills" system prompt and one for "skills" system prompt (with SKILLS_ADDENDUM). Both cache independently. Not a problem — just means two warm-up calls per archetype instead of one.
+- **Haiku tool complexity:** Heartbeats do use tools (calendar, tasks). Haiku 4.5 handles tool use fine for the simple "summarize what's happening today" pattern. Monitor heartbeat quality; if degradation is observed, remove the `model: "haiku"` param to revert to Sonnet.
+- Additional bugs found: none. Scope held.
+
+---
+
+## 2026-04-20 — Chat Cleanup Simplify Agent
+
+**Identity:** Chat Cleanup Simplify Agent
+**Date:** 2026-04-20
+**Commit:** `899e85a`
+**Task:** /simplify on commits `d8fdcd3` (chat route + timezone hookup) and `a196a87` (decision-lab follow-up route)
+
+### Simplifications Applied
+
+**Extracted `ARCHETYPE_META` + `parseDecisionResponse` to shared module**
+- Both `apps/web/src/app/api/decision-lab/route.ts` and `follow-up/route.ts` had identical copies of these. The follow-up route even had a comment "keep in sync with decision-lab/route.ts" — a clear signal.
+- Created `apps/web/src/app/api/decision-lab/_shared.ts` with the canonical implementations.
+- Both routes now import from `_shared.ts`. Net: -27 lines of duplication.
+- Shared `parseDecisionResponse` uses the stricter union return type from `follow-up/route.ts` (the `route.ts` version used loose `string`).
+
+**Dropped redundant `as` casts in `route.ts`**
+- After switching to the shared parser that already returns `'Support' | 'Caution' | 'Oppose'` and `'Low' | 'Medium' | 'High'`, the `.stance as 'Support' | 'Caution' | 'Oppose'` and `.confidence as 'Low' | 'Medium' | 'High'` casts were verbose no-ops. Removed.
+
+### Deliberate Skips
+
+- **`runArchetypeTurn` signature** — interface is already minimal and clean; callers (chat + heartbeat) pass different subsets of params but no collapse is beneficial
+- **`chat/route.ts` lingering cruft** — confirmed no dead code; route is 172 lines and all logic is active
+- **`heartbeat/trigger/route.ts`** — no changes needed; within scope of d8fdcd3 but already clean
+- **Decision-lab auth/DB boilerplate** — the two routes are not similar enough to share a handler; the `follow-up` route is a single-archetype single-call, while `route.ts` fans out to all archetypes in parallel
+
+### Build Result
+`npm run build` — Compiled successfully, zero type errors, 89 static pages generated.
+
+---
+
 ## 2026-04-19 — Team Chat Helper Refactor Agent
 
 **Identity:** Team Chat Helper Refactor Agent
@@ -3905,4 +4079,37 @@ PASSED — Next.js 14.2.35, 89 static pages, `/api/decision-lab/follow-up` visib
 
 ### Commit
 - SHA: a196a87
+- Pushed to main
+
+---
+
+## Session: Cost Controls Simplify Agent — 2026-04-19
+
+### Identity
+Agent: Cost Controls Simplify Agent (Sonnet)
+
+### Task
+/simplify pass on commit `124d655` — "feat: cost controls round 1 — prompt caching + Haiku routing + skills-on-demand"
+
+### Files Modified
+- `apps/web/src/lib/chat/run-archetype-turn.ts`
+- `apps/web/src/lib/skills/registry.ts`
+
+### Simplifications Applied
+1. **Inlined `hasSkillsConfigured`** (run-archetype-turn.ts line 135) — single-use intermediate variable folded directly into the `attachSkills` expression
+2. **Removed verbose explicit type annotation on `systemBlocks`** — replaced `Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }>` with inferred type using `as const` on the literal values
+3. **Dropped unnecessary capture group in pattern 2 of `SKILLS_TRIGGER_PATTERNS`** (registry.ts) — `(can you)` changed to `can you` since the group was never referenced
+
+### Deliberate Skips
+- `betas: [...SKILLS_BETA_HEADERS]` spread — correct idiom for unpacking a `readonly` tuple; leave as-is
+- `MODEL_IDS` lookup structure — clean, appropriately typed, no change needed
+- `heartbeat/trigger/route.ts` — only a one-line model parameter addition; no simplification opportunity
+- Comments retained — they explain non-obvious caching semantics (why temporal block is in user message not system)
+
+### Build Result
+PASSED — Next.js 14.2.35, 89 static pages, zero type errors
+
+### Commit
+- SHA: 293c589
+- Message: `simplify: cost controls round 1 cleanup`
 - Pushed to main
