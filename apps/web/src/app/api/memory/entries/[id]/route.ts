@@ -8,6 +8,41 @@ const VALID_CATEGORIES: MemoryEntryCategory[] = [
   "financials", "volunteers", "events",
 ];
 
+/** Shared auth + DB guard. Returns error response or the resolved { serviceClient, id }. */
+async function getEntryContext(
+  params: Promise<{ id: string }>,
+  autoGenMessage: string,
+) {
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return { error: NextResponse.json({ error: "Database not configured" }, { status: 503 }) } as const;
+  }
+
+  const { id } = await params;
+
+  const { data: existing, error: fetchError } = await serviceClient
+    .from("memory_entries")
+    .select("id, org_id, auto_generated")
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .single();
+
+  if (fetchError || !existing) {
+    return { error: NextResponse.json({ error: "Entry not found" }, { status: 404 }) } as const;
+  }
+
+  if (existing.auto_generated) {
+    return { error: NextResponse.json({ error: autoGenMessage }, { status: 403 }) } as const;
+  }
+
+  return { serviceClient, id, orgId } as const;
+}
+
 /**
  * PATCH /api/memory/entries/[id]
  * Updates fields on a user-created memory entry.
@@ -17,36 +52,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user, orgId } = await getAuthContext();
-  if (!user || !orgId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const serviceClient = createServiceRoleClient();
-  if (!serviceClient) {
-    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
-  }
-
-  const { id } = await params;
-
-  // Verify the entry exists and belongs to this org
-  const { data: existing, error: fetchError } = await serviceClient
-    .from("memory_entries")
-    .select("id, org_id, auto_generated")
-    .eq("id", id)
-    .eq("org_id", orgId)
-    .single();
-
-  if (fetchError || !existing) {
-    return NextResponse.json({ error: "Entry not found" }, { status: 404 });
-  }
-
-  if (existing.auto_generated) {
-    return NextResponse.json(
-      { error: "This entry is system-generated and cannot be edited." },
-      { status: 403 }
-    );
-  }
+  const ctx = await getEntryContext(params, "This entry is system-generated and cannot be edited.");
+  if ("error" in ctx) return ctx.error;
+  const { serviceClient, id, orgId } = ctx;
 
   let body: unknown;
   try {
@@ -124,36 +132,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user, orgId } = await getAuthContext();
-  if (!user || !orgId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const serviceClient = createServiceRoleClient();
-  if (!serviceClient) {
-    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
-  }
-
-  const { id } = await params;
-
-  // Verify the entry exists, belongs to this org, and is not auto-generated
-  const { data: existing, error: fetchError } = await serviceClient
-    .from("memory_entries")
-    .select("id, org_id, auto_generated")
-    .eq("id", id)
-    .eq("org_id", orgId)
-    .single();
-
-  if (fetchError || !existing) {
-    return NextResponse.json({ error: "Entry not found" }, { status: 404 });
-  }
-
-  if (existing.auto_generated) {
-    return NextResponse.json(
-      { error: "This entry is system-generated and cannot be deleted." },
-      { status: 403 }
-    );
-  }
+  const ctx = await getEntryContext(params, "This entry is system-generated and cannot be deleted.");
+  if ("error" in ctx) return ctx.error;
+  const { serviceClient, id, orgId } = ctx;
 
   const { error: deleteError } = await serviceClient
     .from("memory_entries")

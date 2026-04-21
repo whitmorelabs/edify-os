@@ -122,48 +122,30 @@ export default function MemoryPage() {
     setSaving(true);
     setSaveError(null);
 
-    if (formMode?.kind === "edit") {
-      const entryId = formMode.entry.id;
-      fetch(`/api/memory/entries/${entryId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: formData.category,
-          title: formData.title.trim(),
-          content: formData.content.trim(),
-        }),
+    const url = formMode?.kind === "edit"
+      ? `/api/memory/entries/${formMode.entry.id}`
+      : "/api/memory/entries";
+    const method = formMode?.kind === "edit" ? "PATCH" : "POST";
+
+    fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: formData.category,
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Save failed"); });
+        return res.json() as Promise<MemoryEntryRow>;
       })
-        .then((res) => {
-          if (!res.ok) return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Save failed"); });
-          return res.json() as Promise<MemoryEntryRow>;
-        })
-        .then(() => {
-          closeForm();
-          fetchEntries();
-        })
-        .catch((err: unknown) => setSaveError(err instanceof Error ? err.message : "Save failed"))
-        .finally(() => setSaving(false));
-    } else {
-      fetch("/api/memory/entries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: formData.category,
-          title: formData.title.trim(),
-          content: formData.content.trim(),
-        }),
+      .then(() => {
+        closeForm();
+        fetchEntries();
       })
-        .then((res) => {
-          if (!res.ok) return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Save failed"); });
-          return res.json() as Promise<MemoryEntryRow>;
-        })
-        .then(() => {
-          closeForm();
-          fetchEntries();
-        })
-        .catch((err: unknown) => setSaveError(err instanceof Error ? err.message : "Save failed"))
-        .finally(() => setSaving(false));
-    }
+      .catch((err: unknown) => setSaveError(err instanceof Error ? err.message : "Save failed"))
+      .finally(() => setSaving(false));
   };
 
   const handleDeleteConfirm = (id: string) => {
