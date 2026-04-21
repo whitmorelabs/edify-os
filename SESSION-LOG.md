@@ -4308,4 +4308,6 @@ Only the 6 files from `git diff 293c589..c198ee3 --stat`, excluding the parallel
 - `npx tsc --noEmit -p apps/web/tsconfig.json` — clean, zero errors.
 
 ### Commit
-- Pending — see git log for SHA.
+- SHA: 9e55106
+- Message: `simplify: cleanup after frontend-design skill + admin dashboard`
+- Pushed to main
