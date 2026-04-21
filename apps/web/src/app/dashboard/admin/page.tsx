@@ -89,8 +89,8 @@ const quickLinks = [
 function StatsSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="card p-5 animate-pulse">
+      {overviewCards.map((card) => (
+        <div key={card.key} className="card p-5 animate-pulse">
           <div className="mb-3 h-10 w-10 rounded-lg bg-gray-200" />
           <div className="h-8 w-12 rounded bg-gray-200" />
           <div className="mt-2 h-4 w-32 rounded bg-gray-200" />

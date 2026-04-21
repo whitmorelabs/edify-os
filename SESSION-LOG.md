@@ -4258,3 +4258,54 @@ PASSED — Next.js 14.2.35, 89 static pages, zero type errors
 - SHA: 293c589
 - Message: `simplify: cost controls round 1 cleanup`
 - Pushed to main
+
+---
+
+## 2026-04-21 — Simplify Pass Agent — Post Frontend-Design + Admin Dashboard
+
+**Identity:** Simplify Pass Agent
+**Date:** 2026-04-21
+**Task:** Run `/simplify` over the two fresh commits `d667275` (frontend-design skill for Marketing Director) and `c198ee3` (admin dashboard wired to real Supabase queries). Ship any cleanups without touching files owned by the parallel inbox/tasks agent.
+
+### Scope
+Only the 6 files from `git diff 293c589..c198ee3 --stat`, excluding the parallel agent's territory:
+- `apps/web/src/lib/chat/run-archetype-turn.ts`
+- `apps/web/src/lib/skills/registry.ts`
+- `apps/web/src/app/api/admin/stats/route.ts`
+- `apps/web/src/app/api/team/enabled/route.ts`
+- `apps/web/src/app/dashboard/admin/page.tsx`
+- `apps/web/src/components/sidebar.tsx`
+
+### Findings
+
+**Reuse:**
+- `DEFAULT_ENABLED` in `/api/team/enabled/route.ts` duplicates `DEFAULT_ARCHETYPES` in `/api/admin/ai-config/route.ts` — the file comment literally says "keep in sync." Proper fix is to hoist a shared `ARCHETYPE_DEFAULTS` constant, but that requires modifying `ai-config/route.ts`, which is out of scope for this simplify pass. **Flagged for a future cleanup; not applied.**
+- Trigger-pattern structure in `skills/registry.ts` (`FRONTEND_DESIGN_TRIGGER_PATTERNS` + `shouldAttachFrontendDesign`) mirrors the existing `SKILLS_TRIGGER_PATTERNS` + `shouldAttachSkills` pattern — consistent, good reuse.
+- Both new API routes use the existing `createServiceRoleClient` / `getAuthContext` helpers — good.
+- `fetch().then().then().catch().finally()` pattern in admin page + sidebar is simple enough to not warrant a shared `useFetch` hook; factoring would be premature (only 2 call sites).
+
+**Quality:**
+- `StatsSkeleton` hardcoded `[0, 1, 2, 3]` — magic number that would drift if `overviewCards` ever grows/shrinks. **FIXED:** iterate over `overviewCards` so skeleton count stays synced automatically.
+- `FRONTEND_DESIGN_ARCHETYPES` being a `Set` with one element is fine — designed to scale, reads cleanly. Skip.
+- `isEmpty` branching in admin cards has deliberate UX differentiation (faded color + empty-state copy vs bold value + standard label). Not copy-paste. Skip.
+- Tightening `EnabledAgentsMap` to `Record<ArchetypeSlug, boolean>` considered and rejected — `Object.fromEntries` returns `Record<string, T>` so it'd require casts, and `Record<string, boolean>` is actually safer for consumers since keys depend on what's in the DB. Skip.
+
+**Efficiency:**
+- Admin stats `Promise.all` for 4 parallel count queries with `head: true` — already efficient.
+- Team enabled route does a single query — already efficient.
+- One-shot fetches on mount, no cleanup needed (modern React 18 no longer warns on post-unmount setState).
+
+### Changes Applied
+
+`apps/web/src/app/dashboard/admin/page.tsx` — `StatsSkeleton` now iterates `overviewCards` instead of a hardcoded `[0, 1, 2, 3]` array. Skeleton count stays synced with card count forever.
+
+### Judgment Calls
+- Did NOT extract `ARCHETYPE_DEFAULTS` to a shared module. Proper fix, but requires touching `ai-config/route.ts` which is out of scope. Leaving the "keep in sync" comment as-is; noted for a future simplify pass covering both files.
+- Did NOT refactor the `isEmpty` render branch. Reads two branches per card, but the two branches are intentionally different UX states, not duplication.
+- Did NOT introduce a `useFetch` hook for 2 call sites. YAGNI; wait for a 3rd identical pattern before factoring.
+
+### Verification
+- `npx tsc --noEmit -p apps/web/tsconfig.json` — clean, zero errors.
+
+### Commit
+- Pending — see git log for SHA.
