@@ -13,12 +13,33 @@ import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/too
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { driveTools, executeDriveTool, DRIVE_TOOLS_ADDENDUM } from "@/lib/tools/drive";
+import { unsplashTools, executeUnsplashTool, UNSPLASH_TOOLS_ADDENDUM } from "@/lib/tools/unsplash";
+import {
+  renderTools,
+  executeRenderTool,
+  RENDER_TOOLS_ADDENDUM,
+  type RenderToolGeneratedFile,
+} from "@/lib/tools/render";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
 // Re-export all tool-family addendums from a single location so callers
 // don't need to know which file each came from.
-export { CALENDAR_TOOLS_ADDENDUM, GRANTS_TOOLS_ADDENDUM, CRM_TOOLS_ADDENDUM, GMAIL_TOOLS_ADDENDUM, DRIVE_TOOLS_ADDENDUM };
+export {
+  CALENDAR_TOOLS_ADDENDUM,
+  GRANTS_TOOLS_ADDENDUM,
+  CRM_TOOLS_ADDENDUM,
+  GMAIL_TOOLS_ADDENDUM,
+  DRIVE_TOOLS_ADDENDUM,
+  UNSPLASH_TOOLS_ADDENDUM,
+  RENDER_TOOLS_ADDENDUM,
+};
+export type { RenderToolGeneratedFile };
+
+// Tool names that belong to the Unsplash family but don't share a common prefix.
+// Kept as a Set so dispatch is O(1) and easy to extend if we add more photo tools.
+const UNSPLASH_TOOL_NAMES = new Set(unsplashTools.map((t) => t.name));
+const RENDER_TOOL_NAMES = new Set(renderTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -31,6 +52,17 @@ export { CALENDAR_TOOLS_ADDENDUM, GRANTS_TOOLS_ADDENDUM, CRM_TOOLS_ADDENDUM, GMA
 export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
   const families = new Set<string>();
   for (const t of tools) {
+    // Unsplash tool names (e.g. "search_stock_photo") don't share a common prefix
+    // with their family — map them explicitly. All other tools use the first
+    // underscore-segment as the family key (calendar_, grants_, crm_, etc.).
+    if (UNSPLASH_TOOL_NAMES.has(t.name)) {
+      families.add("unsplash");
+      continue;
+    }
+    if (RENDER_TOOL_NAMES.has(t.name)) {
+      families.add("render");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -49,6 +81,8 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("crm")) parts.push(CRM_TOOLS_ADDENDUM);
   if (families.has("gmail")) parts.push(GMAIL_TOOLS_ADDENDUM);
   if (families.has("drive")) parts.push(DRIVE_TOOLS_ADDENDUM);
+  if (families.has("unsplash")) parts.push(UNSPLASH_TOOLS_ADDENDUM);
+  if (families.has("render")) parts.push(RENDER_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -59,9 +93,9 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools],
-  events_director: [...calendarTools, ...driveTools],
+  events_director: [...calendarTools, ...driveTools, ...unsplashTools],
   development_director: [...grantsTools, ...crmTools, ...gmailTools, ...driveTools],
-  marketing_director: [...driveTools],
+  marketing_director: [...driveTools, ...unsplashTools, ...renderTools],
   programs_director: [...grantsTools, ...driveTools],
   hr_volunteer_coordinator: [],
 };
@@ -108,6 +142,7 @@ export async function executeTool({
   memberId,
   serviceClient,
   preFetchedTokens,
+  anthropic,
 }: {
   name: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,7 +152,10 @@ export async function executeTool({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serviceClient: SupabaseClient<any>;
   preFetchedTokens?: Map<string, string>;
-}): Promise<{ content: string; is_error?: boolean }> {
+  /** Optional Anthropic client — required only for tools that upload files
+   *  (currently render_design_to_image). Safe to omit for other tools. */
+  anthropic?: Anthropic;
+}): Promise<{ content: string; is_error?: boolean; generatedFile?: RenderToolGeneratedFile }> {
   if (name.startsWith("calendar_")) {
     const token = await resolveGoogleToken("google_calendar", preFetchedTokens, serviceClient, orgId);
     if (typeof token !== "string") return token;
@@ -142,6 +180,20 @@ export async function executeTool({
     const token = await resolveGoogleToken("google_drive", preFetchedTokens, serviceClient, orgId);
     if (typeof token !== "string") return token;
     return executeDriveTool({ name, input, accessToken: token });
+  }
+
+  if (UNSPLASH_TOOL_NAMES.has(name)) {
+    return executeUnsplashTool({ name, input });
+  }
+
+  if (RENDER_TOOL_NAMES.has(name)) {
+    if (!anthropic) {
+      return {
+        content: "Render tool requires an Anthropic client; none was provided.",
+        is_error: true,
+      };
+    }
+    return executeRenderTool({ name, input, anthropic });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };

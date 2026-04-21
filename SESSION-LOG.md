@@ -2,6 +2,76 @@
 
 ---
 
+## 2026-04-21 — Unsplash Stock Photo Tool Agent
+
+**Identity:** Unsplash Stock Photo Tool Agent
+**Date:** 2026-04-21
+**Task:** Add Unsplash stock photo search as a free tool for the Marketing Director and Events Director archetypes. Unsplash developer API: 50 requests/hour per app, permissive license, attribution required.
+
+### Files Added
+
+- `apps/web/src/lib/unsplash.ts` — API wrapper. Direct fetch, no SDK (mirrors `grants-gov.ts` pattern). Exports `searchPhotos(query, { orientation?, perPage? })`, `trackDownload(downloadLocation)`, and `UnsplashError` class. Reads `UNSPLASH_ACCESS_KEY` from env and throws a clear `UnsplashError` with sign-up instructions when missing. Projects raw API payloads to `{ id, description, url, downloadUrl, attribution: { name, profileUrl, unsplashUrl }, width, height }`. Appends UTM params (`?utm_source=edify_os&utm_medium=referral`) to attribution links per Unsplash guidelines. `trackDownload` is guarded to only fire against `api.unsplash.com` URLs.
+- `apps/web/src/lib/tools/unsplash.ts` — Anthropic tool definition + executor. One tool: `search_stock_photo` with input `{ query: string, orientation?: 'landscape'|'portrait'|'squarish', perPage?: number }` (perPage capped at 10, default 5). Fires `trackDownload` pingback fire-and-forget for every returned photo (ToS compliance). Returns slim projection + `attributionReminder` string. Exports `UNSPLASH_TOOLS_ADDENDUM` system-prompt note coaching Claude to always include `Photo by [Name](profileUrl) on [Unsplash](unsplashUrl)` attribution.
+- `apps/web/.env.example` — new file with `UNSPLASH_ACCESS_KEY=` placeholder and sign-up pointer.
+
+### Files Changed
+
+- `apps/web/src/lib/tools/registry.ts` — imports `unsplashTools`, `executeUnsplashTool`, `UNSPLASH_TOOLS_ADDENDUM`. Added `UNSPLASH_TOOL_NAMES` Set for dispatch (name `search_stock_photo` doesn't share a prefix with its family, so it's handled explicitly in both `getToolFamilies` and `executeTool`). Gated to **Marketing Director** and **Events Director** only — no other archetypes get the tool. `buildSystemAddendums` now emits `UNSPLASH_TOOLS_ADDENDUM` whenever the tools array contains an Unsplash tool.
+- `apps/web/.env.local.example` — appended `UNSPLASH_ACCESS_KEY=` with sign-up comment.
+
+### Archetype Wiring
+
+`ARCHETYPE_TOOLS` now reads:
+- `marketing_director: [...driveTools, ...unsplashTools]`
+- `events_director: [...calendarTools, ...driveTools, ...unsplashTools]`
+- All other archetypes unchanged.
+
+No changes needed to `run-archetype-turn.ts` — it picks up tools via `ARCHETYPE_TOOLS[archetype]` and the name-based dispatch in `executeTool()`. The new `UNSPLASH_TOOL_NAMES` Set handles the non-prefix dispatch cleanly.
+
+### Tool Signature
+
+```ts
+// name
+"search_stock_photo"
+// input_schema
+{
+  query: string,                                        // required
+  orientation?: "landscape" | "portrait" | "squarish",  // optional
+  perPage?: number                                      // optional, 1–10, default 5
+}
+// returns (JSON string in tool_result)
+{
+  returned: number,
+  photos: [{ id, description, url, downloadUrl, attribution: { name, profileUrl, unsplashUrl } }],
+  attributionReminder: string
+}
+```
+
+### ACTION ITEM FOR CITLALI / Z
+
+1. Register at https://unsplash.com/developers (free, ~3 minutes).
+2. Create a new application — name it "Edify OS" or similar. Demo tier is fine (50 req/hour).
+3. Copy the Access Key.
+4. Add it to Vercel as `UNSPLASH_ACCESS_KEY` (Production, Preview, Development scopes).
+5. Redeploy. Until the key is set, Marketing Director + Events Director will throw `UnsplashError: UNSPLASH_ACCESS_KEY is not configured.` when they try to search photos.
+
+### ToS Compliance Notes
+
+- **Attribution:** `UNSPLASH_TOOLS_ADDENDUM` instructs Claude to always surface `Photo by [Name](profileUrl) on [Unsplash](unsplashUrl)` whenever it references a photo. The tool result body also includes an `attributionReminder` field as a belt-and-suspenders nudge.
+- **Download pingback:** The executor fires `trackDownload()` for every returned photo (fire-and-forget — failures log a warning but don't fail the tool call). For an LLM surface, returning search results is effectively the selection moment, so we pingback on surface rather than on consumption. Revisit if a future feature lets the user explicitly "choose" a photo — at that point we'd move the pingback to the selection event.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → EXIT=0, clean.
+
+### Did NOT Touch
+
+- `@vercel/og` or HTML-to-PNG code (parallel agent's domain).
+- Any archetype beyond Marketing + Events.
+- Any live API key (Citlali/Z's sign-up).
+
+---
+
 ## 2026-04-21 — Inbox / Tasks Split Agent
 
 **Identity:** Inbox/Tasks Split Agent
