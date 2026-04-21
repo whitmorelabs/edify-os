@@ -14,13 +14,21 @@ import {
   Maximize2,
   X,
   Save,
+  Play,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AGENT_COLORS, type AgentRoleSlug } from "@/lib/agent-colors";
 import { ARCHETYPE_SLUGS } from "@/lib/archetypes";
-import { getHeartbeatHistory, type HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
+import {
+  getHeartbeatHistory,
+  triggerHeartbeat,
+  type HeartbeatResult,
+  type ArchetypeSlug,
+} from "@/app/dashboard/inbox/heartbeats";
 import { HeartbeatUpdate } from "@/app/dashboard/inbox/components/HeartbeatUpdate";
+import { ARCHETYPE_CONFIG } from "@/lib/archetype-config";
 import type { InboxItem } from "@/app/api/inbox/pending/route";
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
@@ -68,6 +76,8 @@ export default function InboxPage() {
   // Heartbeat state
   const [heartbeats, setHeartbeats] = useState<HeartbeatResult[]>([]);
   const [heartbeatsLoading, setHeartbeatsLoading] = useState(false);
+  // Per-archetype trigger state: tracks which archetypes are currently running a check-in
+  const [triggeringArchetypes, setTriggeringArchetypes] = useState<Set<ArchetypeSlug>>(new Set());
 
   useEffect(() => {
     setLoading(true);
@@ -172,6 +182,24 @@ export default function InboxPage() {
     setEditContent("");
   };
 
+  const runCheckIn = async (archetype: ArchetypeSlug) => {
+    if (triggeringArchetypes.has(archetype)) return; // already running
+    setTriggeringArchetypes((prev) => new Set(prev).add(archetype));
+    try {
+      const result = await triggerHeartbeat(archetype);
+      // Prepend the new result into the heartbeats list so it appears at top
+      setHeartbeats((prev) => [result, ...prev]);
+    } catch (err) {
+      console.error("[inbox] runCheckIn failed:", err);
+    } finally {
+      setTriggeringArchetypes((prev) => {
+        const next = new Set(prev);
+        next.delete(archetype);
+        return next;
+      });
+    }
+  };
+
   const openExpand = (id: string) => {
     setExpandedModalId(id);
     setEditingId(null);
@@ -215,6 +243,25 @@ export default function InboxPage() {
           >
             <Zap className="h-4 w-4 text-amber-500" />
             Auto-approve {highConfidenceCount} high-confidence
+          </button>
+        )}
+        {section === "team-updates" && (
+          <button
+            onClick={async () => {
+              const allSlugs = Object.keys(ARCHETYPE_CONFIG) as ArchetypeSlug[];
+              await Promise.allSettled(allSlugs.map((slug) => runCheckIn(slug)));
+            }}
+            disabled={triggeringArchetypes.size > 0}
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {triggeringArchetypes.size > 0 ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4 text-brand-500" />
+            )}
+            {triggeringArchetypes.size > 0
+              ? `Running ${triggeringArchetypes.size} check-in${triggeringArchetypes.size > 1 ? "s" : ""}…`
+              : "Run All Check-ins"}
           </button>
         )}
       </div>
@@ -488,6 +535,30 @@ export default function InboxPage() {
       {/* ── Team Updates section ── */}
       {section === "team-updates" && (
         <div className="space-y-3">
+          {/* Per-archetype "Run Check-in Now" row */}
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(ARCHETYPE_CONFIG) as ArchetypeSlug[]).map((slug) => {
+              const meta = ARCHETYPE_CONFIG[slug];
+              const isRunning = triggeringArchetypes.has(slug);
+              return (
+                <button
+                  key={slug}
+                  onClick={() => runCheckIn(slug)}
+                  disabled={isRunning}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${meta.light} ${meta.text} border-current hover:opacity-80`}
+                  title={`Run ${meta.label} check-in now`}
+                >
+                  {isRunning ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
+                  {meta.label}
+                </button>
+              );
+            })}
+          </div>
+
           {heartbeatsLoading ? (
             <>
               <div className="h-36 bg-slate-100 rounded-xl animate-pulse" />
@@ -501,7 +572,7 @@ export default function InboxPage() {
                 Your team hasn&apos;t checked in yet.
               </p>
               <p className="mt-1 text-sm text-slate-500">
-                Configure proactive check-ins in Settings to get regular updates from your team.
+                Run a check-in above or configure scheduled check-ins in Settings.
               </p>
               <Link
                 href="/dashboard/settings/heartbeats"

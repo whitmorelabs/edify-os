@@ -2,6 +2,52 @@
 
 ---
 
+## 2026-04-19 — Heartbeat Execution Agent
+
+**Identity:** Heartbeat Execution Agent
+**Date:** 2026-04-19
+**PRD:** PRD-proactive-heartbeat-execution.md
+**Commit:** (see below — appended after push)
+
+### Task
+
+Implement proactive daily check-ins for all 6 archetypes: per-archetype prompts, a real execution endpoint backed by the tool-use loop, a wired `triggerHeartbeat()` client function, and "Run Check-in Now" UI in the Inbox.
+
+### Files created
+
+- `apps/web/src/lib/heartbeat-prompts.ts` — Per-archetype proactive prompt strings (`ARCHETYPE_HEARTBEAT_PROMPTS` map). Each prompt is calibrated to the archetype's personality and instructs use of the relevant tool set (grants search, calendar, Gmail, etc.).
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — Extracted shared helper `runArchetypeTurn()`. Encapsulates: build system prompt (archetype prompt + custom name + temporal block + org context + tool/skills addendums), call `anthropic.beta.messages.create` (if skills) or `anthropic.messages.create`, full 8-round tool-use loop with per-round Google token prefetch, file output collection, and final text extraction. Both `/api/team/[slug]/chat` and `/api/heartbeat/trigger` can call this helper.
+- `apps/web/src/app/api/heartbeat/trigger/route.ts` — `POST /api/heartbeat/trigger`. Auth check → org lookup → upsert `heartbeat_jobs` row → insert `heartbeat_runs` (status="running") → call `runArchetypeTurn()` with the archetype's proactive prompt → update run with status/findings/completed_at → return `HeartbeatResult`. Errors captured as status="error". `export const maxDuration = 60` for Vercel Pro runtime.
+
+### Files modified
+
+- `apps/web/src/app/dashboard/inbox/heartbeats.ts` — Replaced mock `triggerHeartbeat()` stub with a real `fetch("/api/heartbeat/trigger", { method: "POST", ... })` call. Throws on non-OK responses.
+- `apps/web/src/app/dashboard/inbox/page.tsx` — Added per-archetype "Run Check-in Now" pill buttons (one per archetype, color-coded) in Team Updates section. Added "Run All Check-ins" button in header when in team-updates mode. Per-archetype loading spinners via `triggeringArchetypes: Set<ArchetypeSlug>` state. Successful run prepends result to heartbeats list immediately.
+
+### Extraction approach
+
+**Extracted shared helper** (`lib/chat/run-archetype-turn.ts`). The chat route's tool-use loop was clean enough to lift without entanglement — conversation persistence and history loading live outside the loop in the chat route, so extracting the inner loop was safe. The chat route still handles its own DB writes; the trigger route skips those entirely. No duplication flagged.
+
+**Note for a follow-up PRD:** The chat route (`/api/team/[slug]/chat/route.ts`) still inlines its own loop. Wire it to call `runArchetypeTurn()` instead to eliminate the remaining duplication (~80 lines). Deferred to avoid scope creep.
+
+### Follow-up: Vercel Cron for scheduled execution (OUT OF SCOPE — documented only)
+
+To make heartbeats run automatically on a schedule, add to `vercel.json`:
+```json
+{ "crons": [{ "path": "/api/heartbeat/cron", "schedule": "0 8 * * *" }] }
+```
+Build `/api/heartbeat/cron` that:
+1. Authenticates via `Authorization: Bearer ${CRON_SECRET}` (env var)
+2. Queries all enabled `heartbeat_jobs` rows across all orgs
+3. For each job, POSTs to `/api/heartbeat/trigger` (or calls `runArchetypeTurn` directly)
+4. This is a separate PRD — requires CRON_SECRET env var, Vercel Pro plan, and org-level scheduling logic.
+
+### Build result
+
+`npm run build` — Compiled successfully, zero type errors, 87 static pages generated.
+
+---
+
 ## 2026-04-19 — Afternoon Batch Simplify Agent
 
 **Identity:** Afternoon Batch Simplify Agent

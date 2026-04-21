@@ -161,14 +161,14 @@ export async function getHeartbeatHistory(
 export async function triggerHeartbeat(
   archetype: ArchetypeSlug
 ): Promise<HeartbeatResult> {
-  // In production this would POST to the backend to run an immediate check-in
-  return {
-    id: `hb-manual-${Date.now()}`,
-    archetype,
-    timestamp: new Date().toISOString(),
-    status: "completed",
-    title: "Manual check-in triggered",
-    body: "This check-in was triggered manually. Results will appear shortly.",
-    suggestedAction: null,
-  };
+  const res = await fetch("/api/heartbeat/trigger", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ archetype }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error((err as { error?: string }).error ?? "Failed to trigger heartbeat");
+  }
+  return res.json() as Promise<HeartbeatResult>;
 }
