@@ -16,7 +16,7 @@ const DISMISSED_KEY = 'edify_proactive_helper_dismissed';
 
 function getDismissedPages(): Set<string> {
   try {
-    const raw = sessionStorage.getItem(DISMISSED_KEY);
+    const raw = localStorage.getItem(DISMISSED_KEY);
     return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
   } catch {
     return new Set();
@@ -27,7 +27,7 @@ function dismissPage(page: string): void {
   try {
     const pages = getDismissedPages();
     pages.add(page);
-    sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...pages]));
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify([...pages]));
   } catch {
     // Silently ignore
   }

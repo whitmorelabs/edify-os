@@ -80,9 +80,9 @@ export function ChatWidget() {
   function handleDismiss(e: React.MouseEvent) {
     e.stopPropagation();
     try {
-      sessionStorage.setItem(SUPPORT_CHAT_DISMISSED_KEY, 'true');
+      localStorage.setItem(SUPPORT_CHAT_DISMISSED_KEY, 'true');
     } catch {
-      // sessionStorage unavailable — ignore
+      // localStorage unavailable — ignore
     }
     setIsDismissed(true);
     if (isOpen) closeChat();

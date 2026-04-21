@@ -31,10 +31,10 @@ const STORAGE_KEY = 'edify_support_chat_history';
 
 export const SUPPORT_CHAT_DISMISSED_KEY = 'edify_support_dismissed';
 
-/** Returns true if the user dismissed the support chat widget this session. */
+/** Returns true if the user has permanently dismissed the support chat widget. */
 export function isSupportChatDismissed(): boolean {
   try {
-    return sessionStorage.getItem(SUPPORT_CHAT_DISMISSED_KEY) === 'true';
+    return localStorage.getItem(SUPPORT_CHAT_DISMISSED_KEY) === 'true';
   } catch {
     return false;
   }

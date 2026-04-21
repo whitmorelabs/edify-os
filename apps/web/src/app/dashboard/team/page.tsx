@@ -36,22 +36,40 @@ export default function TeamPage() {
   const [lastActiveTs, setLastActiveTs] = useState<Record<string, string | null>>({});
   const { names: archetypeNames } = useArchetypeNames();
 
-  // Load last message previews and last-active timestamps from localStorage
+  // Load last message previews from localStorage (still client-side for title previews)
   useEffect(() => {
     const previews: Record<string, string> = {};
-    const timestamps: Record<string, string | null> = {};
     for (const slug of ARCHETYPE_SLUGS) {
       const convos = getLocalConversations(slug);
       if (convos.length > 0) {
         previews[slug] = convos[0].title;
-        // convos are sorted descending by updatedAt; take the most recent
-        timestamps[slug] = convos[0].updatedAt ?? null;
-      } else {
-        timestamps[slug] = null;
       }
     }
     setLastMessages(previews);
-    setLastActiveTs(timestamps);
+  }, []);
+
+  // Load last-active timestamps from the server; fall back to localStorage if fetch fails
+  useEffect(() => {
+    async function fetchLastActive() {
+      try {
+        const res = await fetch("/api/team/last-active");
+        if (res.ok) {
+          const data = (await res.json()) as Record<string, string | null>;
+          setLastActiveTs(data);
+          return;
+        }
+      } catch {
+        // Network error — fall through to localStorage fallback
+      }
+      // Fallback: read from localStorage
+      const timestamps: Record<string, string | null> = {};
+      for (const slug of ARCHETYPE_SLUGS) {
+        const convos = getLocalConversations(slug);
+        timestamps[slug] = convos.length > 0 ? (convos[0].updatedAt ?? null) : null;
+      }
+      setLastActiveTs(timestamps);
+    }
+    void fetchLastActive();
   }, []);
 
   return (
