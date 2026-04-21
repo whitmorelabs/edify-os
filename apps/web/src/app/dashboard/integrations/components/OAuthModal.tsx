@@ -8,7 +8,7 @@ import type React from 'react';
 type ModalState = 'idle' | 'pending' | 'success' | 'error';
 
 /** Accepts either a Lucide icon or a react-icons component */
-type AnyIcon = React.ComponentType<{ className?: string; size?: number | string }>;
+export type AnyIcon = React.ComponentType<{ className?: string; size?: number | string }>;
 
 interface OAuthModalProps {
   integrationId: string;

@@ -36,7 +36,6 @@ export async function PATCH(
 
   const { status, output_preview } = body as PatchBody;
 
-  // Validate status if provided
   if (status !== undefined && status !== "approved" && status !== "rejected") {
     return NextResponse.json(
       { error: "status must be 'approved' or 'rejected'" },
@@ -44,7 +43,6 @@ export async function PATCH(
     );
   }
 
-  // Must provide at least one field to update
   if (status === undefined && output_preview === undefined) {
     return NextResponse.json(
       { error: "Provide status and/or output_preview" },
@@ -67,7 +65,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Build update payload
   const updatePayload: Record<string, unknown> = {};
 
   if (status !== undefined) {

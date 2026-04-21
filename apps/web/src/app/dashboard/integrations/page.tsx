@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import type React from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Mail,
@@ -44,11 +43,8 @@ import {
   SiXero,
 } from 'react-icons/si';
 import { AGENT_COLORS, type AgentRoleSlug } from '@/lib/agent-colors';
-import { OAuthModal } from './components/OAuthModal';
+import { OAuthModal, type AnyIcon } from './components/OAuthModal';
 import { PermissionsInfo } from './components/PermissionsInfo';
-
-/** Accepts either a Lucide icon or a react-icons component */
-type AnyIcon = React.ComponentType<{ className?: string; size?: number | string }>;
 
 /* ------------------------------------------------------------------ */
 /*  Category config                                                    */
