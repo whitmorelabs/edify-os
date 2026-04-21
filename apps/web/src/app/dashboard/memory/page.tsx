@@ -58,21 +58,25 @@ function formatUpdatedAt(iso: string): string {
   return date.toLocaleDateString();
 }
 
+type FormMode = { kind: "add" } | { kind: "edit"; entry: MemoryEntryRow };
+
+const EMPTY_FORM = { title: "", content: "", category: "general" as MemoryEntryCategory };
+
 export default function MemoryPage() {
   const [activeCategory, setActiveCategory] = useState<MemoryEntryCategory | "all">("all");
   const [search, setSearch] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newEntry, setNewEntry] = useState({
-    title: "",
-    content: "",
-    category: "general" as MemoryEntryCategory,
-  });
+  const [formMode, setFormMode] = useState<FormMode | null>(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   const [entries, setEntries] = useState<MemoryEntryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Delete confirmation state
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchEntries = () => {
     setLoading(true);
@@ -92,30 +96,93 @@ export default function MemoryPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAddEntry = () => {
-    if (!newEntry.title.trim() || !newEntry.content.trim()) return;
+  const openAddForm = () => {
+    setFormMode({ kind: "add" });
+    setFormData(EMPTY_FORM);
+    setSaveError(null);
+  };
+
+  const openEditForm = (entry: MemoryEntryRow) => {
+    setFormMode({ kind: "edit", entry });
+    setFormData({
+      title: entry.title,
+      content: entry.content,
+      category: entry.category,
+    });
+    setSaveError(null);
+  };
+
+  const closeForm = () => {
+    setFormMode(null);
+    setSaveError(null);
+  };
+
+  const handleSave = () => {
+    if (!formData.title.trim() || !formData.content.trim()) return;
     setSaving(true);
     setSaveError(null);
-    fetch("/api/memory/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        category: newEntry.category,
-        title: newEntry.title.trim(),
-        content: newEntry.content.trim(),
-      }),
-    })
+
+    if (formMode?.kind === "edit") {
+      const entryId = formMode.entry.id;
+      fetch(`/api/memory/entries/${entryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: formData.category,
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+        }),
+      })
+        .then((res) => {
+          if (!res.ok) return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Save failed"); });
+          return res.json() as Promise<MemoryEntryRow>;
+        })
+        .then(() => {
+          closeForm();
+          fetchEntries();
+        })
+        .catch((err: unknown) => setSaveError(err instanceof Error ? err.message : "Save failed"))
+        .finally(() => setSaving(false));
+    } else {
+      fetch("/api/memory/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: formData.category,
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+        }),
+      })
+        .then((res) => {
+          if (!res.ok) return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Save failed"); });
+          return res.json() as Promise<MemoryEntryRow>;
+        })
+        .then(() => {
+          closeForm();
+          fetchEntries();
+        })
+        .catch((err: unknown) => setSaveError(err instanceof Error ? err.message : "Save failed"))
+        .finally(() => setSaving(false));
+    }
+  };
+
+  const handleDeleteConfirm = (id: string) => {
+    setDeletingId(id);
+    setDeleteError(null);
+    fetch(`/api/memory/entries/${id}`, { method: "DELETE" })
       .then((res) => {
-        if (!res.ok) return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Save failed"); });
-        return res.json() as Promise<MemoryEntryRow>;
+        if (!res.ok && res.status !== 204) {
+          return res.json().then((e: { error?: string }) => { throw new Error(e.error ?? "Delete failed"); });
+        }
       })
       .then(() => {
-        setShowAddForm(false);
-        setNewEntry({ title: "", content: "", category: "general" });
-        fetchEntries();
+        setDeletingId(null);
+        setEntries((prev) => prev.filter((e) => e.id !== id));
       })
-      .catch((err: unknown) => setSaveError(err instanceof Error ? err.message : "Save failed"))
-      .finally(() => setSaving(false));
+      .catch((err: unknown) => {
+        setDeleteError(err instanceof Error ? err.message : "Delete failed");
+        setDeletingId(null);
+      });
   };
 
   const categories = Object.entries(categoryConfig) as [
@@ -134,6 +201,8 @@ export default function MemoryPage() {
     return true;
   });
 
+  const isEditing = formMode?.kind === "edit";
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -144,7 +213,7 @@ export default function MemoryPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={openAddForm}
           className="btn-primary"
         >
           <Plus className="h-4 w-4" />
@@ -152,13 +221,13 @@ export default function MemoryPage() {
         </button>
       </div>
 
-      {/* Add Form */}
-      {showAddForm && (
+      {/* Add / Edit Form */}
+      {formMode !== null && (
         <div className="card p-5 animate-slide-up">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="heading-3">New Memory Entry</h3>
+            <h3 className="heading-3">{isEditing ? "Edit Memory Entry" : "New Memory Entry"}</h3>
             <button
-              onClick={() => setShowAddForm(false)}
+              onClick={closeForm}
               className="text-slate-400 hover:text-slate-600"
             >
               <X className="h-5 w-5" />
@@ -170,10 +239,8 @@ export default function MemoryPage() {
                 <label className="label mb-1.5 block">Title</label>
                 <input
                   type="text"
-                  value={newEntry.title}
-                  onChange={(e) =>
-                    setNewEntry({ ...newEntry, title: e.target.value })
-                  }
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="input-field"
                   placeholder="Entry title..."
                 />
@@ -181,12 +248,9 @@ export default function MemoryPage() {
               <div>
                 <label className="label mb-1.5 block">Category</label>
                 <select
-                  value={newEntry.category}
+                  value={formData.category}
                   onChange={(e) =>
-                    setNewEntry({
-                      ...newEntry,
-                      category: e.target.value as MemoryEntryCategory,
-                    })
+                    setFormData({ ...formData, category: e.target.value as MemoryEntryCategory })
                   }
                   className="input-field"
                 >
@@ -201,10 +265,8 @@ export default function MemoryPage() {
             <div>
               <label className="label mb-1.5 block">Content</label>
               <textarea
-                value={newEntry.content}
-                onChange={(e) =>
-                  setNewEntry({ ...newEntry, content: e.target.value })
-                }
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 className="input-field"
                 rows={4}
                 placeholder="What should your AI team know..."
@@ -215,21 +277,31 @@ export default function MemoryPage() {
             )}
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => { setShowAddForm(false); setSaveError(null); }}
+                onClick={closeForm}
                 className="btn-secondary"
                 disabled={saving}
               >
                 Cancel
               </button>
               <button
-                onClick={handleAddEntry}
+                onClick={handleSave}
                 className="btn-primary"
-                disabled={saving || !newEntry.title.trim() || !newEntry.content.trim()}
+                disabled={saving || !formData.title.trim() || !formData.content.trim()}
               >
-                {saving ? "Saving…" : "Save Entry"}
+                {saving ? "Saving…" : isEditing ? "Save Changes" : "Save Entry"}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Delete error banner */}
+      {deleteError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600 flex items-center justify-between">
+          <span>{deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="ml-3 text-red-400 hover:text-red-600">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
@@ -322,6 +394,8 @@ export default function MemoryPage() {
         ) : (
           filtered.map((entry) => {
             const catConfig = categoryConfig[entry.category] ?? categoryConfig.general;
+            const isAutoGen = entry.autoGenerated;
+            const isBeingDeleted = deletingId === entry.id;
             return (
               <div key={entry.id} className="card p-5 group">
                 <div className="flex items-start justify-between">
@@ -334,7 +408,7 @@ export default function MemoryPage() {
                         <h3 className="font-semibold text-slate-900">
                           {entry.title}
                         </h3>
-                        {entry.autoGenerated && (
+                        {isAutoGen && (
                           <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600">
                             AI Generated
                           </span>
@@ -353,12 +427,48 @@ export default function MemoryPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
-                    <button className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {isAutoGen ? (
+                      <>
+                        <span title="This entry is system-generated">
+                          <button
+                            disabled
+                            className="rounded-lg p-1.5 text-slate-300 cursor-not-allowed"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        </span>
+                        <span title="This entry is system-generated">
+                          <button
+                            disabled
+                            className="rounded-lg p-1.5 text-slate-300 cursor-not-allowed"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => openEditForm(entry)}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          title="Edit entry"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm("Delete this memory entry?")) {
+                              handleDeleteConfirm(entry.id);
+                            }
+                          }}
+                          disabled={isBeingDeleted}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Delete entry"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

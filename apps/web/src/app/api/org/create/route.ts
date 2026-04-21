@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Parse + validate body.
-  let body: { orgName?: string; anthropicKey?: string };
+  let body: { orgName?: string; anthropicKey?: string; timezone?: string };
   try {
     body = await req.json();
   } catch {
@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
 
   const orgName = body.orgName?.trim() ?? "";
   const anthropicKey = body.anthropicKey?.trim() ?? "";
+  const timezone = body.timezone?.trim() || "America/New_York";
 
   if (!orgName) {
     return NextResponse.json({ error: "orgName is required" }, { status: 400 });
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
   const insertOrg = async (slugAttempt: string) =>
     serviceClient
       .from("orgs")
-      .insert({ name: orgName, slug: slugAttempt, ...buildAnthropicKeyPayload(anthropicKey, true) })
+      .insert({ name: orgName, slug: slugAttempt, timezone, ...buildAnthropicKeyPayload(anthropicKey, true) })
       .select("id")
       .single();
 
