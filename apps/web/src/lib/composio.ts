@@ -177,13 +177,59 @@ export async function getConnectedAccounts(orgId: string): Promise<
 }
 
 /**
+ * In-memory cache of (toolkit slug → Composio auth config id).
+ *
+ * `connectedAccounts.initiate` requires an explicit auth_config_id. Composio
+ * auto-creates a Composio-managed auth config per toolkit the first time you
+ * use `toolkits.authorize(...)` in the dashboard; after that, the ID is stable
+ * per workspace. We resolve it lazily on first use via `authConfigs.list` and
+ * cache it for the lifetime of the server process. This keeps the code free of
+ * hardcoded per-environment auth config IDs (which would differ across
+ * Citlali's / Z's / CI's Composio workspaces and be a nightmare to sync).
+ */
+const _authConfigIdCache = new Map<string, string>();
+
+/**
+ * Resolve the Composio auth_config_id for a managed toolkit.
+ *
+ * Filters `authConfigs.list` by `{ toolkit, isComposioManaged: true }` and
+ * picks the first ENABLED match. Throws a ComposioError if no managed auth
+ * config exists for the toolkit — that means an admin needs to enable the
+ * toolkit in the Composio dashboard before users can connect it.
+ */
+async function resolveAuthConfigId(toolkit: string): Promise<string> {
+  const cached = _authConfigIdCache.get(toolkit);
+  if (cached) return cached;
+
+  const client = getClient();
+  const result = await client.authConfigs.list({
+    toolkit,
+    isComposioManaged: true,
+  });
+  const items = result.items ?? [];
+  // Prefer ENABLED; fall back to any entry if Composio returned only DISABLED
+  // ones (still actionable — the dashboard will surface why).
+  const enabled = items.find((item) => item.status === "ENABLED");
+  const chosen = enabled ?? items[0];
+  if (!chosen?.id) {
+    throw new ComposioError(
+      502,
+      `No Composio-managed auth config found for toolkit '${toolkit}'. An admin must enable it in the Composio dashboard before users can connect.`
+    );
+  }
+
+  _authConfigIdCache.set(toolkit, chosen.id);
+  return chosen.id;
+}
+
+/**
  * Initiate an OAuth connection for the org on a specific toolkit.
  * Returns the Composio connection ID + the redirect URL to send the user to.
  *
  * `callbackUrl` is our own /api/integrations/composio/callback route — Composio
  * will redirect the browser there after the OAuth flow completes on the
- * platform's side. We pass `org_id` and `toolkit` through the callback URL as
- * query params so the callback handler can upsert the right row.
+ * platform's side. The cookie stashed at the /connect endpoint carries orgId,
+ * platform, and connectionId so the callback can validate and upsert the row.
  */
 export async function initiateConnection(
   orgId: string,
@@ -192,11 +238,18 @@ export async function initiateConnection(
 ): Promise<{ connectionId: string; redirectUrl: string }> {
   const client = getClient();
   try {
-    // toolkits.authorize auto-creates (or reuses) a Composio-managed auth config
-    // for the toolkit, then opens a new connection initiation for this user.
-    // It's the highest-level one-liner path per docs — no need to pre-create
-    // auth configs manually for the social toolkits Composio manages for us.
-    const connection = await client.toolkits.authorize(orgId, toolkit);
+    // Resolve the Composio-managed auth_config_id for this toolkit (cached
+    // after first lookup). `connectedAccounts.initiate` needs this explicitly
+    // — unlike the higher-level `toolkits.authorize`, it accepts a
+    // per-request `callbackUrl` so the browser redirects back to OUR callback
+    // route after OAuth completes, not Composio's default success page.
+    const authConfigId = await resolveAuthConfigId(toolkit);
+
+    const connection = await client.connectedAccounts.initiate(
+      orgId,
+      authConfigId,
+      { callbackUrl }
+    );
 
     // ConnectionRequest = { id, status, redirectUrl, waitForConnection() }
     const connectionId = connection.id;
@@ -209,15 +262,6 @@ export async function initiateConnection(
         }).`
       );
     }
-
-    // callbackUrl is ignored by toolkits.authorize() — that's fine for v1.
-    // The OAuth provider redirects to Composio's hosted handler which then
-    // redirects the user to the "post_connect" URL configured in the Composio
-    // dashboard (that's the URL we wire up via /api/integrations/composio/callback
-    // once Citlali sets it in the Composio UI). We keep callbackUrl in the
-    // signature so we can swap to connectedAccounts.initiate() if we need
-    // per-request callbacks later.
-    void callbackUrl;
 
     return { connectionId, redirectUrl };
   } catch (err) {

@@ -2,6 +2,68 @@
 
 ---
 
+## 2026-04-21 — Composio connect redirect fix (`connectedAccounts.initiate` + `callbackUrl`)
+
+**Identity:** Composio Callback Fix Agent (Sonnet, spawned by Lopmon)
+**Task:** After Citlali's first live YouTube connect, Composio sent her to its own `platform.composio.dev/redirect?status=success` page instead of `/api/integrations/composio/callback`, so the `composio_connections` row was never written. Root cause: `initiateConnection` used `toolkits.authorize(userId, toolkit)`, which has no callback-url parameter. Needed to swap to `connectedAccounts.initiate(userId, authConfigId, { callbackUrl })`.
+
+### Changes
+
+- `apps/web/src/lib/composio.ts`
+  - Replaced `client.toolkits.authorize(orgId, toolkit)` with `client.connectedAccounts.initiate(orgId, authConfigId, { callbackUrl })`. The SDK's `CreateConnectedAccountOptions` type (see `@composio/core@0.6.10` `composio-*.d.mts` lines 75–81) confirms `callbackUrl` is camelCase and is the post-OAuth redirect.
+  - Added `resolveAuthConfigId(toolkit)` — lazy lookup via `client.authConfigs.list({ toolkit, isComposioManaged: true })`, picks the first ENABLED managed config, memoized in a module-scope `Map<string, string>`. No hardcoded IDs (which would drift across Citlali's / Z's / CI's Composio workspaces). First call per toolkit per server process hits Composio once; all subsequent `/connect` calls are cache hits.
+  - Removed the `void callbackUrl` dead-param noted by the earlier simplify pass.
+  - Stripped the comment explaining why `callbackUrl` was ignored (no longer true).
+
+### Unchanged
+
+- `/api/integrations/composio/connect/route.ts` — already builds `callbackUrl = ${getAppOrigin()}/api/integrations/composio/callback` correctly. `getAppOrigin()` reads `NEXT_PUBLIC_APP_URL` > `VERCEL_URL` > `localhost:3000`, so production, preview, and local all get the right redirect back.
+- `/api/integrations/composio/callback/route.ts` — unchanged, still validates the cookie-stashed state + calls `completeConnection`.
+- `composio_connections` schema + `social_post` tool layer — unchanged.
+
+### auth_config_id resolution — why lazy + in-memory cache
+
+Options considered:
+1. **Hardcoded per-environment IDs** — rejected. Citlali's auth config IDs differ from Z's, and would require a rotation every time a Composio workspace is re-provisioned. Fragile.
+2. **Store in DB** — rejected for v1. Adds a migration + admin UI to manage IDs; no net benefit over querying Composio directly.
+3. **Lazy lookup + in-process cache** — picked. Composio is the source of truth. First connect for a toolkit costs one extra API call; subsequent connects are free. Multi-tenant safe because the cache is per-server-process (Composio API key scopes the workspace, not the org).
+
+### YouTube orphan
+
+Citlali's earlier YouTube connection exists in Composio but has no row in `composio_connections`. Per task spec, leaving it for Citlali to resolve manually: **Settings → Integrations → Disconnect YouTube** (the Settings page calls `/api/integrations/composio?toolkit=youtube` DELETE, which passes through to Composio's `connectedAccounts.delete`; since there's no DB row our DELETE is a no-op on our side but Composio releases the account), then **Connect YouTube** again via the now-fixed flow. No sync/backfill endpoint built — option 7a (clean state) over 7b.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+- No live Composio OAuth attempted from the agent (Citlali will verify by re-connecting YouTube).
+
+### Commit
+
+`<FILL_AFTER_PUSH>` — message: `fix(composio): use connectedAccounts.initiate with callback_url for proper redirect home`.
+
+---
+
+## 2026-04-21 — Simplify Pass (Inline Image Preview)
+
+**Identity:** Simplify Agent (Sonnet, spawned by Lopmon)
+**Task:** `/simplify` scoped to commit `3980d1d` — inline image preview for PNG/JPEG outputs from `render_design_to_image`. Files in scope: `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` (+ SESSION-LOG.md, docs only).
+
+### Reviews Run (reuse / quality / efficiency)
+
+- **Reuse:** No existing `isImage` helper in the codebase; the `"image/"` prefix check is the project convention (mime types used as raw strings in `lib/skills/registry.ts`, `lib/tools/render.ts`). `FileChip` is correctly reused as the error fallback. No missed reuse opportunities.
+- **Quality:** Component uses early returns, no nested conditionals, no redundant state (`errored` is genuinely needed for re-render), no JSX wrapper bloat, comments explain non-obvious WHY (fallback rationale), not WHAT. One minor point: `files` is iterated twice via mirrored `.filter()` predicates where a single-pass partition would suffice.
+- **Efficiency:** The double-filter is a non-issue in practice — chat messages typically carry 1–3 files, so both passes are O(small). `loading="lazy"` on the `<img>` is correct. `setErrored(true)` fires at most once. No hot-path bloat, no memory concerns.
+
+### Verdict
+
+**Clean.** The double-filter is the only finding and it's not worth a commit — would add churn without measurable benefit, given the array sizes involved and the constraint not to alter behavior or visual treatment. Per task spec: "If clean, say so explicitly — don't invent churn."
+
+### Commit
+
+None — no changes applied.
+
+---
+
 ## 2026-04-21 — Inline Image Preview for Marketing Director Outputs
 
 **Identity:** Inline Image Agent (Sonnet, spawned by Lopmon)
