@@ -51,6 +51,7 @@ export const SOCIAL_PLATFORMS = [
   "tiktok",
   "x",
   "threads",
+  "youtube",
 ] as const;
 
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
@@ -63,6 +64,7 @@ export const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = {
   tiktok: "TikTok",
   x: "X (Twitter)",
   threads: "Threads",
+  youtube: "YouTube",
 };
 
 /**
@@ -80,6 +82,7 @@ export const TOOLKIT_SLUG: Record<SocialPlatform, string> = {
   // "x" we update here only.
   x: "twitter",
   threads: "threads",
+  youtube: "youtube",
 };
 
 /**
@@ -98,6 +101,11 @@ export const POST_ACTION_SLUG: Record<SocialPlatform, string> = {
   tiktok: "TIKTOK_POST_VIDEO",
   x: "TWITTER_CREATION_OF_A_POST",
   threads: "THREADS_CREATE_POST",
+  // YouTube expects a video upload rather than a text post — the `content` the
+  // agent passes becomes title + description, and `image_file_id` should be a
+  // video file. See the tool description caveat in social.ts. Swap to a more
+  // specific slug (e.g. YOUTUBE_UPLOAD_SHORT) later without touching schema.
+  youtube: "YOUTUBE_UPLOAD_VIDEO",
 };
 
 // ---------------------------------------------------------------------------

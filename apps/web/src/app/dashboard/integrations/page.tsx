@@ -33,6 +33,7 @@ import {
   SiFacebook,
   SiInstagram,
   SiX,
+  SiYoutube,
   SiDropbox,
   SiAsana,
   SiTrello,
@@ -265,6 +266,16 @@ const INTEGRATIONS: IntegrationEntry[] = [
     description: 'Connect your Twitter/X account so your Marketing Director can post content and engage with your community.',
     icon: SiX,
     capabilities: ['Post and schedule tweets', 'View mentions and replies', 'Track engagement data', 'Reply to conversations on your behalf'],
+    agentsUsing: [marketing],
+    connectionType: 'oauth',
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube',
+    category: 'social_media',
+    description: 'Link YouTube so your Marketing Director can upload videos and manage your channel. Note: YouTube posts require a video file, not just text or images.',
+    icon: SiYoutube,
+    capabilities: ['Upload videos to your channel', 'Set video titles and descriptions', 'View channel analytics', 'Manage video metadata'],
     agentsUsing: [marketing],
     connectionType: 'oauth',
   },
@@ -519,6 +530,7 @@ const COMPOSIO_INTEGRATION_IDS = new Set([
   'facebook',
   'linkedin',
   'twitter',
+  'youtube',
 ]);
 
 /** integration card id → platform key the Composio connect API expects. */
@@ -527,6 +539,7 @@ const COMPOSIO_INTEGRATION_TO_PLATFORM: Record<string, string> = {
   facebook: 'facebook',
   linkedin: 'linkedin',
   twitter: 'x',
+  youtube: 'youtube',
 };
 
 function IntegrationsPageInner() {
