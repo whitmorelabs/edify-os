@@ -39,7 +39,7 @@ Citlali's earlier YouTube connection exists in Composio but has no row in `compo
 
 ### Commit
 
-`<FILL_AFTER_PUSH>` — message: `fix(composio): use connectedAccounts.initiate with callback_url for proper redirect home`.
+`b517f5e` — `fix(composio): use connectedAccounts.initiate with callback_url for proper redirect home`.
 
 ---
 
