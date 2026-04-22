@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-04-21 — Simplify Pass (Composio Callback Fix)
+
+**Identity:** Simplify Agent (Sonnet, spawned by Lopmon)
+**Task:** `/simplify` scoped to commit `b517f5e` — `connectedAccounts.initiate` + `callbackUrl` fix. File in scope: `apps/web/src/lib/composio.ts`. Constraints: don't change `resolveAuthConfigId` caching strategy, don't change `connectedAccounts.initiate` call shape, don't touch error-handling paths.
+
+### Reviews Run (reuse / quality / efficiency)
+
+- **Reuse:** `Map`-based cache is primitive but no matching utility exists in `lib/`. Error construction already uses `ComposioError`. No missed reuse.
+- **Quality:** Three comment blocks were over-explanatory — the `_authConfigIdCache` JSDoc and `resolveAuthConfigId` JSDoc largely narrated obvious behavior, and the comment above `resolveAuthConfigId(toolkit)` inside `initiateConnection` narrated the change ("unlike the higher-level `toolkits.authorize`...") rather than capturing a durable WHY. Function names and bodies were already self-explanatory.
+- **Efficiency:** Cache is process-lifetime unbounded but bounded in practice (7 toolkits). No concurrent-request dedup on first lookup, but OAuth initiation is low volume — not worth a promise cache.
+
+### Changes
+
+- `apps/web/src/lib/composio.ts`
+  - Trimmed `_authConfigIdCache` JSDoc from 10 lines to 3, keeping the WHY (no hardcoded per-workspace IDs).
+  - Removed redundant JSDoc on `resolveAuthConfigId` (function name + body were self-explanatory).
+  - Compressed the inline comment above the `resolveAuthConfigId` call to capture only the durable reason for `connectedAccounts.initiate` over `toolkits.authorize` (per-request `callbackUrl`).
+  - Shortened the "fall back to any entry" ENABLED comment.
+
+### Verification
+
+- `npx tsc --noEmit` in `apps/web/` → exit 0.
+
+### Commit
+
+TBD after commit.
+
+---
+
 ## 2026-04-21 — Composio connect redirect fix (`connectedAccounts.initiate` + `callbackUrl`)
 
 **Identity:** Composio Callback Fix Agent (Sonnet, spawned by Lopmon)
