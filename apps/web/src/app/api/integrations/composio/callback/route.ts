@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAuthContext, createServiceRoleClient } from "@/lib/supabase/server";
 import { completeConnection, TOOLKIT_SLUG, type SocialPlatform } from "@/lib/composio";
@@ -18,7 +18,7 @@ const STATE_COOKIE = "composio_oauth_state";
  * informational — we trust the cookie-stashed connectionId as the source of
  * truth so a malicious redirect can't bind a different user's connection.
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   const origin = getAppOrigin();
   const cookieStore = await cookies();
 
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[composio/callback] completion failed:", err);
     const reason = err instanceof Error ? err.message.slice(0, 80) : "unknown";
-    return finish("denied", encodeURIComponent(reason));
+    return finish("denied", reason);
   }
 
   // Accept any non-empty status Composio returns as "active" — Composio

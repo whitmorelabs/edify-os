@@ -670,10 +670,9 @@ function IntegrationsPageInner() {
       return;
     }
 
-    // Composio-brokered social platforms — POST to initiate, then open the
-    // returned redirectUrl in a new tab. We use a new tab rather than a
-    // full-page redirect so the user can come back to the Settings page if
-    // they dismiss the OAuth screen.
+    // Composio-brokered social platforms — POST to initiate, then navigate
+    // to the returned OAuth redirectUrl. The callback route brings the user
+    // back to this page with a ?composio=connected|denied flash param.
     if (COMPOSIO_INTEGRATION_IDS.has(id)) {
       const platform = COMPOSIO_INTEGRATION_TO_PLATFORM[id];
       if (!platform) {

@@ -2,6 +2,61 @@
 
 ---
 
+## 2026-04-21 — Simplify Pass (Composio + YouTube)
+
+**Identity:** Simplify Agent (Sonnet, spawned by Lopmon)
+**Task:** `/simplify` scoped to `git diff f1be641..f72b110` (commits `30fa0ca` + `f72b110`).
+
+### Findings Applied
+
+1. `apps/web/src/app/api/integrations/composio/callback/route.ts` — removed unused `req: NextRequest` parameter (and the `NextRequest` import). Dead signature.
+2. Same file — dropped redundant `encodeURIComponent(reason)` before `finish("denied", reason)`. `URLSearchParams.set()` already percent-encodes, so this was double-encoding and making error reasons less readable in the toast.
+3. `apps/web/src/app/dashboard/integrations/page.tsx` — corrected misleading comment on the Composio connect branch. The code does a full-page `window.location.href =` redirect, but the comment claimed "open in a new tab." Rewrote to match actual behaviour.
+
+### Skipped (per constraints)
+
+- `state` random nonce in `connect/route.ts` is generated but never verified — touching it would alter the CSRF/auth pattern, which was flagged out of scope.
+- `callbackUrl` is computed and passed to `initiateConnection()` but explicitly ignored (`void callbackUrl`) by design — kept for the future swap to `connectedAccounts.initiate()`. Out of scope.
+- `POST_ACTION_SLUG` / `TOOLKIT_SLUG` maps left untouched — flagged "swappable" by design.
+
+### Verification
+
+- `npx tsc --noEmit` in `apps/web` → exit 0.
+
+---
+
+## 2026-04-21 — Composio YouTube Platform Patch
+
+**Identity:** YouTube Patch Agent (Sonnet, spawned by Lopmon)
+**Date:** 2026-04-21
+**Task:** Add YouTube to the Composio-backed `social_post` tool now that Citlali enabled YouTube in the Composio Developer Platform (managed auth). Mirror the existing IG/FB/LinkedIn pattern — no schema/migration changes, no tool-signature refactor.
+
+### Files Changed
+
+- `apps/web/src/lib/composio.ts` — `'youtube'` appended to `SOCIAL_PLATFORMS`, entry added to `SOCIAL_PLATFORM_LABELS` (`"YouTube"`), `TOOLKIT_SLUG` (`youtube`), and `POST_ACTION_SLUG` (`YOUTUBE_UPLOAD_VIDEO` — best-guess following Composio's `TOOLKIT_VERB_NOUN` convention; swappable at runtime without touching schema, per the comment block already in the file).
+- `apps/web/src/lib/tools/social.ts` — tool description + `SOCIAL_TOOLS_ADDENDUM` list YouTube. Addendum gains HARD RULE #7: YouTube requires a video (`image_file_id` must be a video file; `content` is title + description). Tool description repeats the caveat so Claude sees it in-schema.
+- `apps/web/src/app/dashboard/integrations/page.tsx` — new YouTube card in the Social Media category (icon `SiYoutube` from `react-icons/si`, marketing director only, OAuth connection type). `COMPOSIO_INTEGRATION_IDS` + `COMPOSIO_INTEGRATION_TO_PLATFORM` gain `youtube` so Connect/Disconnect route through the existing Composio endpoints — no new API route needed.
+
+### Action Slug
+
+- Picked `YOUTUBE_UPLOAD_VIDEO`. If Composio's actual slug differs (likely candidates: `YOUTUBE_CREATE_VIDEO_UPLOAD`, `YOUTUBE_UPLOAD_SHORT`), the tool-execute call will return `successful:false` with a clear error string that we surface to the user, and the fix is a single-line swap in `POST_ACTION_SLUG`.
+
+### Follow-up Flagged (not acted on)
+
+- YouTube posts are fundamentally video uploads, not text/image posts. For v1 we're reusing the `social_post` signature: `content` carries title + description (caller can use the first line as title), `image_file_id` carries the video file id. This works but is semantically fuzzy — if YouTube usage ramps, a dedicated `youtube_upload_video` tool with explicit `title`, `description`, `video_file_id`, `privacy` fields would be cleaner. Flagged for Milo/Lopmon to call in a later iteration.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+- No live Composio calls attempted (no API key locally).
+
+### Commit
+
+- `f72b110` on `main` — `feat(marketing): add YouTube to Composio social_post tool`.
+- Pushed to `origin/main` (30fa0ca → f72b110).
+
+---
+
 ## 2026-04-21 — Composio Social Posting Integration Agent
 
 **Identity:** Composio Social Posting Agent (Sonnet, spawned by Lopmon)
