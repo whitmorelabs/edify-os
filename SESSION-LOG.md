@@ -27,7 +27,7 @@
 
 ### Commit
 
-TBD after commit.
+`c005a64` — `simplify: cleanup after composio callback fix`. Pushed to `origin/main`.
 
 ---
 
