@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Download } from "lucide-react";
@@ -160,14 +160,63 @@ function FileChip({ file }: { file: GeneratedFile }) {
   );
 }
 
+// Inline image preview — for PNG/JPEG outputs from tools like render_design_to_image.
+// If the image fails to load (404, expired, etc.), we fall back to the plain FileChip
+// so the user can still grab the file without seeing a broken-image icon.
+function InlineImage({ file }: { file: GeneratedFile }) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return <FileChip file={file} />;
+  }
+
+  return (
+    <figure className="mt-2 inline-block max-w-full">
+      <img
+        src={file.downloadUrl}
+        alt={file.name}
+        aria-label={file.name}
+        loading="lazy"
+        onError={() => setErrored(true)}
+        className="block h-auto w-auto max-w-full sm:max-w-[420px] rounded-lg border border-slate-200 shadow-sm"
+      />
+      <figcaption className="mt-1.5">
+        <a
+          href={file.downloadUrl}
+          download={file.name}
+          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-brand-700 hover:underline"
+        >
+          <Download size={11} className="shrink-0" />
+          <span className="truncate max-w-[260px]">Download {file.name}</span>
+        </a>
+      </figcaption>
+    </figure>
+  );
+}
+
 function FileChips({ files }: { files: GeneratedFile[] }) {
   if (!files || files.length === 0) return null;
+
+  const images = files.filter((f) => f.mimeType?.startsWith("image/"));
+  const others = files.filter((f) => !f.mimeType?.startsWith("image/"));
+
   return (
-    <div className="flex flex-wrap gap-2 mt-2">
-      {files.map((f) => (
-        <FileChip key={f.downloadUrl} file={f} />
-      ))}
-    </div>
+    <>
+      {images.length > 0 && (
+        <div className="flex flex-col gap-2 mt-2">
+          {images.map((f) => (
+            <InlineImage key={f.downloadUrl} file={f} />
+          ))}
+        </div>
+      )}
+      {others.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {others.map((f) => (
+            <FileChip key={f.downloadUrl} file={f} />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

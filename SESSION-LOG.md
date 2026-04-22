@@ -2,6 +2,37 @@
 
 ---
 
+## 2026-04-21 — Inline Image Preview for Marketing Director Outputs
+
+**Identity:** Inline Image Agent (Sonnet, spawned by Lopmon)
+**Task:** When Marketing Director's `render_design_to_image` tool (and any other tool) returns a PNG/JPEG, render it inline in the chat instead of a click-to-download-only FileChip. Z asked for the visible satisfaction of seeing what the director designed.
+
+### Files Changed
+
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — new `InlineImage` component rendered when `file.mimeType` starts with `image/`. `FileChips` now splits the incoming `files[]` into image-vs-other buckets; images render as `<figure>` with `<img src={file.downloadUrl} loading="lazy" onError={...}>` plus a small secondary "Download <filename>" link in the caption, non-image files keep the existing FileChip treatment (docx/xlsx/pdf untouched).
+
+### Visual Treatment
+
+- Image: `block h-auto w-auto max-w-full sm:max-w-[420px] rounded-lg border border-slate-200 shadow-sm` (420px cap on sm+ so chat density holds; falls back to container width on mobile).
+- Caption: download icon + filename at `text-xs text-slate-500`, hovers to `text-brand-700`. Matches the existing tertiary-link hover pattern.
+- Images stack vertically (`flex flex-col gap-2`), non-image chips stay in the horizontal wrap row.
+
+### Fallback Behavior
+
+- `useState(errored)` flips `true` inside `<img onError>`. When errored, `InlineImage` re-renders as the plain `FileChip` so users still see a download affordance — no broken-image icon.
+- Alt text + `aria-label` both use the filename (meaningful fallback when no caption is passed).
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+- No changes to `/api/files/[fileId]` route, `GeneratedFile` type, or the tool-executor's file-upload pipeline. `mimeType` was already threaded through from `run-archetype-turn.ts`.
+
+### Commit
+
+- `<SHA>` on `main` — `feat(chat): inline image preview for PNG/JPEG outputs from render_design_to_image`.
+
+---
+
 ## 2026-04-21 — Simplify Pass (Composio + YouTube)
 
 **Identity:** Simplify Agent (Sonnet, spawned by Lopmon)
