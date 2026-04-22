@@ -29,7 +29,7 @@
 
 ### Commit
 
-- `<SHA>` on `main` — `feat(chat): inline image preview for PNG/JPEG outputs from render_design_to_image`.
+- `3980d1d` on `main` — `feat(chat): inline image preview for PNG/JPEG outputs from render_design_to_image`.
 
 ---
 
