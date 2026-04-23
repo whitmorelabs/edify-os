@@ -16,6 +16,8 @@ export interface ArchetypeData {
   subagents: { name: string; description: string }[];
   tools: { name: string; params: string; description: string }[];
   scenarios: { title: string; description: string }[];
+  /** Optional hero image shown in the Responsibilities section. */
+  image?: string;
 }
 
 /* ── Component ──────────────────────────────────────────────── */
@@ -83,7 +85,7 @@ export default function ArchetypePage({
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-            <Placeholder className="w-full aspect-[4/3]" label={archetype.name} />
+            <Placeholder className="w-full aspect-[4/3]" label={archetype.name} src={archetype.image} />
           </div>
         </div>
       </section>
