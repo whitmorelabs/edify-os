@@ -31,6 +31,7 @@ const archetype: ArchetypeData = {
     { title: "Onboard 15 new AmeriCorps members", description: "Creates a comprehensive 2-week onboarding plan including orientation schedules, training modules, buddy assignments, policy reviews, and 30/60/90-day check-in templates for each service member." },
     { title: "Update the employee handbook for remote work", description: "Drafts a remote work policy covering eligibility, equipment, communication expectations, and performance management. Includes compliance notes for 3 states where staff are located." },
   ],
+  image: "/agents/hr-volunteer-coordinator.jpg",
 };
 
 export default function HRVolunteerCoordinatorPage() {

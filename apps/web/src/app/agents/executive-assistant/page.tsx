@@ -31,6 +31,7 @@ const archetype: ArchetypeData = {
     { title: "Triage a week of executive emails", description: "Categorizes 47 emails into urgent, action-needed, FYI, and delegate buckets. Drafts responses for 12 routine items and flags 3 requiring the ED's personal attention." },
     { title: "Coordinate a multi-stakeholder planning session", description: "Finds an optimal 2-hour slot across 8 calendars, sends calendar invites with pre-read materials, creates a facilitation agenda, and sets up a shared notes document." },
   ],
+  image: "/agents/executive-assistant.jpg",
 };
 
 export default function ExecutiveAssistantPage() {

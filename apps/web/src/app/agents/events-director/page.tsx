@@ -32,6 +32,7 @@ const archetype: ArchetypeData = {
     { title: "Organize a community resource fair", description: "Plans a free outdoor event for 300 community members with 25 vendor booths, volunteer coordination for 40 helpers, a family-friendly activity schedule, and a post-event survey to measure community impact." },
     { title: "Evaluate a fundraising dinner's success", description: "Calculates that the $120/plate dinner raised $67K net (after $18K expenses), achieved 92% satisfaction, secured 14 new major donor prospects, and recommends 5 changes to increase ROI by 30% next year." },
   ],
+  image: "/agents/events-director.jpg",
 };
 
 export default function EventsDirectorPage() {

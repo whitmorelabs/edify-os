@@ -19,6 +19,28 @@ Attribution is not legally required but is noted here for our records.
 
 ---
 
+Archetype page photos (Unsplash free license):
+
+- `agents/executive-assistant.jpg` — by Alexa Williams (@alexa_alx) — https://unsplash.com/photos/ODjT0FbSA5U
+  _Person writing at a table with notebook and planner. Chosen for the CalendarCheck / scheduling theme — administrator at work, organized workspace vibe._
+
+- `agents/development-director.jpg` — by Vitaly Gariev (@silverkblack) — https://unsplash.com/photos/1uf2JCPFAkU
+  _Three professionals reviewing documents together in a modern office. Chosen for the donor relationship / grant meeting theme — collaborative review of plans in a trust-building context._
+
+- `agents/marketing-director.jpg` — by Vitaly Gariev (@silverkblack) — https://unsplash.com/photos/5oA1MUmh2Go
+  _Two women discussing color palettes and design work together. Chosen for the Megaphone / content creation theme — creative professionals collaborating on brand and visual work._
+
+- `agents/programs-director.jpg` — by Frederick Shaw (@fredshawphoto) — https://unsplash.com/photos/eJjbInxdbVE
+  _Woman in a red shirt speaking to a group of people outdoors. Chosen for the Target / program delivery theme — community leader presenting outcomes and engaging participants._
+
+- `agents/events-director.jpg` — by Jose Marroquin (@josemarroquin) — https://unsplash.com/photos/cNxEE79UAe8
+  _Formal dining table set for a large event with candles and elegant centerpieces. Chosen for the CalendarDays / gala theme — event production at scale, nonprofit fundraiser aesthetic._
+
+- `agents/hr-volunteer-coordinator.jpg` — by Christina @ wocintechchat.com (@wocintechchat) — https://unsplash.com/photos/4PU-OC8sW98
+  _Two women of color in conversation, each holding a pen, engaged in professional dialogue. Chosen for the UserCheck / HR coordination theme — onboarding, collaboration, and inclusive people-first culture._
+
+---
+
 About page photos (Unsplash free license):
 
 - `about/the-problem.jpg` — by Chu CHU (@chuchu123456) — https://unsplash.com/photos/P0Q1V-7wqrQ

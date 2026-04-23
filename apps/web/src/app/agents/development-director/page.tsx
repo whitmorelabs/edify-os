@@ -33,6 +33,7 @@ const archetype: ArchetypeData = {
     { title: "Draft a donor thank-you campaign", description: "Personalized thank-you emails for 85 year-end donors, segmented by giving level, with impact metrics tied to each donor's specific contribution area." },
     { title: "Prepare a quarterly fundraising board report", description: "A comprehensive dashboard showing $1.2M raised against a $1.8M target, pipeline analysis, donor retention rates, and recommended actions to close the gap." },
   ],
+  image: "/agents/development-director.jpg",
 };
 
 export default function DevelopmentDirectorPage() {
