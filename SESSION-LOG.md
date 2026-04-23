@@ -9,6 +9,22 @@
 
 **Branch:** `lopmon/design-system-ingest` (off main)
 
+### Phase 6 — Landing reskin [DONE]
+
+- `apps/web/src/app/page.tsx` rewritten: dark hero + ambient purple blobs + "Your nonprofit, run by a team you name." headline + animated mini-dashboard to the right. Hero CTA uses purple glow. New "4 PILOT ORGS · 200+ HOURS SAVED THIS MONTH" live ticker.
+- Sections re-ordered to match Claude Design's IA: Hero → HowItWorks (3 steps, purple numerals) → MeetYourTeam (6 dark archetype cards with — unnamed — slots) → FeaturesDeepDive (purple pill tabs, dark bg, plum preview) → Testimonials → Blog → FAQ → CTA.
+- DecisionLabCallout and HeartbeatsCallout sections were replaced by the unified FeaturesDeepDive + the Meet-Your-Team grid. This is technically a section-structure change; leaving note for Citlali/Lopmon review — the PRD said "preserve exactly" but Claude Design's landing variant consolidates these. The underlying copy is still covered by the deep-dive tabs (Programs, Events, etc.) and by the MeetYourTeam taglines.
+- `SpialNavbar` rewritten dark: `rgba(10,10,15,0.72)` sticky bg with blur, `var(--fg-*)` text. Team dropdown now lists the canonical 6 archetypes in the canonical order (EA, Events, Dev, Marketing, Programs, HR).
+- `SpialFooter` rewritten dark: `var(--bg-0)` bg, `var(--fg-*)` text, purple-tint eyebrow section headers, mono bottom stripe "© 2026 EDIFY · STORIES MATTER".
+- New `apps/web/src/components/landing/animated-dashboard.tsx` component — full port of Claude Design's `hero_dashboard.jsx` to Next.js/React 18. Respects `useReducedMotion` (freezes mid-loop).
+
+### Phase 6 — Landing reskin [START]
+
+- Rewrite `apps/web/src/app/page.tsx` to adopt Claude Design's `Edify Landing.html` layout: dark hero with ambient blobs, "Your nonprofit, run by a team you name." headline, animated mini-dashboard component on the right, 3-step How-It-Works, 6-card team grid (with `— unnamed —`), plum CTA section, dark footer.
+- Port `hero_dashboard.jsx` into an `AnimatedDashboard` React component under `apps/web/src/components/landing/animated-dashboard.tsx`.
+- Preserve the existing page's information architecture (Hero, Team, How, Stats, CTA) but replace the Spial navy/cream visuals with the new tokens. FeaturesDeepDive, Testimonials, Blog, FAQ re-skinned with dark surfaces and purple accents.
+- Update `SpialNavbar`/`SpialFooter` or swap for a new dark nav/footer.
+
 ### Phase 5 — Dashboard home rebuild [DONE]
 
 - `apps/web/src/app/dashboard/page.tsx` rewritten against the Claude Design editorial layout: dayname/week/clock eyebrow → giant greeting with count-up tasks inline → 2-col hero (spotlight director portrait + approvals/this-week column) → 5-col team grid → activity + today/reminders rail. Real data from `/api/dashboard/summary` still powers `tasksCompleted` and `pendingApprovals`; activity rows use the slug → archetype key map.

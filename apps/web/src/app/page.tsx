@@ -2,190 +2,155 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Star,
-  TrendingUp,
-  Users,
-  Clock,
-  Landmark,
-  Megaphone,
-  CalendarCheck,
-  BookOpen,
-  Heart,
-  PartyPopper,
-} from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
-import SectionLabel from "@/components/section-label";
-import Placeholder from "@/components/placeholder";
+import { AnimatedDashboard } from "@/components/landing/animated-dashboard";
+import { ARCHETYPE_LIST, ArchetypeMark } from "@/components/ui";
 
 /* ── Hero ─────────────────────────────────────────────────────── */
 function Hero() {
   return (
-    <section className="bg-[#1a2b32] py-20 relative overflow-hidden">
-      <div className="spial-container mx-auto relative z-[1]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-          {/* Text */}
-          <div className="mb-10 md:mb-0">
-            <h1 className="text-white text-[36px] md:text-[52px] font-semibold leading-[1.2] mb-5">
-              Your nonprofit just hired an AI leadership team.
+    <section
+      className="relative overflow-hidden"
+      style={{ padding: "72px 0 96px", background: "var(--bg-1)" }}
+    >
+      {/* ambient blobs */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute"
+          style={{
+            top: "-10%",
+            left: "-15%",
+            width: "60%",
+            height: "80%",
+            background:
+              "radial-gradient(circle, rgba(159,78,243,0.22), transparent 60%)",
+            filter: "blur(60px)",
+            animation: "blob-a 22s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute"
+          style={{
+            bottom: "-30%",
+            right: "-10%",
+            width: "55%",
+            height: "70%",
+            background:
+              "radial-gradient(circle, rgba(124,58,237,0.18), transparent 60%)",
+            filter: "blur(60px)",
+            animation: "blob-b 28s ease-in-out infinite",
+          }}
+        />
+      </div>
+
+      <div
+        className="mx-auto relative z-[1] px-8"
+        style={{ maxWidth: 1240 }}
+      >
+        <div
+          className="grid gap-16 items-center"
+          style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.15fr)" }}
+        >
+          <div>
+            <span className="eyebrow">AI STAFF · PRIVATE BETA</span>
+            <h1
+              style={{
+                fontSize: "clamp(44px, 7vw, 92px)",
+                fontWeight: 600,
+                lineHeight: 0.96,
+                letterSpacing: "-0.03em",
+                color: "var(--fg-1)",
+                margin: "20px 0 24px",
+              }}
+            >
+              Your nonprofit,
+              <br />
+              <span style={{ color: "var(--fg-3)" }}>run by a team</span>
+              <br />
+              <span
+                style={{
+                  background:
+                    "linear-gradient(135deg, #B06DF5 0%, #9F4EF3 50%, #6B2EB8 100%)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                you name.
+              </span>
             </h1>
-            <p className="text-white/80 text-lg mb-[30px] leading-[1.7]">
-              Team members wearing too many hats. Grant funding that won&apos;t cover operations. You can&apos;t hire your way out. But you can build your way forward.
+            <p
+              className="leading-[1.55] mb-8"
+              style={{
+                color: "var(--fg-2)",
+                fontSize: 19,
+                maxWidth: 520,
+              }}
+            >
+              Edify gives small nonprofits six AI directors — one for each role
+              you can&apos;t afford to fill. Name them. Train them on your docs.
+              They draft, schedule, and report while you approve.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/signup" className="spial-btn no-underline">
-                Get Started
+            <div className="flex gap-3 flex-wrap">
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 no-underline"
+                style={{
+                  background: "var(--brand-purple)",
+                  color: "var(--fg-on-purple)",
+                  padding: "14px 24px",
+                  borderRadius: 10,
+                  fontSize: 15,
+                  fontWeight: 600,
+                  boxShadow:
+                    "0 0 0 1px rgba(159,78,243,0.48), 0 12px 48px rgba(159,78,243,0.44)",
+                }}
+              >
+                Request early access
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/demo"
-                className="px-6 py-3 rounded-full border border-white/30 text-white text-sm font-medium no-underline transition-colors duration-300 hover:bg-white/10 flex items-center gap-2"
+                className="no-underline"
+                style={{
+                  padding: "14px 22px",
+                  borderRadius: 10,
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: "var(--fg-1)",
+                  boxShadow: "inset 0 0 0 1px var(--line-2)",
+                }}
               >
-                See the Demo
+                See it in action
               </Link>
             </div>
-            <div className="flex gap-2.5 mt-[30px]">
-              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#8B5CF6]" />
-              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#8B5CF6]" />
-              <div className="w-12 h-12 rounded-full bg-[#e5e5e5] border-2 border-[#8B5CF6]" />
-              <p className="text-white/60 text-sm self-center ml-2">Trusted by nonprofits across the Southeast</p>
-            </div>
-          </div>
-
-          {/* Visuals */}
-          <div className="relative">
-            <Placeholder
-              className="w-full aspect-[4/3]"
-              label="Dashboard Preview"
-              src="https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=800"
-            />
-            <div className="absolute bottom-5 left-5 bg-white/10 backdrop-blur-[10px] rounded-lg p-5 text-white text-sm max-w-[280px]">
-              <strong className="block mb-1">Development Director</strong>
-              Found 3 grant opportunities matching your mission. Deadline in 9 days -- want me to start the LOI?
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Meet Your Team Section ───────────────────────────────────── */
-const teamMembers = [
-  {
-    icon: Landmark,
-    name: "Development Director",
-    slug: "development-director",
-    role: "Finds grants. Cultivates donors. Keeps the money coming in.",
-    accent: "text-emerald-400",
-    border: "border-emerald-500/30",
-    capabilities: [
-      "Research and rank grant opportunities",
-      "Draft proposals, LOIs, and thank-you letters",
-      "Manage donor relationships and giving history",
-    ],
-  },
-  {
-    icon: Megaphone,
-    name: "Marketing Director",
-    slug: "marketing-director",
-    role: "Tells your story with the right angle, for the right audience.",
-    accent: "text-amber-400",
-    border: "border-amber-500/30",
-    capabilities: [
-      "Create social media content and campaigns",
-      "Write newsletters, press releases, and blog posts",
-      "Analyze engagement and optimize messaging",
-    ],
-  },
-  {
-    icon: CalendarCheck,
-    name: "Executive Assistant",
-    slug: "executive-assistant",
-    role: "Runs the calendar, triages the inbox, and keeps the trains on track.",
-    accent: "text-sky-400",
-    border: "border-sky-500/30",
-    capabilities: [
-      "Draft and triage emails",
-      "Prepare meeting agendas and board materials",
-      "Track action items and deadlines",
-    ],
-  },
-  {
-    icon: BookOpen,
-    name: "Programs Director",
-    slug: "programs-director",
-    role: "Designs programs that work and proves they do.",
-    accent: "text-violet-400",
-    border: "border-violet-500/30",
-    capabilities: [
-      "Build logic models and theories of change",
-      "Track outcomes and generate funder reports",
-      "Monitor compliance and reporting deadlines",
-    ],
-  },
-  {
-    icon: Heart,
-    name: "HR & Volunteer Coordinator",
-    slug: "hr-volunteer-coordinator",
-    role: "Builds the team culture and keeps volunteers engaged.",
-    accent: "text-pink-400",
-    border: "border-pink-500/30",
-    capabilities: [
-      "Recruit, onboard, and retain volunteers",
-      "Write job descriptions and HR policies",
-      "Design training and orientation programs",
-    ],
-  },
-  {
-    icon: PartyPopper,
-    name: "Events Director",
-    slug: "events-director",
-    role: "Plans every detail so your events feel effortless.",
-    accent: "text-orange-400",
-    border: "border-orange-500/30",
-    capabilities: [
-      "Build reverse timelines and run-of-show documents",
-      "Manage vendors, sponsors, and logistics",
-      "Track event ROI and post-event follow-up",
-    ],
-  },
-];
-
-function MeetYourTeam() {
-  return (
-    <section className="py-20 bg-[#f7f6f5]" id="team">
-      <div className="spial-container mx-auto">
-        <SectionLabel text="Your AI Team" />
-        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4 text-center">
-          Six directors. Every operational role covered.
-        </h2>
-        <p className="text-center text-[#666] leading-[1.7] max-w-[600px] mx-auto mb-[50px]">
-          Each team member has a distinct personality, a specific expertise, and a team of specialized subagents doing the legwork. This isn&apos;t a chatbot. It&apos;s a leadership team.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {teamMembers.map((m) => (
-            <Link
-              key={m.slug}
-              href={`/agents/${m.slug}`}
-              className={`bg-white rounded-xl p-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)] border ${m.border} no-underline transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] block`}
+            <div
+              className="mt-8 flex items-center gap-3 font-mono"
+              style={{
+                fontSize: 12,
+                color: "var(--fg-3)",
+                letterSpacing: "0.08em",
+              }}
             >
-              <div className="flex items-center gap-3 mb-3">
-                <m.icon className={`w-6 h-6 ${m.accent}`} />
-                <h3 className={`text-lg font-semibold ${m.accent}`}>{m.name}</h3>
-              </div>
-              <p className="text-[#555] text-sm leading-[1.6] mb-4">{m.role}</p>
-              <ul className="list-none">
-                {m.capabilities.map((c, i) => (
-                  <li key={i} className="text-sm text-[#666] mb-2 flex gap-2 before:content-['→'] before:text-[#8B5CF6] before:shrink-0">
-                    {c}
-                  </li>
-                ))}
-              </ul>
-            </Link>
-          ))}
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 9999,
+                  background: "var(--success)",
+                  boxShadow: "0 0 8px var(--success)",
+                  animation: "active-pulse 2s ease-in-out infinite",
+                }}
+              />
+              4 PILOT ORGS · 200+ HOURS SAVED THIS MONTH
+            </div>
+          </div>
+
+          <div className="relative">
+            <AnimatedDashboard />
+          </div>
         </div>
       </div>
     </section>
@@ -197,37 +162,123 @@ function HowItWorks() {
   const steps = [
     {
       number: "01",
-      title: "Brief us on your mission",
-      desc: "Upload your org docs, describe your programs, and share your brand voice. Your team learns your context so every response fits your organization.",
+      title: "You ask.",
+      desc: "Chat with any director. Tell them what to do, ask for an update, forward a thread. They understand context.",
     },
     {
       number: "02",
-      title: "Your team gets to work",
-      desc: "Ask a question, assign a task, or let the team surface opportunities proactively. Grants, campaigns, reports, schedules -- they handle the execution.",
+      title: "They draft.",
+      desc: "The director pulls from your docs, past emails, and donor history. Work lands in your Approvals queue.",
     },
     {
       number: "03",
-      title: "Review, approve, lead",
-      desc: "You stay in control. Review every recommendation, approve what moves forward, and focus on the work only you can do.",
+      title: "You approve.",
+      desc: "Two taps. Send, edit, or discard. Nothing goes out without your signoff — ever.",
     },
   ];
 
   return (
-    <section className="py-20 bg-[#f7f6f5]">
-      <div className="spial-container mx-auto">
-        <SectionLabel text="How It Works" />
-        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4 text-center">
-          Up and running in minutes.
+    <section
+      className="relative"
+      style={{
+        padding: "96px 0",
+        background: "var(--bg-1)",
+        borderTop: "1px solid var(--line-1)",
+      }}
+    >
+      <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
+        <span className="eyebrow">HOW IT WORKS</span>
+        <h2
+          style={{
+            fontSize: "clamp(36px, 5vw, 56px)",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+            lineHeight: 1.04,
+            margin: "12px 0 20px",
+            color: "var(--fg-1)",
+          }}
+        >
+          You approve.
+          <br />
+          <span style={{ color: "var(--fg-3)" }}>They do the work.</span>
         </h2>
-        <p className="text-center text-[#666] leading-[1.7] max-w-[560px] mx-auto mb-[50px]">
-          No complex onboarding. No IT department. Brief your team, and they start working.
+        <p
+          style={{
+            color: "var(--fg-2)",
+            fontSize: 18,
+            maxWidth: 620,
+            lineHeight: 1.6,
+          }}
+        >
+          Every draft — every email, every grant report, every calendar move —
+          passes through you first. Directors can&apos;t send anything until
+          you approve.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
-          {steps.map((s) => (
-            <div key={s.number} className="bg-white p-8 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-center">
-              <div className="text-[56px] font-bold text-[#8B5CF6]/30 leading-none mb-4">{s.number}</div>
-              <h3 className="text-xl font-semibold text-black mb-3">{s.title}</h3>
-              <p className="text-[#666] text-sm leading-[1.7]">{s.desc}</p>
+
+        <div
+          className="grid gap-5 mt-14"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          }}
+        >
+          {steps.map((s, i) => (
+            <div
+              key={s.number}
+              className="relative overflow-hidden"
+              style={{
+                padding: 28,
+                borderRadius: 16,
+                background: "var(--bg-2)",
+                boxShadow: "var(--elev-1)",
+              }}
+            >
+              {i === 2 && (
+                <div
+                  aria-hidden
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: -30,
+                    right: -30,
+                    width: 120,
+                    height: 120,
+                    background:
+                      "radial-gradient(circle, var(--purple-a32), transparent 60%)",
+                    animation: "amber-shift 5s ease-in-out infinite",
+                  }}
+                />
+              )}
+              <div className="relative">
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 48,
+                    fontWeight: 500,
+                    color: "var(--brand-purple)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {s.number}
+                </div>
+                <h3
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 500,
+                    margin: "12px 0 8px",
+                    color: "var(--fg-1)",
+                  }}
+                >
+                  {s.title}
+                </h3>
+                <p
+                  style={{
+                    color: "var(--fg-3)",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {s.desc}
+                </p>
+              </div>
             </div>
           ))}
         </div>
@@ -236,42 +287,117 @@ function HowItWorks() {
   );
 }
 
-/* ── Stats Section ────────────────────────────────────────────── */
-function StatsSection() {
-  const stats = [
-    {
-      icon: <Users className="w-12 h-12 text-[#8B5CF6]" />,
-      value: "6",
-      label: "AI Directors on your team",
-    },
-    {
-      icon: <TrendingUp className="w-12 h-12 text-[#8B5CF6]" />,
-      value: "31",
-      label: "Specialized subagents",
-    },
-    {
-      icon: <Clock className="w-12 h-12 text-[#8B5CF6]" />,
-      value: "24/7",
-      label: "Always-on coverage",
-    },
-    {
-      icon: <Star className="w-12 h-12 text-[#8B5CF6]" />,
-      value: "BYOK",
-      label: "Bring your own API key",
-    },
-  ];
-
+/* ── Meet Your Team ──────────────────────────────────────────── */
+function MeetYourTeam() {
   return (
-    <section className="py-20 bg-[#f7f6f5]">
-      <div className="spial-container mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mt-10 text-center">
-          {stats.map((s, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="mb-4">{s.icon}</div>
-              <div className="text-[48px] font-bold text-[#8B5CF6] mb-2.5">
-                {s.value}
+    <section
+      id="team"
+      style={{ padding: "96px 0", background: "var(--bg-0)" }}
+    >
+      <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
+        <span className="eyebrow">YOUR TEAM</span>
+        <h2
+          style={{
+            fontSize: "clamp(36px, 5vw, 56px)",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+            lineHeight: 1.04,
+            margin: "12px 0 20px",
+            color: "var(--fg-1)",
+          }}
+        >
+          Six roles.
+          <br />
+          <span style={{ color: "var(--fg-3)" }}>Name them anything.</span>
+        </h2>
+        <p
+          style={{
+            color: "var(--fg-2)",
+            fontSize: 18,
+            maxWidth: 620,
+            lineHeight: 1.6,
+          }}
+        >
+          They&apos;re archetypes, not personalities. The quirks and voice come
+          from you — pick names, set tone, train them on your writing.
+        </p>
+
+        <div
+          className="grid mt-14"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {ARCHETYPE_LIST.map((arc, i) => (
+            <div
+              key={arc.key}
+              className="relative overflow-hidden transition-transform"
+              style={{
+                padding: 22,
+                borderRadius: 16,
+                background: "var(--bg-2)",
+                boxShadow: `0 0 0 1px ${arc.color}22, var(--elev-1)`,
+                minHeight: 160,
+                transitionDuration: "var(--dur-fast)",
+                transitionTimingFunction: "var(--ease-standard)",
+              }}
+            >
+              <div
+                aria-hidden
+                className="absolute pointer-events-none"
+                style={{
+                  top: -20,
+                  right: -20,
+                  width: 110,
+                  height: 110,
+                  background: `radial-gradient(circle, ${arc.color}22, transparent 70%)`,
+                  animation: `blob-a ${5 + i * 0.4}s ease-in-out infinite`,
+                }}
+              />
+              <div
+                aria-hidden
+                className="absolute top-0 left-0 h-full"
+                style={{
+                  width: 3,
+                  background: arc.color,
+                  opacity: 0.6,
+                }}
+              />
+              <div className="relative">
+                <ArchetypeMark arc={arc} size={36} />
+                <div
+                  className="mt-3.5 font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: arc.color,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {arc.role}
+                </div>
+                <div
+                  className="italic"
+                  style={{
+                    fontSize: 14,
+                    color: "var(--fg-4)",
+                    marginTop: 4,
+                  }}
+                >
+                  — unnamed —
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--fg-3)",
+                    marginTop: 12,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {arc.tagline}.
+                </div>
               </div>
-              <div className="text-sm text-[#666]">{s.label}</div>
             </div>
           ))}
         </div>
@@ -326,7 +452,7 @@ function FeaturesDeepDive() {
       title: "A volunteer program that feels professional",
       points: [
         "Write clear role descriptions and build onboarding checklists that stick",
-        "Track hours, certifications, and engagement -- flag gaps before events",
+        "Track hours, certifications, and engagement — flag gaps before events",
         "Draft HR policies, performance frameworks, and training curricula",
       ],
     },
@@ -342,150 +468,129 @@ function FeaturesDeepDive() {
   ];
 
   return (
-    <section className="py-20 bg-[#392e3b] text-white">
-      <div className="spial-container mx-auto">
-        <h2 className="text-[28px] md:text-[34px] font-medium text-white mb-10 text-center">
-          One platform. Six roles. Everything covered.
+    <section style={{ padding: "96px 0", background: "var(--bg-1)" }}>
+      <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
+        <span className="eyebrow">FEATURES</span>
+        <h2
+          style={{
+            fontSize: "clamp(36px, 5vw, 56px)",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+            lineHeight: 1.04,
+            margin: "12px 0 40px",
+            color: "var(--fg-1)",
+          }}
+        >
+          One platform.
+          <br />
+          <span style={{ color: "var(--fg-3)" }}>Six roles. Everything covered.</span>
         </h2>
 
-        {/* Tab buttons */}
-        <div className="flex flex-col sm:flex-row gap-2.5 mb-10 flex-wrap">
+        <div className="flex gap-2.5 mb-10 flex-wrap">
           {tabs.map((t, i) => (
             <button
               key={i}
               onClick={() => setActiveTab(i)}
-              className={`px-6 py-3 rounded-lg text-sm cursor-pointer transition-all duration-300 border-2 font-[inherit] ${
-                activeTab === i
-                  ? "bg-[#8B5CF6] text-black border-[#8B5CF6]"
-                  : "bg-transparent text-white border-white/20 hover:border-[#8B5CF6]"
-              }`}
+              className="cursor-pointer transition-all"
+              style={{
+                padding: "10px 18px",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 500,
+                background:
+                  activeTab === i
+                    ? "var(--brand-purple)"
+                    : "transparent",
+                color:
+                  activeTab === i
+                    ? "var(--fg-on-purple)"
+                    : "var(--fg-2)",
+                boxShadow:
+                  activeTab === i
+                    ? "0 0 0 1px rgba(159,78,243,0.48), 0 8px 24px rgba(159,78,243,0.32)"
+                    : "inset 0 0 0 1px var(--line-2)",
+                transitionDuration: "var(--dur-fast)",
+                transitionTimingFunction: "var(--ease-standard)",
+              }}
             >
-              {t.label}
+              {tabs[i].label}
             </button>
           ))}
         </div>
 
-        {/* Tab content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div
+          className="grid gap-10 items-start"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
+        >
           <div>
-            <h3 className="text-[26px] font-normal text-white mb-5">
+            <h3
+              style={{
+                fontSize: 26,
+                fontWeight: 500,
+                color: "var(--fg-1)",
+                marginBottom: 20,
+                letterSpacing: "-0.015em",
+              }}
+            >
               {tabs[activeTab].title}
             </h3>
-            <ul className="list-none text-white/80">
+            <ul className="list-none">
               {tabs[activeTab].points.map((p, i) => (
                 <li
                   key={i}
-                  className="mb-4 flex gap-2.5 before:content-['•'] before:text-[#8B5CF6] before:font-bold"
+                  className="flex gap-2.5 mb-4"
+                  style={{ color: "var(--fg-2)", lineHeight: 1.6 }}
                 >
+                  <span
+                    className="shrink-0"
+                    style={{
+                      color: "var(--brand-purple)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    •
+                  </span>
                   {p}
                 </li>
               ))}
             </ul>
             <Link
               href="/features"
-              className="text-[#8B5CF6] no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300 hover:text-[#7C3AED]"
+              className="no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300"
+              style={{ color: "var(--brand-tint)" }}
             >
               See all features
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <Placeholder
-            className="w-full aspect-[4/3]"
-            label={`${tabs[activeTab].label} Preview`}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Decision Lab Callout ─────────────────────────────────────── */
-function DecisionLabCallout() {
-  return (
-    <section className="py-20 bg-[#f7f6f5]">
-      <div className="spial-container mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-          <Placeholder
-            className="w-full aspect-[4/3]"
-            label="Decision Lab Preview"
-          />
-          <div>
-            <SectionLabel text="Decision Lab" align="left" />
-            <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
-              Run it by the team.
-            </h2>
-            <p className="leading-[1.7] text-[#333] mb-4">
-              Every major decision deserves more than one perspective. Type in a scenario -- "Should we cancel our gala?" or "Review this donor email before I send it" -- and get six expert takes in seconds.
-            </p>
-            <p className="leading-[1.7] text-[#333] mb-4">
-              Marketing rates the messaging. Programs checks mission alignment. Development weighs the fundraising angle. Your Executive Assistant summarizes what the team agrees on, where they disagree, and what to do next.
-            </p>
-            <p className="leading-[1.7] text-[#666] text-sm">
-              Like a leadership retreat in 30 seconds. Without the catering bill.
-            </p>
-            <ul className="list-none mt-[30px]">
-              {[
-                "6 perspectives in parallel, not sequentially",
-                "Each director responds in their own voice and expertise",
-                "Synthesis summary with consensus, risks, and next steps",
-              ].map((f, i) => (
-                <li
-                  key={i}
-                  className="flex gap-4 mb-4 text-base before:content-['\2713'] before:text-[#8B5CF6] before:font-bold before:text-lg before:shrink-0"
-                >
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Heartbeats Callout ───────────────────────────────────────── */
-function HeartbeatsCallout() {
-  return (
-    <section className="py-20 bg-[#f7f6f5]">
-      <div className="spial-container mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-          <div>
-            <SectionLabel text="Proactive Heartbeats" align="left" />
-            <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
-              Your team checks in on their own.
-            </h2>
-            <p className="leading-[1.7] text-[#333] mb-4">
-              The difference between a tool and a teammate is that a teammate doesn&apos;t wait to be asked. Your AI directors scan their domains every few hours and bring you what matters.
-            </p>
-            <p className="leading-[1.7] text-[#333] mb-4">
-              Grant deadline in 9 days? Your Development Director flags it. Campaign engagement dropped this week? Marketing tells you why and what to try. Board meeting tomorrow? Your Executive Assistant has the briefing ready.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-[30px]">
-              {[
-                { title: "Flags risks early", desc: "Before deadlines slip or donors go cold" },
-                { title: "Celebrates wins", desc: "Surfaces milestones you might have missed" },
-                { title: "Suggests next steps", desc: "Always comes with a clear action, not just data" },
-                { title: "Quiet when nothing is new", desc: "Only checks in when there is something worth saying" },
-              ].map((b, i) => (
-                <div key={i} className="bg-white p-[30px] rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-                  <h3 className="text-base font-semibold mb-2">{b.title}</h3>
-                  <p className="text-sm text-[#666]">{b.desc}</p>
-                </div>
-              ))}
+          <div
+            className="relative rounded-[20px] overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--bg-plum-1), var(--bg-2))",
+              aspectRatio: "4 / 3",
+              boxShadow: "var(--elev-2)",
+            }}
+          >
+            <div
+              aria-hidden
+              className="absolute inset-0 flex items-center justify-center font-mono"
+              style={{
+                fontSize: 14,
+                color: "var(--fg-4)",
+                letterSpacing: "0.1em",
+              }}
+            >
+              {tabs[activeTab].label.toUpperCase()} PREVIEW
             </div>
           </div>
-          <Placeholder
-            className="w-full aspect-[4/3]"
-            label="Heartbeat Inbox Preview"
-          />
         </div>
       </div>
     </section>
   );
 }
 
-/* ── Testimonials Section ─────────────────────────────────────── */
+/* ── Testimonials ────────────────────────────────────────────── */
 function TestimonialsSection() {
   const reviews = [
     {
@@ -501,7 +606,7 @@ function TestimonialsSection() {
     {
       name: "Linda K.",
       org: "Senior Services Coalition, Executive Director",
-      text: "I was doing the work of four people. Edify OS didn't replace me -- it filled the roles I couldn't fill. Having an Events Director and HR Coordinator I can actually talk to is something I didn't think was possible at our budget.",
+      text: "I was doing the work of four people. Edify OS didn't replace me — it filled the roles I couldn't fill. Having an Events Director and HR Coordinator I can actually talk to is something I didn't think was possible at our budget.",
     },
     {
       name: "James R.",
@@ -521,46 +626,82 @@ function TestimonialsSection() {
   ];
 
   return (
-    <section className="py-20 bg-[#f7f6f5]">
-      <div className="spial-container mx-auto">
-        <SectionLabel text="What Leaders Say" />
-        <div className="text-center mb-[50px]">
-          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4">
-            From nonprofit leaders who know the struggle.
-          </h2>
-          <p className="leading-[1.7] text-[#333]">
-            These are the real conversations happening when a team shows up to do the work.
-          </p>
-        </div>
-
-        <div className="mt-[50px]">
-          <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-[30px]">
-            {reviews.map((r, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl p-[30px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
-              >
-                <div className="flex gap-4 mb-5">
-                  <div className="w-14 h-14 rounded-full bg-[#e5e5e5] shrink-0" />
-                  <div className="flex-1">
-                    <div className="font-semibold mb-1">{r.name}</div>
-                    <div className="text-sm text-[#999]">{r.org}</div>
+    <section style={{ padding: "96px 0", background: "var(--bg-0)" }}>
+      <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
+        <span className="eyebrow">WHAT LEADERS SAY</span>
+        <h2
+          style={{
+            fontSize: "clamp(36px, 5vw, 56px)",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+            lineHeight: 1.04,
+            margin: "12px 0 20px",
+            color: "var(--fg-1)",
+          }}
+        >
+          From nonprofit leaders
+          <br />
+          <span style={{ color: "var(--fg-3)" }}>who know the struggle.</span>
+        </h2>
+        <div
+          className="grid gap-6 mt-14"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          }}
+        >
+          {reviews.map((r, i) => (
+            <div
+              key={i}
+              style={{
+                background: "var(--bg-2)",
+                borderRadius: 16,
+                padding: 24,
+                boxShadow: "var(--elev-1)",
+              }}
+            >
+              <div className="flex gap-3 mb-4">
+                <div
+                  className="shrink-0"
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 9999,
+                    background:
+                      "linear-gradient(135deg, var(--brand-plum), var(--brand-purple))",
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div
+                    className="font-medium mb-1"
+                    style={{ color: "var(--fg-1)" }}
+                  >
+                    {r.name}
+                  </div>
+                  <div
+                    className="text-sm"
+                    style={{ color: "var(--fg-3)" }}
+                  >
+                    {r.org}
                   </div>
                 </div>
-                <div className="flex gap-1 mb-3">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      className="w-4 h-4 fill-[#f5a623] text-[#f5a623]"
-                    />
-                  ))}
-                </div>
-                <div className="text-[15px] text-[#666] leading-[1.6]">
-                  {r.text}
-                </div>
               </div>
-            ))}
-          </div>
+              <div className="flex gap-1 mb-3">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className="w-4 h-4"
+                    style={{ fill: "var(--warn)", color: "var(--warn)" }}
+                  />
+                ))}
+              </div>
+              <div
+                className="leading-[1.6]"
+                style={{ fontSize: 15, color: "var(--fg-2)" }}
+              >
+                {r.text}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -575,54 +716,108 @@ function BlogSection() {
       title: "Why AI Won't Replace Your Team. It'll Complete It.",
       date: "Apr 8, 2026",
       href: "/blog/ai-wont-replace-your-team",
-      image: "https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600",
     },
     {
       category: "Fundraising",
       title: "The Grant Research Problem Nobody Talks About",
       date: "Apr 1, 2026",
       href: "/blog/grant-research-problem",
-      image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600",
     },
     {
       category: "Leadership",
       title: "From Drowning in Admin to Leading with Vision",
       date: "Mar 24, 2026",
       href: "/blog/from-drowning-to-leading",
-      image: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600",
     },
   ];
 
   return (
-    <section className="py-20 bg-[#f7f6f5]" id="blogs">
-      <div className="spial-container mx-auto text-center">
-        <SectionLabel text="From the Blog" />
-        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
-          For the people doing the work.
+    <section
+      id="blogs"
+      style={{ padding: "96px 0", background: "var(--bg-1)" }}
+    >
+      <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
+        <span className="eyebrow">FROM THE BLOG</span>
+        <h2
+          style={{
+            fontSize: "clamp(36px, 5vw, 56px)",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+            lineHeight: 1.04,
+            margin: "12px 0 40px",
+            color: "var(--fg-1)",
+          }}
+        >
+          For the people
+          <br />
+          <span style={{ color: "var(--fg-3)" }}>doing the work.</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-[30px] mt-[50px]">
-          {blogs.map((b, i) => (
-            <a
-              key={i}
+        <div
+          className="grid gap-6"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          }}
+        >
+          {blogs.map((b) => (
+            <Link
+              key={b.href}
               href={b.href}
-              className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] no-underline block"
+              className="no-underline block transition-transform"
+              style={{
+                background: "var(--bg-2)",
+                borderRadius: 16,
+                overflow: "hidden",
+                boxShadow: "var(--elev-1)",
+              }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={b.image} alt={b.title} className="w-full h-[220px] object-cover" />
-              <div className="p-[25px]">
-                <div className="text-xs text-[#8B5CF6] font-semibold uppercase mb-2.5">
+              <div
+                aria-hidden
+                style={{
+                  height: 180,
+                  background:
+                    "linear-gradient(135deg, var(--bg-plum-1), var(--bg-2))",
+                }}
+              />
+              <div className="p-6">
+                <div
+                  className="font-mono mb-2.5"
+                  style={{
+                    fontSize: 11,
+                    color: "var(--brand-tint)",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                  }}
+                >
                   {b.category}
                 </div>
-                <h3 className="text-xl font-semibold text-black mb-2.5">
+                <h3
+                  className="font-medium"
+                  style={{
+                    fontSize: 18,
+                    color: "var(--fg-1)",
+                    marginBottom: 10,
+                    letterSpacing: "-0.01em",
+                    lineHeight: 1.3,
+                  }}
+                >
                   {b.title}
                 </h3>
-                <div className="text-[13px] text-[#999]">{b.date}</div>
+                <div
+                  className="font-mono"
+                  style={{ fontSize: 12, color: "var(--fg-3)" }}
+                >
+                  {b.date}
+                </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
         <div className="text-center mt-10">
-          <Link href="/blog" className="text-[#8B5CF6] no-underline font-medium inline-flex items-center gap-2 transition-colors duration-300 hover:text-[#7C3AED]">
+          <Link
+            href="/blog"
+            className="no-underline font-medium inline-flex items-center gap-2 transition-colors duration-300"
+            style={{ color: "var(--brand-tint)" }}
+          >
             Read all articles
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -632,71 +827,92 @@ function BlogSection() {
   );
 }
 
-/* ── FAQ Section ──────────────────────────────────────────────── */
+/* ── FAQ ─────────────────────────────────────────────────────── */
 function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const faqs = [
     {
       q: "What is Edify OS?",
-      a: "Edify OS is a platform that gives nonprofits access to six AI-powered directors: Development, Marketing, Executive Assistant, Programs, HR/Volunteer, and Events. Each one has a distinct personality, deep expertise in their domain, and a team of specialized subagents. You brief them on your organization and they get to work.",
+      a: "Edify OS is a platform that gives nonprofits access to six AI-powered directors: Executive Assistant, Events Director, Development Director, Marketing Director, Programs Director, and HR & Volunteer Coordinator. Each one has a distinct expertise and a team of specialized subagents. You brief them on your organization and they get to work.",
     },
     {
       q: "Who is this for?",
-      a: "Any nonprofit that is resource-constrained and operationally stretched. If your team is wearing too many hats, missing grant deadlines, or struggling to keep communications consistent -- Edify OS fills the gaps. It is especially powerful for small to mid-size organizations that cannot afford to hire all the specialists they need.",
+      a: "Any nonprofit that is resource-constrained and operationally stretched. If your team is wearing too many hats, missing grant deadlines, or struggling to keep communications consistent — Edify OS fills the gaps. It is especially powerful for small to mid-size organizations that cannot afford to hire all the specialists they need.",
     },
     {
       q: "How do the AI team members actually work?",
-      a: "Each director has a system prompt that defines their expertise, personality, and decision-making style. When you ask them something, they respond in their own voice with recommendations grounded in your organization's context. They can also delegate to specialized subagents for deeper work -- the Development Director delegates to a Grant Research agent, for example.",
+      a: "Each director has a system prompt that defines their expertise and decision-making style. When you ask them something, they respond in their own voice with recommendations grounded in your organization's context. They can also delegate to specialized subagents for deeper work.",
     },
     {
       q: "What is BYOK and why does it matter?",
-      a: "BYOK stands for Bring Your Own Key. You connect your own Claude API key from Anthropic, and all AI calls run directly through your account. This means you only pay for what you use (typically a few cents per conversation), we never see your API key after initial setup, and your data stays in your pipeline. No markup, no black box.",
+      a: "BYOK stands for Bring Your Own Key. You connect your own Claude API key from Anthropic, and all AI calls run directly through your account. This means you only pay for what you use (typically a few cents per conversation), we never see your API key after initial setup, and your data stays in your pipeline.",
     },
     {
       q: "Is my organization's data secure?",
-      a: "Your org data stays in your system. The org briefing you complete during onboarding is stored in your session and injected into prompts as context -- it does not get shared across organizations or used to train models. We recommend reviewing Anthropic's data policies for details on how API calls are handled on their end.",
+      a: "Your org data stays in your system. The org briefing you complete during onboarding is stored in your session and injected into prompts as context — it does not get shared across organizations or used to train models. We recommend reviewing Anthropic's data policies for details on how API calls are handled on their end.",
     },
     {
       q: "Can I customize how the team works?",
-      a: "Yes. During onboarding you brief the team on your org's mission, programs, brand voice, and goals. That context shapes every response. You can also configure each director's proactive heartbeat schedule -- how often they check in, what they scan for, and when they stay quiet.",
+      a: "Yes. During onboarding you brief the team on your org's mission, programs, brand voice, and goals. That context shapes every response. You can also configure each director's proactive heartbeat schedule — how often they check in, what they scan for, and when they stay quiet.",
     },
   ];
 
-  const toggleAccordion = (idx: number) => {
-    setOpenIndex(openIndex === idx ? null : idx);
-  };
+  const toggle = (idx: number) => setOpenIndex(openIndex === idx ? null : idx);
 
   return (
-    <section className="py-20 bg-[#f7f6f5]">
-      <div className="spial-container mx-auto text-center">
-        <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-[50px]">
-          Frequently Asked Questions
+    <section style={{ padding: "96px 0", background: "var(--bg-0)" }}>
+      <div className="mx-auto px-8 text-center" style={{ maxWidth: 760 }}>
+        <h2
+          style={{
+            fontSize: "clamp(28px, 4vw, 42px)",
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            marginBottom: 40,
+            color: "var(--fg-1)",
+          }}
+        >
+          Frequently asked questions
         </h2>
-        <div className="max-w-[700px] mx-auto mt-[50px] text-left">
+        <div className="text-left">
           {faqs.map((f, i) => (
-            <div key={i} className="border-b border-[#ddd] mb-5">
-              <div
-                className="flex justify-between items-center py-5 cursor-pointer font-medium text-lg select-none hover:text-[#8B5CF6] transition-colors duration-300"
-                onClick={() => toggleAccordion(i)}
+            <div
+              key={i}
+              className="mb-3"
+              style={{ borderBottom: "1px solid var(--line-1)" }}
+            >
+              <button
+                className="flex justify-between items-center py-5 cursor-pointer font-medium select-none w-full text-left transition-colors"
+                style={{
+                  fontSize: 17,
+                  color: "var(--fg-1)",
+                  background: "transparent",
+                  border: "none",
+                }}
+                onClick={() => toggle(i)}
               >
                 <span>{f.q}</span>
                 <span
-                  className={`text-2xl text-[#8B5CF6] transition-transform duration-300 ${
-                    openIndex === i ? "rotate-45" : ""
-                  }`}
+                  className="transition-transform duration-300"
+                  style={{
+                    fontSize: 24,
+                    color: "var(--brand-purple)",
+                    transform: openIndex === i ? "rotate(45deg)" : "none",
+                  }}
                 >
                   +
                 </span>
-              </div>
+              </button>
               <div
-                className={`overflow-hidden transition-all duration-300 text-[#666] leading-[1.6] ${
-                  openIndex === i
-                    ? "max-h-[500px] pb-5"
-                    : "max-h-0 pb-0"
-                }`}
+                className="overflow-hidden transition-all duration-300"
+                style={{
+                  color: "var(--fg-3)",
+                  lineHeight: 1.65,
+                  maxHeight: openIndex === i ? 500 : 0,
+                  paddingBottom: openIndex === i ? 20 : 0,
+                }}
               >
-                <p>{f.a}</p>
+                <p style={{ margin: 0 }}>{f.a}</p>
               </div>
             </div>
           ))}
@@ -706,47 +922,97 @@ function FAQSection() {
   );
 }
 
-/* ── CTA Section ──────────────────────────────────────────────── */
+/* ── Final CTA ─────────────────────────────────────────────── */
 function CTASection() {
   return (
-    <section className="pt-[10px] pb-[100px] bg-[#f7f6f5]">
-      <div className="spial-container mx-auto flex flex-col items-center text-center">
-        <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] leading-[1.3]">
-          Stop drowning in execution. Start leading.
-        </h2>
-        <p className="text-[#666] leading-[1.7] mt-5 max-w-[500px]">
-          Your team is ready. Brief them on your mission and watch what happens when six directors show up for you.
-        </p>
-        <div style={{ height: "50px" }} />
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Link href="/signup" className="spial-btn no-underline">
-            Get Started
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/demo"
-            className="px-6 py-3 rounded-full border border-[#333] text-[#333] text-sm font-medium no-underline transition-colors duration-300 hover:bg-[#333] hover:text-white"
-          >
-            See the Demo
-          </Link>
+    <section style={{ padding: "96px 0", background: "var(--bg-1)" }}>
+      <div className="mx-auto px-8" style={{ maxWidth: 1040 }}>
+        <div
+          className="relative overflow-hidden text-center"
+          style={{
+            padding: "80px 40px",
+            borderRadius: 24,
+            background:
+              "linear-gradient(135deg, var(--bg-plum-2), var(--bg-2))",
+            boxShadow:
+              "0 0 0 1px var(--line-purple), 0 40px 120px rgba(159,78,243,0.22)",
+          }}
+        >
+          <div
+            aria-hidden
+            className="absolute pointer-events-none"
+            style={{
+              top: "-40%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "80%",
+              height: "120%",
+              background:
+                "radial-gradient(ellipse, rgba(159,78,243,0.32), transparent 60%)",
+              filter: "blur(40px)",
+              animation: "blob-a 20s ease-in-out infinite",
+            }}
+          />
+          <div className="relative">
+            <span className="eyebrow">LIMITED BETA</span>
+            <h2
+              style={{
+                fontSize: "clamp(36px, 5vw, 64px)",
+                fontWeight: 600,
+                letterSpacing: "-0.025em",
+                lineHeight: 1.04,
+                margin: "12px 0 16px",
+                color: "var(--fg-1)",
+              }}
+            >
+              Stop drowning.
+              <br />
+              <span style={{ color: "var(--brand-tint)" }}>Start delegating.</span>
+            </h2>
+            <p
+              style={{
+                color: "var(--fg-2)",
+                fontSize: 17,
+                maxWidth: 540,
+                margin: "0 auto 28px",
+              }}
+            >
+              We&apos;re onboarding 20 small nonprofits this quarter. Come tell
+              us what&apos;s breaking.
+            </p>
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2.5 no-underline"
+              style={{
+                background: "var(--brand-purple)",
+                color: "var(--fg-on-purple)",
+                padding: "16px 32px",
+                borderRadius: 12,
+                fontSize: 16,
+                fontWeight: 600,
+                boxShadow:
+                  "0 0 0 1px rgba(159,78,243,0.48), 0 16px 64px rgba(159,78,243,0.5)",
+              }}
+            >
+              Request early access
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-/* ── Page ──────────────────────────────────────────────────────── */
+/* ── Page ────────────────────────────────────────────────────── */
 export default function LandingPage() {
   return (
-    <div className="spial-page">
+    <div style={{ background: "var(--bg-0)", color: "var(--fg-1)" }}>
       <SpialNavbar />
       <Hero />
-      <MeetYourTeam />
       <HowItWorks />
-      <StatsSection />
+      <MeetYourTeam />
       <FeaturesDeepDive />
-      <DecisionLabCallout />
-      <HeartbeatsCallout />
       <TestimonialsSection />
       <BlogSection />
       <FAQSection />
