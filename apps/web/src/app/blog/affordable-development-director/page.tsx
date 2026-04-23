@@ -32,6 +32,10 @@ export default function ArticleAffordableDevDirector() {
         </div>
       </section>
 
+      {/* Hero image */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/blog/affordable-development-director.jpg" alt="Woman leader with arms crossed, smiling confidently" className="w-full" style={{ maxHeight: 480, objectFit: "cover", display: "block" }} />
+
       <section className="py-16 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="max-w-[700px] mx-auto">

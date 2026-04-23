@@ -32,6 +32,10 @@ export default function ArticleAITeam() {
         </div>
       </section>
 
+      {/* Hero image */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/blog/ai-wont-replace-your-team.jpg" alt="Diverse team collaborating around a table, sharing a high-five" className="w-full" style={{ maxHeight: 480, objectFit: "cover", display: "block" }} />
+
       <section className="py-16 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="max-w-[700px] mx-auto">

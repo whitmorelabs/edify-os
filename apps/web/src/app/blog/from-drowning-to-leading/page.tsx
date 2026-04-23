@@ -32,6 +32,10 @@ export default function ArticleFromDrowningToLeading() {
         </div>
       </section>
 
+      {/* Hero image */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/blog/from-drowning-to-leading.jpg" alt="Silhouette of a woman against a dramatic pink and purple sunset sky" className="w-full" style={{ maxHeight: 480, objectFit: "cover", display: "block" }} />
+
       <section className="py-16 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="max-w-[700px] mx-auto">
