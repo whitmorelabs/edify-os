@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Info } from "lucide-react";
 import type { DashboardSummary } from "@/app/api/dashboard/summary/route";
+import type { HoursSavedResponse } from "@/app/api/stats/hours-saved/route";
 import type { AgentRoleSlug } from "@/lib/agent-colors";
 import {
   ARCHETYPES,
@@ -12,6 +14,7 @@ import {
   ArchetypeMark,
   ArchetypePortrait,
   Card,
+  Dialog,
   type Archetype,
   type ArchetypeKey,
 } from "@/components/ui";
@@ -64,6 +67,33 @@ function verbFromAction(action: string): { verb: string; rest: string } {
   const first = action.split(" ")[0];
   const rest = action.slice(first.length).trim();
   return { verb: first || "Did", rest };
+}
+
+/* --------------------------------------------------------------------- */
+/* Hours-saved formatting                                                  */
+/* --------------------------------------------------------------------- */
+
+function formatHoursSaved(hours: number): string {
+  const totalMinutes = hours * 60;
+  if (totalMinutes < 60) {
+    return `${Math.round(totalMinutes)} min saved`;
+  }
+  if (hours < 100) {
+    return `${hours.toFixed(1)} hrs saved`;
+  }
+  return `${Math.round(hours)} hrs saved`;
+}
+
+function formatFirstEventDate(isoString: string): string {
+  try {
+    return new Date(isoString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
 }
 
 /* --------------------------------------------------------------------- */
@@ -195,6 +225,116 @@ function MiniBar({
   );
 }
 
+/* --------------------------------------------------------------------- */
+/* How-we-calculate dialog                                                 */
+/* --------------------------------------------------------------------- */
+
+function HowWeCalculateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onClose={onClose} title="How we estimate hours saved" maxWidth={480}>
+      <p
+        className="leading-[1.6] text-[14px] mb-4"
+        style={{ color: "var(--fg-2)" }}
+      >
+        Every time your AI team completes a task — drafting an email, researching a grant,
+        building a deck — we add a conservative time estimate to your running total. The
+        numbers are based on typical knowledge-worker times for the same task without AI.
+      </p>
+      <div
+        className="rounded-[10px] p-4 text-[13px] leading-[1.7]"
+        style={{ background: "var(--bg-1)", color: "var(--fg-2)" }}
+      >
+        <p className="font-medium mb-2" style={{ color: "var(--fg-1)" }}>Examples</p>
+        <ul className="list-none p-0 m-0 flex flex-col gap-1">
+          <li>• Drafting an email: <strong>15 min</strong></li>
+          <li>• Searching for grants: <strong>45 min</strong></li>
+          <li>• Building a presentation deck: <strong>60 min</strong></li>
+          <li>• Creating a Google Doc from scratch: <strong>20 min</strong></li>
+        </ul>
+      </div>
+      <p
+        className="mt-4 text-[12px] leading-[1.55]"
+        style={{ color: "var(--fg-4)" }}
+      >
+        This is an honest approximation, not a timesheet. Real value varies. We lean
+        conservative so you aren&apos;t surprised.
+      </p>
+    </Dialog>
+  );
+}
+
+/* --------------------------------------------------------------------- */
+/* Hours-saved stat card                                                   */
+/* --------------------------------------------------------------------- */
+
+function HoursSavedCard({
+  data,
+  loading,
+}: {
+  data: HoursSavedResponse | null;
+  loading: boolean;
+}) {
+  const [showInfo, setShowInfo] = useState(false);
+
+  return (
+    <>
+      <HowWeCalculateDialog open={showInfo} onClose={() => setShowInfo(false)} />
+      <Card elevation={0} className="p-5">
+        <div className="flex items-center justify-between mb-1">
+          <span className="eyebrow">HOURS SAVED</span>
+          <button
+            aria-label="How we calculate hours saved"
+            onClick={() => setShowInfo(true)}
+            className="flex items-center justify-center rounded-full transition-colors"
+            style={{
+              color: "var(--fg-3)",
+              width: 24,
+              height: 24,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--fg-1)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--fg-3)";
+            }}
+          >
+            <Info size={14} />
+          </button>
+        </div>
+        {loading ? (
+          <div className="text-[13px] py-2" style={{ color: "var(--fg-3)" }}>
+            Loading…
+          </div>
+        ) : !data || data.hours_saved_total === 0 ? (
+          <div className="text-[13px] py-1 leading-[1.55]" style={{ color: "var(--fg-3)" }}>
+            Start chatting with your team to see hours saved. Estimates update in real time.
+          </div>
+        ) : (
+          <div>
+            <div
+              className="font-mono font-medium leading-none tracking-[-0.02em] mt-1"
+              style={{ fontSize: 32, color: "var(--fg-1)" }}
+            >
+              {formatHoursSaved(data.hours_saved_total)}
+            </div>
+            {data.first_event_at && (
+              <div
+                className="text-[11px] mt-2"
+                style={{ color: "var(--fg-3)" }}
+              >
+                since {formatFirstEventDate(data.first_event_at)}
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </>
+  );
+}
+
 function TeamCard({ arc, index, name }: { arc: Archetype; index: number; name?: string }) {
   const delay = Math.min(index, 6) * 0.06 + 0.1;
   return (
@@ -322,6 +462,8 @@ function TimeSlot({
 export default function DashboardHome() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hoursSaved, setHoursSaved] = useState<HoursSavedResponse | null>(null);
+  const [hoursSavedLoading, setHoursSavedLoading] = useState(true);
   const { names: archetypeNames } = useArchetypeNames();
 
   useEffect(() => {
@@ -330,6 +472,14 @@ export default function DashboardHome() {
       .then((data: DashboardSummary | null) => setSummary(data))
       .catch(() => setSummary(null))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/stats/hours-saved")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: HoursSavedResponse | null) => setHoursSaved(data))
+      .catch(() => setHoursSaved(null))
+      .finally(() => setHoursSavedLoading(false));
   }, []);
 
   const now = useMemo(() => new Date(), []);
@@ -495,7 +645,7 @@ export default function DashboardHome() {
             </div>
           </motion.div>
 
-          {/* Right column — approvals + week summary */}
+          {/* Right column — approvals + week summary + hours saved */}
           <div className="flex flex-col gap-5">
             <Link href="/dashboard/inbox">
               <Card
@@ -563,6 +713,8 @@ export default function DashboardHome() {
                 )}
               </div>
             </Card>
+
+            <HoursSavedCard data={hoursSaved} loading={hoursSavedLoading} />
           </div>
         </div>
 
