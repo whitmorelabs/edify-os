@@ -17,8 +17,9 @@ export function TypingIndicator({ label = "Thinking" }: TypingIndicatorProps) {
       className="inline-flex items-center gap-1.5 rounded-[4px_14px_14px_14px] px-3.5 py-2.5"
       style={{
         background: "var(--bg-3)",
+        /* Purple glow ring — design preview §10 */
         boxShadow:
-          "inset 0 0 0 1px var(--line-2), 0 0 0 1px var(--purple-a20), 0 0 16px var(--purple-a20)",
+          "0 1px 0 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(159,78,243,0.2), 0 0 16px rgba(159,78,243,0.2)",
       }}
     >
       <ThinkDot delay="0s" />

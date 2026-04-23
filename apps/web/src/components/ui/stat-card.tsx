@@ -19,6 +19,13 @@ export interface StatCardProps {
   durationMs?: number;
   /** Swap the normal card surface for the amber "needs review" look. */
   tone?: "default" | "warn";
+  /**
+   * Whether to render the top-right corner radial glow decoration.
+   * Defaults to true. The glow color tracks `tone`:
+   *   - "default" → purple glow (rgba(159,78,243,0.16))
+   *   - "warn" → amber glow (rgba(255,184,0,0.16))
+   */
+  showGlow?: boolean;
   className?: string;
 }
 
@@ -34,6 +41,7 @@ export function StatCard({
   hint,
   durationMs = 1200,
   tone = "default",
+  showGlow = true,
   className,
 }: StatCardProps) {
   const reduced = useReducedMotion();
@@ -60,6 +68,12 @@ export function StatCard({
 
   const formatted = display.toLocaleString("en-US");
 
+  // Glow gradient color based on tone.
+  const glowColor =
+    tone === "warn"
+      ? "rgba(255,184,0,0.16)"
+      : "rgba(159,78,243,0.16)";
+
   return (
     <Card
       className={cn(
@@ -68,6 +82,20 @@ export function StatCard({
         className,
       )}
     >
+      {/* Top-right corner radial glow decoration — design preview §09 */}
+      {showGlow && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute"
+          style={{
+            top: -20,
+            right: -20,
+            width: 80,
+            height: 80,
+            background: `radial-gradient(circle, ${glowColor}, transparent 60%)`,
+          }}
+        />
+      )}
       <div
         className="eyebrow"
         style={tone === "warn" ? { color: "var(--warn)" } : undefined}

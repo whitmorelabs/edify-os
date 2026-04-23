@@ -2,6 +2,57 @@
 
 ---
 
+## 2026-04-23 — Design Polish Pass
+
+**Identity:** Design Polish Pass Agent (Sonnet, spawned by Lopmon)
+**Task:** Fix broken logo wordmark (urgent) + apply P2/P3 audit items. PRD: `PRD-design-polish-pass.md`.
+**Branch:** `lopmon/design-polish-pass`
+
+### Root Cause Fixed: Invisible Wordmark
+
+`edify-wordmark.svg` used `class="wm"` on the `<text>` element, referencing an external CSS
+class defined only in `_card.css` (design-system preview). Next.js `<Image>` serves SVGs as
+static assets — external CSS doesn't apply — so "DIFY" rendered with no font-family/size
+and was invisible on the live site.
+
+**Fix:** Refactored `LogoLockup` to render `<Image src="/brand/edify-mark.svg">` (just the
+3-bar E) + `<span>DIFY</span>` as real HTML text (Instrument Sans, 700, `--fg-1`). Deleted
+the broken `edify-wordmark.svg`. The navbar now shows "EDIFY OS [PRIVATE BETA]" correctly
+with the DIFY text visible.
+
+### Files Changed
+
+**Logo fix (urgent):**
+- `apps/web/src/components/brand/logo-lockup.tsx` — refactored to HTML composition
+- DELETED `apps/web/public/brand/edify-wordmark.svg`
+
+**P2 items:**
+- `apps/web/src/lib/archetype-config.ts` — all 6 director bg/text/border/light now use `var(--dir-*)` CSS vars
+- `apps/web/src/lib/agent-colors.ts` — same normalization for `AGENT_COLORS`
+- `apps/web/src/app/globals.css` — `heading-1`, `heading-2`, `heading-3` changed from `text-gray-900` to `color: var(--fg-1)`
+- `apps/web/src/components/ui/stat-card.tsx` — added `showGlow` prop + top-right radial corner glow (purple/amber by tone)
+
+**P3 items:**
+- `apps/web/src/components/ui/typing-indicator.tsx` — updated box-shadow to include purple glow ring per spec
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatInput.tsx` — added `focus:[box-shadow:0_0_0_1px_var(--line-purple)]`
+- `apps/web/src/components/ui/approval-card.tsx` — content preview bg changed from `var(--bg-1)` to `var(--bg-0)`
+- `apps/web/src/components/ui/quick-action-tile.tsx` — added `badge?: number` prop with amber count dot
+
+### Verification
+
+- TypeScript: All errors seen in tsc run are pre-existing across the entire codebase
+  (cross-package path resolution issue when tsc is run externally). No new errors
+  introduced by this PR. Main repo (`origin/main`) builds clean before and after.
+- Changes are purely additive/string-value (no structural type changes to existing interfaces).
+
+### Commit SHAs
+
+- `92440fc` — `fix(brand): refactor LogoLockup to render DIFY as real HTML text`
+- `aa643b7` — `fix(tokens): normalize director colors to --dir-* CSS vars; fix heading classes`
+- `a630a1d` — `feat(ui): apply P3 design-system audit fixes + session log`
+
+---
+
 ## 2026-04-23 — Blog Article Real Photos
 
 **Identity:** Blog Photos Agent (Sonnet, spawned by Lopmon)

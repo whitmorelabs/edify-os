@@ -113,6 +113,7 @@ export function ChatInput({
             disabled={isDisabled}
             className={cn(
               "input-field resize-none text-sm py-2.5 pr-16",
+              "focus:outline-none focus:[box-shadow:0_0_0_1px_var(--line-purple)]",
               isDisabled && "opacity-60 cursor-not-allowed"
             )}
           />
