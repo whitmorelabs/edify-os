@@ -47,7 +47,9 @@ with the DIFY text visible.
 
 ### Commit SHAs
 
-- (see below — filled in after commit)
+- `92440fc` — `fix(brand): refactor LogoLockup to render DIFY as real HTML text`
+- `aa643b7` — `fix(tokens): normalize director colors to --dir-* CSS vars; fix heading classes`
+- `a630a1d` — `feat(ui): apply P3 design-system audit fixes + session log`
 
 ---
 
