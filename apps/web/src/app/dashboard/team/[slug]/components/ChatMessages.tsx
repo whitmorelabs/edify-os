@@ -7,7 +7,8 @@ import { Download } from "lucide-react";
 import type { Message, GeneratedFile } from "../api";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { ARCHETYPE_CONFIG } from "@/lib/archetype-config";
-import { ARCHETYPES, ChatBubble, TypingIndicator } from "@/components/ui";
+import { relativeTime } from "@/lib/utils";
+import { ARCHETYPES, ChatBubble, TypingIndicator, FileCard } from "@/components/ui";
 import type { Archetype, ArchetypeKey } from "@/components/ui";
 
 interface ChatMessagesProps {
@@ -27,23 +28,6 @@ const SLUG_TO_KEY: Record<ArchetypeSlug, ArchetypeKey> = {
   programs_director: "programs",
   hr_volunteer_coordinator: "hr",
 };
-
-// ---------------------------------------------------------------------------
-// Relative timestamp
-// ---------------------------------------------------------------------------
-function relativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const seconds = Math.floor(diff / 1000);
-
-  if (seconds < 10) return "just now";
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 // ---------------------------------------------------------------------------
 // Markdown renderer — react-markdown + remark-gfm
@@ -144,42 +128,33 @@ function AssistantMarkdown({ content }: { content: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// File download chip — shown below assistant message when a skill generated a file
+// File rendering — FileCard primitive replaces the old bare chip for non-image files
 // ---------------------------------------------------------------------------
-const FILE_EXT_LABEL: Record<string, string> = {
-  docx: "Word Doc",
-  xlsx: "Excel",
-  pptx: "PowerPoint",
-  pdf: "PDF",
-  png: "PNG Image",
-  jpg: "JPEG Image",
-  jpeg: "JPEG Image",
-};
 
-function FileChip({ file }: { file: GeneratedFile }) {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  const label = FILE_EXT_LABEL[ext] ?? "File";
-
-  return (
-    <a
-      href={file.downloadUrl}
-      download={file.name}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--line-purple)] bg-[var(--bg-2)] px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-[var(--bg-3)] transition"
-    >
-      <Download size={12} className="shrink-0" />
-      <span className="truncate max-w-[200px]">{file.name}</span>
-      <span className="text-[var(--fg-3)]">({label})</span>
-    </a>
-  );
+/** Derive the FileCard `type` prop from a MIME type string. */
+function mimeToType(mimeType: string): string {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.includes("pdf")) return "pdf";
+  if (mimeType.includes("wordprocessingml") || mimeType.includes("word")) return "docx";
+  return mimeType; // FileCard handles unknown extensions gracefully
 }
 
 // Inline image preview — for PNG/JPEG outputs from tools like render_design_to_image.
-// If the image fails to load (404, expired, etc.), we fall back to the plain FileChip.
-function InlineImage({ file }: { file: GeneratedFile }) {
+// If the image fails to load (404, expired, etc.), we fall back to FileCard in resting state.
+function InlineImage({ file, messageTimestamp }: { file: GeneratedFile; messageTimestamp: string }) {
   const [errored, setErrored] = useState(false);
 
   if (errored) {
-    return <FileChip file={file} />;
+    return (
+      <FileCard
+        name={file.name}
+        type={mimeToType(file.mimeType ?? "")}
+        createdAt={messageTimestamp}
+        href={file.downloadUrl}
+        isNew={false}
+        thumbnailUrl={file.downloadUrl}
+      />
+    );
   }
 
   return (
@@ -206,7 +181,15 @@ function InlineImage({ file }: { file: GeneratedFile }) {
   );
 }
 
-function FileChips({ files }: { files: GeneratedFile[] }) {
+interface FileChipsProps {
+  files: GeneratedFile[];
+  /** ISO timestamp of the parent message — used for FileCard's createdAt and isNew detection. */
+  messageTimestamp: string;
+  /** Whether to render non-image files in just-arrived (purple glow) state. */
+  isNew: boolean;
+}
+
+function FileChips({ files, messageTimestamp, isNew }: FileChipsProps) {
   if (!files || files.length === 0) return null;
 
   const images = files.filter((f) => f.mimeType?.startsWith("image/"));
@@ -217,14 +200,21 @@ function FileChips({ files }: { files: GeneratedFile[] }) {
       {images.length > 0 && (
         <div className="flex flex-col gap-2 mt-2">
           {images.map((f) => (
-            <InlineImage key={f.downloadUrl} file={f} />
+            <InlineImage key={f.downloadUrl} file={f} messageTimestamp={messageTimestamp} />
           ))}
         </div>
       )}
       {others.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-col gap-2 mt-2">
           {others.map((f) => (
-            <FileChip key={f.downloadUrl} file={f} />
+            <FileCard
+              key={f.downloadUrl}
+              name={f.name}
+              type={mimeToType(f.mimeType ?? "")}
+              createdAt={messageTimestamp}
+              href={f.downloadUrl}
+              isNew={isNew}
+            />
           ))}
         </div>
       )}
@@ -242,6 +232,16 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
   const arcKey: ArchetypeKey | undefined = SLUG_TO_KEY[slug];
   const arc: Archetype | undefined = arcKey ? ARCHETYPES[arcKey] : undefined;
   const directorLabel = ARCHETYPE_CONFIG[slug]?.label ?? "Director";
+
+  // Find the last assistant message ID once — used to determine isNew per FileCard spec.
+  // A message qualifies as just-arrived only if it is the most recent assistant message
+  // AND its timestamp is within the last 30 seconds.
+  const lastAssistantMsg = messages.findLast((m) => m.role === "assistant");
+  const justArrivedId =
+    lastAssistantMsg &&
+    (Date.now() - new Date(lastAssistantMsg.timestamp).getTime()) / 1000 <= 30
+      ? lastAssistantMsg.id
+      : null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -266,6 +266,7 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
         }
 
         // Assistant message — use ChatBubble primitive with archetype arc
+        const fileIsNew = msg.id === justArrivedId;
         return (
           <div key={msg.id} className="flex flex-col gap-0.5 animate-slide-up">
             {arc ? (
@@ -274,7 +275,11 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
                 arc={arc}
                 trailing={
                   msg.files && msg.files.length > 0 ? (
-                    <FileChips files={msg.files} />
+                    <FileChips
+                      files={msg.files}
+                      messageTimestamp={msg.timestamp}
+                      isNew={fileIsNew}
+                    />
                   ) : undefined
                 }
               >
@@ -287,7 +292,13 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
                 style={{ background: "var(--bg-3)", boxShadow: "inset 0 0 0 1px var(--line-2)" }}
               >
                 <AssistantMarkdown content={msg.content} />
-                {msg.files && msg.files.length > 0 && <FileChips files={msg.files} />}
+                {msg.files && msg.files.length > 0 && (
+                  <FileChips
+                    files={msg.files}
+                    messageTimestamp={msg.timestamp}
+                    isNew={fileIsNew}
+                  />
+                )}
               </div>
             )}
             <p className="text-[10px] font-mono text-[var(--fg-3)] pl-9">
