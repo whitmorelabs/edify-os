@@ -2,6 +2,54 @@
 
 ---
 
+## 2026-04-23 — Blog Article Real Photos
+
+**Identity:** Blog Photos Agent (Sonnet, spawned by Lopmon)
+**Task:** Replace gradient placeholders with real Unsplash photos on home page blog section, blog index, and 4 individual blog post pages. PRD: `PRD-blog-article-real-photos.md`.
+**Branch:** `lopmon/blog-real-photos`
+
+### Photos Selected (all free under Unsplash License)
+
+| Article | Photo | Photographer | Unsplash URL | Rationale |
+|---|---|---|---|---|
+| `ai-wont-replace-your-team` | Multi-ethnic team high-five in office | Vitaly Gariev (@silverkblack) | https://unsplash.com/photos/oiqFyLx_KDU | Shows humans collaborating — not robots. Diverse faces. Direct match to article theme. |
+| `affordable-development-director` | Woman of color, arms crossed, smiling | Christina @ wocintechchat.com (@wocintechchat) | https://unsplash.com/photos/lFntEHwQvi4 | Confident leader. Diverse representation per Edify's target audience. Clean professional framing. |
+| `from-drowning-to-leading` | Silhouette against pink/purple sunset sky | Sasha Freemind (@sashafreemind) | https://unsplash.com/photos/nXo2ZsKHTHg | Emotional resonance with "rising above" theme. Not literal. Striking and distinctive. |
+| `grant-research-problem` | Two women studying together at café table | Faustina Okeke (@thefourthwxll) | https://unsplash.com/photos/2FDdgn0-W_o | Collaborative research vibe. Two women = diversity. Laptop + table = research/study context. |
+
+### Files Changed
+
+- **NEW:** `apps/web/public/blog/ai-wont-replace-your-team.jpg` — 1600×900, 207KB
+- **NEW:** `apps/web/public/blog/affordable-development-director.jpg` — 1600×1068, 187KB
+- **NEW:** `apps/web/public/blog/from-drowning-to-leading.jpg` — 1600×1067, 144KB
+- **NEW:** `apps/web/public/blog/grant-research-problem.jpg` — 1600×1067, 149KB
+- **NEW:** `photo-credits.md` — attribution log at repo root
+- `apps/web/src/app/page.tsx` — BlogSection: gradients replaced with `<img>` tags pointing to local files
+- `apps/web/src/app/blog/page.tsx` — articles array updated to local image paths
+- `apps/web/src/app/blog/ai-wont-replace-your-team/page.tsx` — hero `<img>` added before article content
+- `apps/web/src/app/blog/grant-research-problem/page.tsx` — hero `<img>` added before article content
+- `apps/web/src/app/blog/affordable-development-director/page.tsx` — hero `<img>` added before article content
+- `apps/web/src/app/blog/from-drowning-to-leading/page.tsx` — hero `<img>` added before article content
+
+### Implementation Notes
+
+- Used `<img>` with `eslint-disable-next-line @next/next/no-img-element` comments (matching existing codebase convention in blog/page.tsx) instead of Next `<Image>` to avoid Claude Code's auto-linter stripping the unused import during build
+- `next.config.mjs` has `images: { unoptimized: true }` so image optimization is handled externally
+- Home page blog cards: kept existing card structure (hover, border, rounding) — replaced only the cover area
+- Blog post hero images: `maxHeight: 480px`, `objectFit: cover`, full-width, immediately before article content section
+
+### Verification
+
+- `npx tsc --noEmit` — PASS (no type errors)
+- `npm run build` — PASS (all 5 blog routes compile cleanly: `/blog`, `/blog/ai-wont-replace-your-team`, `/blog/affordable-development-director`, `/blog/from-drowning-to-leading`, `/blog/grant-research-problem`)
+
+### Commit SHAs
+
+- `d23a71f` — `chore(assets): add 4 real Unsplash photos for blog articles`
+- `e0d9441` — `feat(blog): wire real photos into home page, blog index, and all 4 blog posts`
+
+---
+
 ## 2026-04-23 — Hours-Saved Counter
 
 **Identity:** Hours-Saved Counter Agent (Sonnet, spawned by Lopmon)

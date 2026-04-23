@@ -32,6 +32,10 @@ export default function ArticleGrantResearch() {
         </div>
       </section>
 
+      {/* Hero image */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/blog/grant-research-problem.jpg" alt="Two women studying together at a table with a laptop" className="w-full" style={{ maxHeight: 480, objectFit: "cover", display: "block" }} />
+
       <section className="py-16 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="max-w-[700px] mx-auto">

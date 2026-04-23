@@ -610,24 +610,24 @@ function BlogSection() {
       title: "Why AI Won't Replace Your Team. It'll Complete It.",
       date: "Apr 8, 2026",
       href: "/blog/ai-wont-replace-your-team",
-      accent: "rgba(159,78,243,0.35)",
-      accentDeep: "rgba(63,31,92,0.8)",
+      image: "/blog/ai-wont-replace-your-team.jpg",
+      imageAlt: "Diverse team collaborating around a table, sharing a high-five",
     },
     {
       category: "Fundraising",
       title: "The Grant Research Problem Nobody Talks About",
       date: "Apr 1, 2026",
       href: "/blog/grant-research-problem",
-      accent: "rgba(245,158,92,0.3)",
-      accentDeep: "rgba(63,31,92,0.7)",
+      image: "/blog/grant-research-problem.jpg",
+      imageAlt: "Two women studying together at a table with a laptop",
     },
     {
       category: "Leadership",
       title: "From Drowning in Admin to Leading with Vision",
       date: "Mar 24, 2026",
       href: "/blog/from-drowning-to-leading",
-      accent: "rgba(125,211,252,0.25)",
-      accentDeep: "rgba(18,12,30,0.85)",
+      image: "/blog/from-drowning-to-leading.jpg",
+      imageAlt: "Silhouette of a woman against a dramatic pink and purple sunset sky",
     },
   ];
 
@@ -674,62 +674,13 @@ function BlogSection() {
                 boxShadow: "var(--elev-1)",
               }}
             >
-              {/* Article cover — gradient with title overlaid */}
-              <div
-                style={{
-                  height: 180,
-                  position: "relative",
-                  background: `linear-gradient(135deg, ${b.accentDeep} 0%, var(--bg-plum-2) 60%, ${b.accent} 100%)`,
-                  overflow: "hidden",
-                }}
-              >
-                {/* ambient glow */}
-                <div
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    bottom: -20,
-                    right: -20,
-                    width: 140,
-                    height: 140,
-                    borderRadius: "50%",
-                    background: `radial-gradient(circle, ${b.accent}, transparent 70%)`,
-                    filter: "blur(20px)",
-                  }}
-                />
-                {/* category label on cover */}
-                <div
-                  className="font-mono"
-                  style={{
-                    position: "absolute",
-                    top: 18,
-                    left: 18,
-                    fontSize: 10,
-                    color: "var(--brand-tint)",
-                    letterSpacing: "0.16em",
-                    textTransform: "uppercase",
-                    opacity: 0.85,
-                  }}
-                >
-                  {b.category}
-                </div>
-                {/* article title on cover */}
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 18,
-                    left: 18,
-                    right: 18,
-                    fontSize: 15,
-                    fontWeight: 500,
-                    color: "var(--fg-1)",
-                    lineHeight: 1.35,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {b.title}
-                </div>
-              </div>
+              {/* Article cover — real photo */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={b.image}
+                alt={b.imageAlt}
+                style={{ height: 180, width: "100%", objectFit: "cover", display: "block" }}
+              />
               <div className="p-6">
                 <div
                   className="font-mono mb-2.5"
