@@ -176,7 +176,7 @@ export default function SettingsPage() {
       {/* Organization Briefing */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
             <FileText className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -198,7 +198,7 @@ export default function SettingsPage() {
       {/* Team Schedule (Heartbeats) */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
             <Clock className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -220,7 +220,7 @@ export default function SettingsPage() {
       {/* Rename Your Team */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/15">
             <Pencil className="h-5 w-5 text-violet-600" />
           </div>
           <div>
@@ -284,7 +284,7 @@ export default function SettingsPage() {
       {/* Billing & Subscription */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15">
             <CreditCard className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
@@ -306,7 +306,7 @@ export default function SettingsPage() {
       {/* Organization Profile */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
             <Building className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -380,7 +380,7 @@ export default function SettingsPage() {
       {/* Anthropic Key (BYOK) */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15">
             <Key className="h-5 w-5 text-amber-600" />
           </div>
           <div>
@@ -461,7 +461,7 @@ export default function SettingsPage() {
       {/* Autonomy Level */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
             <Shield className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -508,7 +508,7 @@ export default function SettingsPage() {
       {/* Team Management */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/15">
             <Users className="h-5 w-5 text-sky-600" />
           </div>
           <div>

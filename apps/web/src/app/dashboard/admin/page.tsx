@@ -30,7 +30,7 @@ const overviewCards: OverviewCard[] = [
     label: "Team conversations this week",
     emptyLabel: "No team activity yet",
     icon: MessageSquare,
-    iconBg: "bg-brand-50",
+    iconBg: "bg-brand-500/15",
     iconColor: "text-brand-500",
   },
   {
@@ -38,7 +38,7 @@ const overviewCards: OverviewCard[] = [
     label: "Tasks completed",
     emptyLabel: "No tasks completed yet",
     icon: CheckSquare,
-    iconBg: "bg-emerald-50",
+    iconBg: "bg-emerald-500/15",
     iconColor: "text-emerald-600",
   },
   {
@@ -46,7 +46,7 @@ const overviewCards: OverviewCard[] = [
     label: "Team members",
     emptyLabel: "No teammates yet",
     icon: Users,
-    iconBg: "bg-sky-50",
+    iconBg: "bg-sky-500/15",
     iconColor: "text-sky-600",
   },
   {
@@ -54,7 +54,7 @@ const overviewCards: OverviewCard[] = [
     label: "Connected integrations",
     emptyLabel: "No integrations connected",
     icon: Plug,
-    iconBg: "bg-amber-50",
+    iconBg: "bg-amber-500/15",
     iconColor: "text-amber-600",
   },
 ];
@@ -65,7 +65,7 @@ const quickLinks = [
     label: "Manage Members",
     description: "Invite people, change roles, and remove access.",
     icon: Users,
-    iconBg: "bg-sky-50",
+    iconBg: "bg-sky-500/15",
     iconColor: "text-sky-600",
   },
   {
@@ -73,7 +73,7 @@ const quickLinks = [
     label: "View Usage",
     description: "See how your team is using Edify OS.",
     icon: BarChart2,
-    iconBg: "bg-brand-50",
+    iconBg: "bg-brand-500/15",
     iconColor: "text-brand-500",
   },
   {
@@ -81,7 +81,7 @@ const quickLinks = [
     label: "AI Configuration",
     description: "Toggle team members, set autonomy levels, and configure instructions.",
     icon: Settings2,
-    iconBg: "bg-violet-50",
+    iconBg: "bg-violet-500/15",
     iconColor: "text-violet-600",
   },
 ];
@@ -116,7 +116,7 @@ export default function AdminPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
           <Shield className="h-5 w-5 text-brand-500" />
         </div>
         <div>

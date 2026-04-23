@@ -239,12 +239,13 @@ export function Sidebar() {
         <span className="text-sm text-brand-200 flex-1 truncate">
           {displayName}
         </span>
-        <button
+        <Link
+          href="/dashboard/settings"
           className="text-brand-400 hover:text-brand-200 transition"
           aria-label="Settings"
         >
           <Settings size={16} />
-        </button>
+        </Link>
       </div>
     </aside>
   );
