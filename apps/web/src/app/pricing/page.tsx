@@ -56,7 +56,7 @@ export default function PricingPage() {
     <div className="bg-bg-0 min-h-screen">
       <SpialNavbar />
 
-      {/* ── Section header ── */}
+      {/* Section header */}
       <section className="bg-bg-plum-1 py-20">
         <div className="spial-container mx-auto text-center">
           <div className="eyebrow mb-4">Pricing</div>
@@ -69,7 +69,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* ── Two-card grid ── */}
+      {/* Two-card grid */}
       <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-[960px] mx-auto">
@@ -105,7 +105,7 @@ export default function PricingPage() {
                 </ul>
               </CardBody>
 
-              <CardFooter className="border-t border-bg-3">
+              <CardFooter>
                 <Link href="/signup" className="block w-full no-underline">
                   <Button
                     variant="primary"
@@ -148,7 +148,7 @@ export default function PricingPage() {
                 </ul>
               </CardBody>
 
-              <CardFooter className="border-t border-bg-3">
+              <CardFooter>
                 <a
                   href="mailto:connect@edifyanother.com"
                   className="block w-full no-underline"
@@ -168,7 +168,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* ── FAQ ── */}
+      {/* FAQ */}
       <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-10 text-center">
@@ -176,16 +176,16 @@ export default function PricingPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[900px] mx-auto">
             {faqItems.map((item, i) => (
-              <div key={i} className="bg-bg-2 shadow-elev-1 p-7 rounded-xl">
+              <Card key={i} elevation={1} className="p-7">
                 <h3 className="font-semibold text-fg-1 mb-3">{item.q}</h3>
                 <p className="text-fg-3 text-sm leading-[1.7]">{item.a}</p>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Bottom CTA ── */}
+      {/* Bottom CTA */}
       <section className="py-20 bg-bg-0">
         <div className="spial-container mx-auto text-center">
           <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-4">
