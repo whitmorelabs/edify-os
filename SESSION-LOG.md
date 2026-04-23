@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-04-22 — Design System Ingest (Claude Design → Edify OS)
+
+**Identity:** Design System Ingest Agent (Sonnet, spawned by Lopmon)
+**Task:** Land Claude Design's design system export into `apps/web`. See PRD at `C:\Users\Araly\life\projects\edify-os\handoff-prompts\design-system-ingest.md`. 8-phase plan: branch setup → tokens → motion lib → primitives → dashboard rebuild → landing reskin → smoke test → UI README.
+
+**Branch:** `lopmon/design-system-ingest` (off main)
+
+### Phase 1 — Branch + dependencies [DONE]
+
+- Branch created off `main`, confirmed untracked PRD files on main remain unchanged.
+- Repo uses Tailwind v4 (no `tailwind.config.ts` — tokens go in `globals.css` via `@theme`). PRD mentioned extending `tailwind.config.ts`; documenting here that Tailwind v4 uses inline `@theme` directives in CSS, so all token work happens in `globals.css`.
+- Confirmed pnpm monorepo layout: `apps/web` is the Next.js app. Workspace root is repo root.
+- Installed `framer-motion@^12.38.0` into `apps/web`.
+
+---
+
 ## 2026-04-21 — Simplify Pass (Composio Callback Fix)
 
 **Identity:** Simplify Agent (Sonnet, spawned by Lopmon)
