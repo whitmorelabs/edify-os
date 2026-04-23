@@ -24,10 +24,10 @@ export function StatCard({ title, value, change, icon: Icon, iconBg, iconColor }
           <div
             className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
               isPositive
-                ? "bg-emerald-100 text-emerald-700"
+                ? "bg-emerald-500/15 text-emerald-400"
                 : isNegative
-                ? "bg-red-100 text-red-700"
-                : "bg-slate-100 text-slate-600"
+                ? "bg-red-500/15 text-red-400"
+                : "bg-[var(--bg-4)] text-[var(--fg-3)]"
             }`}
           >
             {isPositive ? (
@@ -41,10 +41,10 @@ export function StatCard({ title, value, change, icon: Icon, iconBg, iconColor }
           </div>
         )}
       </div>
-      <p className="text-3xl font-bold text-slate-900">
+      <p className="text-3xl font-bold text-[var(--fg-1)]">
         {typeof value === "number" ? value.toLocaleString() : value}
       </p>
-      <p className="mt-1 text-sm text-slate-500">{title}</p>
+      <p className="mt-1 text-sm text-[var(--fg-3)]">{title}</p>
     </div>
   );
 }

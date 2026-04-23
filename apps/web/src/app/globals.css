@@ -432,17 +432,31 @@ body {
    ========================================================================= */
 
 @layer components {
+  /* Dark-design-system card primitives — bg-2 surface, hairline border, elevation shadow */
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    @apply rounded-xl;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--elev-1);
   }
 
   .card-elevated {
-    @apply bg-white rounded-xl border border-gray-200 shadow-md;
+    @apply rounded-xl;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--elev-2);
   }
 
   .card-interactive {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm
-      hover:shadow-lg hover:border-[#8B5CF6]/40 transition-all duration-200 cursor-pointer;
+    @apply rounded-xl cursor-pointer transition-all duration-200;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--elev-1);
+  }
+  .card-interactive:hover {
+    background: var(--bg-4);
+    border-color: var(--line-purple);
+    box-shadow: var(--elev-2);
   }
 
   .card-dark {
@@ -452,33 +466,64 @@ body {
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
-      text-slate-900 placeholder:text-slate-400
+    @apply w-full rounded-lg px-3.5 py-2.5 text-sm
       focus:outline-none focus:ring-2
       transition-colors;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--fg-1);
+  }
+  .input-field::placeholder {
+    color: var(--fg-4);
+  }
+  .input-field:focus {
+    border-color: var(--brand-purple);
+    box-shadow: 0 0 0 2px rgba(159, 78, 243, 0.20);
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-6 py-3
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
       text-sm font-semibold text-white
-      hover:bg-gray-800 active:bg-gray-700
-      focus:outline-none focus:ring-2 focus:ring-gray-500/50 focus:ring-offset-2
+      focus:outline-none focus:ring-2 focus:ring-offset-2
       transition-all duration-200;
+    background: var(--brand-purple);
+  }
+  .btn-primary:hover {
+    background: var(--brand-purple-hover);
+  }
+  .btn-primary:active {
+    background: var(--brand-purple-press);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-300
-      bg-white px-6 py-3 text-sm font-semibold text-slate-700
-      hover:bg-slate-50 active:bg-slate-100
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
+      text-sm font-semibold
       focus:outline-none focus:ring-2 focus:ring-offset-2
       transition-all duration-200;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--fg-2);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-4);
+    color: var(--fg-1);
+  }
+  .btn-secondary:active {
+    background: var(--bg-5);
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
-      text-sm font-semibold text-slate-600
-      hover:bg-slate-100 active:bg-slate-200
+      text-sm font-semibold
       transition-all duration-150;
+    color: var(--fg-3);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-3);
+    color: var(--fg-1);
+  }
+  .btn-ghost:active {
+    background: var(--bg-4);
   }
 
   .btn-light {

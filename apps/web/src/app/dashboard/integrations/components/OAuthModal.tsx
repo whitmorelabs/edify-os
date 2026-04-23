@@ -135,7 +135,7 @@ export function OAuthModal({
               </span>
               <div>
                 <h2 className="heading-3">Link your {serviceName}</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[var(--fg-3)] mt-0.5">
                   Give your team access to work on your behalf
                 </p>
               </div>
@@ -143,7 +143,7 @@ export function OAuthModal({
             {state !== 'pending' && (
               <button
                 onClick={onClose}
-                className="btn-ghost p-1.5 text-slate-400 hover:text-slate-600"
+                className="btn-ghost p-1.5"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -161,7 +161,7 @@ export function OAuthModal({
                 Continue to {serviceName}
                 <ExternalLink className="h-4 w-4" />
               </button>
-              <p className="mt-3 text-center text-xs text-slate-400">
+              <p className="mt-3 text-center text-xs text-[var(--fg-4)]">
                 You can disconnect at any time from this page.
               </p>
             </>
@@ -172,8 +172,8 @@ export function OAuthModal({
               <div className="flex justify-center mb-4">
                 <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
               </div>
-              <p className="font-medium text-slate-800">Connecting to {serviceName}...</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="font-medium text-[var(--fg-1)]">Connecting to {serviceName}...</p>
+              <p className="mt-1 text-sm text-[var(--fg-3)]">
                 Complete the steps in the popup window to finish linking your account.
               </p>
             </div>
@@ -182,12 +182,12 @@ export function OAuthModal({
           {state === 'success' && (
             <div className="py-8 text-center">
               <div className="flex justify-center mb-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
-                  <CheckCircle className="h-8 w-8 text-emerald-500" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15">
+                  <CheckCircle className="h-8 w-8 text-emerald-400" />
                 </div>
               </div>
-              <p className="font-semibold text-slate-800">{serviceName} connected!</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="font-semibold text-[var(--fg-1)]">{serviceName} connected!</p>
+              <p className="mt-1 text-sm text-[var(--fg-3)]">
                 Your team now has access to work with your {serviceName} account.
               </p>
             </div>
@@ -195,12 +195,12 @@ export function OAuthModal({
 
           {state === 'error' && (
             <>
-              <div className="rounded-lg bg-red-50 border border-red-100 p-4 mb-4">
+              <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4 mb-4">
                 <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 shrink-0 text-red-400 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-red-800">Connection failed</p>
-                    <p className="mt-0.5 text-sm text-red-700">{errorMessage}</p>
+                    <p className="text-sm font-medium text-red-300">Connection failed</p>
+                    <p className="mt-0.5 text-sm text-red-400">{errorMessage}</p>
                   </div>
                 </div>
               </div>
