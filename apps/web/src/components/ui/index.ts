@@ -51,3 +51,6 @@ export type { SuggestionChipProps } from "./suggestion-chip";
 
 export { ApprovalCard } from "./approval-card";
 export type { ApprovalCardProps } from "./approval-card";
+
+export { FileCard } from "./file-card";
+export type { FileCardProps } from "./file-card";
