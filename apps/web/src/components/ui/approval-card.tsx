@@ -46,21 +46,19 @@ export function ApprovalCard({
 }: ApprovalCardProps) {
   const entryDelay = Math.min(index, 6) * 0.12 + 0.06;
 
-  const exitTransform =
-    leaving === "approve"
-      ? { x: 40, opacity: 0, height: 0 }
-      : leaving === "reject"
-      ? { x: -20, rotate: -2, opacity: 0, height: 0 }
-      : { opacity: 1 };
+  let animate: Record<string, number>;
+  if (leaving === "approve") {
+    animate = { x: 40, opacity: 0, height: 0 };
+  } else if (leaving === "reject") {
+    animate = { x: -20, rotate: -2, opacity: 0, height: 0 };
+  } else {
+    animate = { opacity: 1, x: 0 };
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 32 }}
-      animate={
-        leaving
-          ? exitTransform
-          : { opacity: 1, x: 0 }
-      }
+      animate={animate}
       transition={
         leaving
           ? { duration: 0.45, ease: EASE.exit, height: { delay: 0.27, duration: 0.18 } }

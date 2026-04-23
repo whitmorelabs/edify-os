@@ -11,9 +11,7 @@ import {
   ActivityRow,
   ArchetypeMark,
   ArchetypePortrait,
-  Badge,
   Card,
-  StatCard,
   type Archetype,
   type ArchetypeKey,
 } from "@/components/ui";
@@ -695,13 +693,6 @@ export default function DashboardHome() {
               </ul>
             </div>
           </aside>
-        </div>
-
-        {/* Unused but imported primitives — parked here silently so the
-            build doesn't tree-shake what propagation agents will use next. */}
-        <div className="hidden">
-          <StatCard label="TASKS DONE" value={0} />
-          <Badge>placeholder</Badge>
         </div>
       </div>
     </div>

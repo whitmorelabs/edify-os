@@ -1,11 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ArchetypeMark } from "./archetype-mark";
 import { Badge } from "./badge";
 import type { Archetype } from "./archetypes";
 import { DURATION, EASE } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 export interface ActivityRowProps {
   arc: Archetype;
@@ -72,11 +72,10 @@ export function ActivityRow({
     </>
   );
 
-  const className =
-    "grid grid-cols-[56px_1fr_auto] gap-[18px] py-[18px] border-t border-[var(--line-1)] " +
-    (onClick
-      ? "cursor-pointer hover:bg-[var(--bg-2)]/40 -mx-2 px-2 rounded-lg transition-colors"
-      : "");
+  const className = cn(
+    "grid grid-cols-[56px_1fr_auto] gap-[18px] py-[18px] border-t border-[var(--line-1)]",
+    onClick && "cursor-pointer hover:bg-[var(--bg-2)]/40 -mx-2 px-2 rounded-lg transition-colors",
+  );
 
   return (
     <motion.div
@@ -88,7 +87,7 @@ export function ActivityRow({
       className={className}
       role={onClick ? "button" : undefined}
     >
-      {content as ReactNode}
+      {content}
     </motion.div>
   );
 }

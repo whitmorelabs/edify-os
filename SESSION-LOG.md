@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-04-22 — Simplify Pass: Design System Ingest
+
+**Identity:** Simplify Agent (Sonnet, spawned by Lopmon)
+**Task:** Run `/simplify` on the 8 commits `f23b7ae..fb280b0` of `lopmon/design-system-ingest` (tokens, motion lib, 14 UI primitives, dashboard home rebuild, landing reskin). Constraint: cleanup only — no token/motion/visual changes.
+
+### What /simplify flagged + what I fixed
+
+- **`apps/web/src/app/dashboard/page.tsx`** — deleted the `<div className="hidden">…</div>` block that rendered an unused `StatCard` and `Badge` "to keep them in the bundle for propagation agents". Barrel re-exports don't need hidden anchors; components are available to import from `@/components/ui` regardless of whether any current consumer mounts them. Also removed the now-unused `StatCard` and `Badge` imports. Net: −9 lines, dashboard first-load JS: 4.41 kB → 4.37 kB.
+- **`apps/web/src/app/page.tsx`** (`FeaturesDeepDive`) — inside `tabs.map((t, i) => …)` the JSX was doing `{tabs[i].label}` instead of `{t.label}`. Same pattern in the preview label and the active-tab body (`tabs[activeTab].title`, `tabs[activeTab].points`) — hoisted into a single `const active = tabs[activeTab]` binding so the three references all go through it. No behavior change, just fewer redundant lookups.
+- **`apps/web/src/components/ui/activity-row.tsx`** — removed the redundant `{content as ReactNode}` cast (React fragments are already `ReactNode`) and the unused `type { ReactNode }` import. Switched the hand-rolled `className` string concatenation to `cn()` to match every other primitive in the folder.
+- **`apps/web/src/components/ui/approval-card.tsx`** — flattened the 3-level nested-ternary `exitTransform` / `animate` compound (the default branch `{ opacity: 1 }` was dead code because the outer ternary always overrode it with `{ opacity: 1, x: 0 }` for the not-leaving case). Replaced with a small `if/else if/else` cascade into a single `animate` binding. Same transition payload, same visual behavior.
+
+### What I left alone and why
+
+- **`@/lib/motion.ts` — `fadeIn`, `entranceRow`, `staggerContainer`, `approvalEntry`, `approvalAccept`, `approvalReject`, `fileArrival`, `pageTransition`, `useMotionPrefs`, `maybeReduce`** are all currently unreferenced outside the file. Normally I'd delete them, but the UI README (`apps/web/src/components/ui/README.md`) explicitly documents them as the public motion API for propagation agents. They're an intentional library surface, not dead code.
+- **`AnimatedDashboard`'s `MiniMark` helper** could look like duplication of `ArchetypeMark`, but it's a visually-different mini variant (smaller pinstripe pitch, fixed 6px radius, parent-injected SVG paths). Ported directly from Claude Design's `hero_dashboard.jsx`. Not a reuse candidate — merging would change the hero look.
+- **`AnimatedDashboard`'s `setInterval(..., 10)` (100 Hz loop driver)** — higher than the 60 Hz the browser will paint, but the values are quantized (`showUser`, `showThinking`, etc. are boolean thresholds). The extra ticks do no real work; browsers throttle when tab is hidden. Touching the cadence would be a motion-spec change — out of scope.
+- **`NameSlot({ big })` in the dashboard** — `fontSize: big ? undefined : "inherit"` is a stylistic quirk (both branches produce identical inherited sizing) but works. Simplifying it is a style-layer change with zero functional win. Leaving.
+- **`ActivityRow` `onClick` keyboard accessibility** — currently sets `role="button"` without a `tabIndex` or `onKeyDown`. Real a11y smell, but adding handlers is a behavior change outside the simplify charter.
+- **`TypingIndicator`'s three inline `<style jsx>` tags** — one per `ThinkDot`. Next's styled-jsx hashes identical blocks into a single stylesheet, so this is a cosmetic duplication only. Leaving.
+- **`StatCard` initial render at `0` when `useReducedMotion()` returns `null` on SSR** — possible single-frame flash. Fixing it would mean changing `useState` initialization semantics, minor risk of animation regression. Leaving.
+
+### Verification
+
+- `pnpm typecheck` clean.
+- `pnpm build` clean, all routes compile, no new warnings.
+
+---
+
 ## 2026-04-22 — Design System Ingest (Claude Design → Edify OS)
 
 **Identity:** Design System Ingest Agent (Sonnet, spawned by Lopmon)

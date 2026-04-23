@@ -467,6 +467,8 @@ function FeaturesDeepDive() {
     },
   ];
 
+  const active = tabs[activeTab];
+
   return (
     <section style={{ padding: "96px 0", background: "var(--bg-1)" }}>
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
@@ -513,7 +515,7 @@ function FeaturesDeepDive() {
                 transitionTimingFunction: "var(--ease-standard)",
               }}
             >
-              {tabs[i].label}
+              {t.label}
             </button>
           ))}
         </div>
@@ -532,10 +534,10 @@ function FeaturesDeepDive() {
                 letterSpacing: "-0.015em",
               }}
             >
-              {tabs[activeTab].title}
+              {active.title}
             </h3>
             <ul className="list-none">
-              {tabs[activeTab].points.map((p, i) => (
+              {active.points.map((p, i) => (
                 <li
                   key={i}
                   className="flex gap-2.5 mb-4"
@@ -581,7 +583,7 @@ function FeaturesDeepDive() {
                 letterSpacing: "0.1em",
               }}
             >
-              {tabs[activeTab].label.toUpperCase()} PREVIEW
+              {active.label.toUpperCase()} PREVIEW
             </div>
           </div>
         </div>
