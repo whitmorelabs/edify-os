@@ -9,6 +9,50 @@
 
 **Branch:** `lopmon/design-system-ingest` (off main)
 
+### Phase 4 — Component primitives [DONE]
+
+All 14 primitives (plus 2 helpers) live in `apps/web/src/components/ui/`:
+
+- `archetypes.tsx` — canonical 6-archetype registry (Executive Assistant, Events, Development, Marketing, Programs, HR & Volunteer Coordinator). Each has `key`, `role`, `short`, `tagline`, `color` (hex), `colorVar` (CSS var), and inline `Icon` component. `ARCHETYPE_LIST` for iteration.
+- `archetype-mark.tsx` — `ArchetypeMark` (tile avatar) and `ArchetypePortrait` (big hero-spotlight with concentric arcs).
+- `button.tsx` — primary/secondary/ghost/destructive × sm/md/lg. Primary has purple glow + hover lift + press scale.
+- `input.tsx` — `Input` + `Textarea` with purple glow on focus.
+- `card.tsx` — `Card` + `CardHeader`/`CardBody`/`CardFooter`. Elevation 1/2/3, optional `hero` plum tint, optional `interactive` hover lift.
+- `badge.tsx` — neutral/brand/success/warn/error/info, with optional `eyebrow` uppercase treatment.
+- `avatar.tsx` — next/image with initials fallback on purple gradient.
+- `dialog.tsx` — `<Dialog>` modal with backdrop blur, escape-to-close, scroll lock, Framer motion entry/exit.
+- `toast.tsx` — `<ToastProvider>` + `useToast()` hook. Stacking, auto-dismiss, slide-in from right.
+- `stat-card.tsx` — count-up animation with `countUpEase` from motion lib, respects reduced-motion, default/warn tones, `Intl.NumberFormat` for comma formatting.
+- `activity-row.tsx` — 3-column grid (mark / body / right-rail), stagger entry.
+- `quick-action-tile.tsx` — icon + title + description; links or clicks; custom accent color.
+- `chat-bubble.tsx` — user (right, purple, fg-on-purple) vs agent (left, bg-3, archetype accent border) with mark avatar.
+- `typing-indicator.tsx` — three purple dots in a pill with "thinking" label. Pill glow pulse handled via inline keyframes.
+- `suggestion-chip.tsx` — pill button with sparkle slot.
+- `approval-card.tsx` — slide-in entry, approve/reject exit motion (right-slide+fade+height-collapse vs left-slide+wobble), amber `NEEDS REVIEW` eyebrow, preview quote block.
+- `index.ts` — barrel export for all primitives + types.
+
+All primitives are typed, client components, and safely use reduced-motion (via `useReducedMotion` or inheriting CSS-level collapse in reduced-motion media query). Typecheck clean.
+
+### Phase 4 — Component primitives [START]
+
+Building 14 primitives under `apps/web/src/components/ui/`:
+1. Button (primary/secondary/ghost/destructive)
+2. Input + Textarea
+3. Card (+ header/body/footer)
+4. Badge
+5. Avatar
+6. Dialog (Modal)
+7. Toast
+8. StatCard (count-up)
+9. ActivityRow
+10. QuickActionTile
+11. ChatBubble (user + agent)
+12. TypingIndicator
+13. SuggestionChip
+14. ApprovalCard (slide-in, accept/reject motion)
+
+Plus `archetypes.ts` with the 6 canonical archetypes + glyph data, `archetype-mark.tsx` for the visual identity tile, and `index.ts` barrel export.
+
 ### Phase 3 — Motion library [DONE]
 
 - `apps/web/src/lib/motion.ts` ships the motion vocabulary as typed exports.
