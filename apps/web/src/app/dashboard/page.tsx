@@ -337,61 +337,64 @@ function HoursSavedCard({
 
 function TeamCard({ arc, index, name }: { arc: Archetype; index: number; name?: string }) {
   const delay = Math.min(index, 6) * 0.06 + 0.1;
+  const slug = KEY_TO_SLUG[arc.key];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: DURATION.slow, ease: EASE.entrance, delay }}
-      className="relative overflow-hidden rounded-[14px] cursor-pointer group"
-      style={{
-        background: "var(--bg-2)",
-        boxShadow: "0 0 0 1px var(--line-2)",
-        minHeight: 130,
-        padding: 18,
-      }}
-    >
-      <div
-        aria-hidden
-        className="absolute pointer-events-none"
+    <Link href={`/dashboard/team/${slug}`} className="block no-underline">
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: DURATION.slow, ease: EASE.entrance, delay }}
+        className="relative overflow-hidden rounded-[14px] cursor-pointer group transition-transform hover:-translate-y-[2px]"
         style={{
-          top: -30,
-          right: -30,
-          width: 110,
-          height: 110,
-          background: `radial-gradient(circle, ${arc.color}22, transparent 70%)`,
-          animation: `blob-a ${5 + index * 0.4}s ease-in-out infinite`,
+          background: "var(--bg-2)",
+          boxShadow: "0 0 0 1px var(--line-2)",
+          minHeight: 130,
+          padding: 18,
         }}
-      />
-      <div className="relative flex flex-col gap-2.5">
-        <ArchetypeMark arc={arc} size={36} />
-        <div>
-          <div
-            className="font-mono text-[11px] uppercase tracking-[0.1em]"
-            style={{ color: arc.color }}
-          >
-            {arc.short}
-          </div>
-          <div className="text-[14px] font-medium mt-0.5" style={{ color: "var(--fg-2)" }}>
-            <NameSlot name={name} />
-          </div>
-        </div>
+      >
         <div
-          className="mt-auto flex items-center gap-1.5 text-[12px]"
-          style={{ color: "var(--fg-3)" }}
-        >
-          <span
-            className="inline-block rounded-full"
-            style={{
-              width: 4,
-              height: 4,
-              background: arc.color,
-              boxShadow: `0 0 6px ${arc.color}`,
-            }}
-          />
-          <span>idle</span>
+          aria-hidden
+          className="absolute pointer-events-none"
+          style={{
+            top: -30,
+            right: -30,
+            width: 110,
+            height: 110,
+            background: `radial-gradient(circle, ${arc.color}22, transparent 70%)`,
+            animation: `blob-a ${5 + index * 0.4}s ease-in-out infinite`,
+          }}
+        />
+        <div className="relative flex flex-col gap-2.5">
+          <ArchetypeMark arc={arc} size={36} />
+          <div>
+            <div
+              className="font-mono text-[11px] uppercase tracking-[0.1em]"
+              style={{ color: arc.color }}
+            >
+              {arc.short}
+            </div>
+            <div className="text-[14px] font-medium mt-0.5" style={{ color: "var(--fg-2)" }}>
+              <NameSlot name={name} />
+            </div>
+          </div>
+          <div
+            className="mt-auto flex items-center gap-1.5 text-[12px]"
+            style={{ color: "var(--fg-3)" }}
+          >
+            <span
+              className="inline-block rounded-full"
+              style={{
+                width: 4,
+                height: 4,
+                background: arc.color,
+                boxShadow: `0 0 6px ${arc.color}`,
+              }}
+            />
+            <span>idle</span>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </Link>
   );
 }
 
@@ -509,7 +512,7 @@ export default function DashboardHome() {
     <div className="relative isolate min-h-full">
       <AmbientBG />
       <div
-        className="relative z-10 mx-auto"
+        className="relative z-10 mx-auto px-6 lg:px-10"
         style={{ maxWidth: 1280 }}
       >
         {/* ————— EDITORIAL HEADER ————— */}
@@ -552,7 +555,7 @@ export default function DashboardHome() {
 
         {/* ————— HERO + ASYMMETRIC STATS ————— */}
         <div
-          className="grid gap-6 mt-12 mb-16"
+          className="grid gap-8 mt-14 mb-20"
           style={{
             gridTemplateColumns: "minmax(0, 1.45fr) minmax(0, 1fr)",
           }}
@@ -719,7 +722,7 @@ export default function DashboardHome() {
         </div>
 
         {/* ————— REST OF TEAM ————— */}
-        <div className="mb-6">
+        <div className="mb-8">
           <div className="flex items-baseline gap-4">
             <h2
               className="font-medium tracking-[-0.015em] m-0"
@@ -733,7 +736,7 @@ export default function DashboardHome() {
           </div>
         </div>
         <div
-          className="grid gap-4 mb-16"
+          className="grid gap-6 mb-20"
           style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
         >
           {otherDirectors.map((arc, i) => (
@@ -748,7 +751,7 @@ export default function DashboardHome() {
 
         {/* ————— ACTIVITY ————— */}
         <div
-          className="grid gap-14 mt-8"
+          className="grid gap-16 mt-10 pb-20"
           style={{ gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)" }}
         >
           <div>
