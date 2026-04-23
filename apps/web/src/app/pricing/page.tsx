@@ -57,20 +57,20 @@ export default function PricingPage() {
       <SpialNavbar />
 
       {/* Section header */}
-      <section className="bg-bg-plum-1 py-20">
+      <section className="bg-bg-plum-1 py-28">
         <div className="spial-container mx-auto text-center">
           <div className="eyebrow mb-4">Pricing</div>
-          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
+          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
             Simple pricing for every nonprofit.
           </h1>
-          <p className="text-fg-2 text-lg leading-[1.7] max-w-[600px] mx-auto">
+          <p className="text-fg-2 text-lg leading-[1.75] max-w-[600px] mx-auto">
             One plan, everything included. No hidden fees, no per-seat surprises.
           </p>
         </div>
       </section>
 
       {/* Two-card grid */}
-      <section className="py-20 bg-bg-1">
+      <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-[960px] mx-auto">
 
@@ -169,12 +169,12 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 bg-bg-1">
+      <section className="py-28 bg-bg-0">
         <div className="spial-container mx-auto">
-          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-10 text-center">
+          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-12 text-center">
             Pricing questions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[900px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-[900px] mx-auto">
             {faqItems.map((item, i) => (
               <Card key={i} elevation={1} className="p-7">
                 <h3 className="font-semibold text-fg-1 mb-3">{item.q}</h3>
@@ -186,7 +186,7 @@ export default function PricingPage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="py-20 bg-bg-0">
+      <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto text-center">
           <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-4">
             Still have questions?

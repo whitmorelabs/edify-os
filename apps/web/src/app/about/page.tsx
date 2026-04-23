@@ -16,20 +16,20 @@ export default function AboutPage() {
       <SpialNavbar />
 
       {/* Hero */}
-      <section className="bg-bg-plum-1 py-20">
+      <section className="bg-bg-plum-1 py-28">
         <div className="spial-container mx-auto text-center">
           <div className="eyebrow mb-4">Our story</div>
-          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
+          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
             We didn&apos;t set out to build software.
           </h1>
-          <p className="text-fg-2 text-lg leading-[1.7] max-w-[700px] mx-auto">
+          <p className="text-fg-2 text-lg leading-[1.75] max-w-[700px] mx-auto">
             We set out to tell the stories of people doing extraordinary work with impossible constraints. Along the way, we noticed something we couldn&apos;t ignore.
           </p>
         </div>
       </section>
 
       {/* Origin Story */}
-      <section className="py-20 bg-bg-1">
+      <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
             <div>
@@ -55,10 +55,10 @@ export default function AboutPage() {
       </section>
 
       {/* The Insight */}
-      <section className="py-20 bg-bg-1">
+      <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-            <Placeholder className="w-full aspect-[4/3]" label="The Problem" />
+            <Placeholder className="w-full aspect-[4/3]" label="The Problem" src="/about/the-problem.jpg" />
             <div>
               <div className="eyebrow mb-4">The insight</div>
               <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-5">
@@ -79,9 +79,9 @@ export default function AboutPage() {
       </section>
 
       {/* What Edify Does */}
-      <section className="py-20 bg-bg-0">
+      <section className="py-28 bg-bg-0">
         <div className="spial-container mx-auto">
-          <div className="text-center mb-[50px]">
+          <div className="text-center mb-14">
             <div className="eyebrow mb-4">Our work</div>
             <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-4">
               Stories matter. So does the work that supports them.
@@ -90,7 +90,7 @@ export default function AboutPage() {
               Edify&apos;s creative work and Edify OS are two sides of the same mission: help nonprofits do more good in the world.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
                 icon: Film,
@@ -124,7 +124,7 @@ export default function AboutPage() {
       </section>
 
       {/* Contact */}
-      <section className="py-20 bg-bg-1">
+      <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-start">
             <div>

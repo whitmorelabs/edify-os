@@ -13,20 +13,20 @@ export default function ContactPage() {
       <SpialNavbar />
 
       {/* Hero */}
-      <section className="bg-bg-plum-1 py-20">
+      <section className="bg-bg-plum-1 py-28">
         <div className="spial-container mx-auto text-center">
           <div className="eyebrow mb-4">Contact</div>
-          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
+          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
             Let&apos;s talk.
           </h1>
-          <p className="text-fg-2 text-lg leading-[1.7] max-w-[700px] mx-auto">
+          <p className="text-fg-2 text-lg leading-[1.75] max-w-[700px] mx-auto">
             We are a small team in Beaufort, SC. We take every conversation seriously. Tell us about your organization and we&apos;ll be honest about whether Edify OS is a good fit.
           </p>
         </div>
       </section>
 
       {/* Contact Content */}
-      <section className="py-20 bg-bg-1">
+      <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-start">
             {/* Contact Info */}
