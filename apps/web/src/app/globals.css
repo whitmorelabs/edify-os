@@ -1,115 +1,431 @@
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
+/* =========================================================================
+   EDIFY OS — DESIGN TOKENS (Claude Design, 2026-04-22)
+   Dark-first. Near-black surfaces, vibrant #9F4EF3, Instrument Sans.
+   ========================================================================= */
+
+:root {
+  /* ---------- BRAND ---------------------------------------------------- */
+  --brand-purple:        #9F4EF3;   /* primary — from logo */
+  --brand-purple-hover:  #B06DF5;
+  --brand-purple-press:  #8A3AE0;
+  --brand-tint:          #D8B8F9;   /* subtle highlights, secondary accents */
+  --brand-plum:          #3F1F5C;   /* deep plum — primary darkened ~60% */
+  --brand-plum-deep:     #2A1440;   /* deeper plum surface */
+
+  /* Purple with alpha — glows, rings, overlays over near-black */
+  --purple-a04:  rgba(159, 78, 243, 0.04);
+  --purple-a08:  rgba(159, 78, 243, 0.08);
+  --purple-a12:  rgba(159, 78, 243, 0.12);
+  --purple-a20:  rgba(159, 78, 243, 0.20);
+  --purple-a32:  rgba(159, 78, 243, 0.32);
+  --purple-a48:  rgba(159, 78, 243, 0.48);
+
+  /* ---------- SURFACES (near-black, NOT navy) -------------------------- */
+  --bg-0:   #07070B;   /* viewport / deepest */
+  --bg-1:   #0A0A0F;   /* primary app background */
+  --bg-2:   #111119;   /* raised cards */
+  --bg-3:   #17171F;   /* popovers, elevated rails */
+  --bg-4:   #1E1E28;   /* hover on raised */
+  --bg-5:   #272733;   /* pressed / selected */
+
+  /* Plum-tinted surface variants for hero moments */
+  --bg-plum-1: #120C1E;
+  --bg-plum-2: #1A1030;
+
+  /* ---------- BORDERS / HAIRLINES -------------------------------------- */
+  --line-1: rgba(255, 255, 255, 0.06);
+  --line-2: rgba(255, 255, 255, 0.10);
+  --line-3: rgba(255, 255, 255, 0.16);
+  --line-purple: rgba(159, 78, 243, 0.32);
+
+  /* ---------- TEXT ----------------------------------------------------- */
+  --fg-1: #F4F3F7;
+  --fg-2: #C8C6D1;
+  --fg-3: #8E8B9C;
+  --fg-4: #5C5869;
+  --fg-on-purple: #0A0A0F;
+
+  /* ---------- SEMANTIC ------------------------------------------------- */
+  --success:       #4ADE80;
+  --success-tint:  rgba(74, 222, 128, 0.14);
+  --success-line:  rgba(74, 222, 128, 0.32);
+
+  --warn:          #F5B544;
+  --warn-tint:     rgba(245, 181, 68, 0.14);
+  --warn-line:     rgba(245, 181, 68, 0.32);
+
+  --error:         #F97373;
+  --error-tint:    rgba(249, 115, 115, 0.14);
+  --error-line:    rgba(249, 115, 115, 0.32);
+
+  --info:          #7DD3FC;
+  --info-tint:     rgba(125, 211, 252, 0.14);
+  --info-line:     rgba(125, 211, 252, 0.32);
+
+  /* ---------- DIRECTOR ACCENTS ----------------------------------------- */
+  --dir-exec:       #9F4EF3;
+  --dir-events:     #F472B6;
+  --dir-dev:        #F59E5C;
+  --dir-marketing:  #7DD3FC;
+  --dir-programs:   #4ADE80;
+  --dir-hr:         #FCD34D;
+
+  /* ---------- TYPOGRAPHY ----------------------------------------------- */
+  /* Font stacks are set in layout.tsx via next/font variables. */
+  --font-sans: var(--font-instrument-sans, "Instrument Sans"), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --text-xs:     12px;
+  --text-sm:     13px;
+  --text-base:   15px;
+  --text-md:     17px;
+  --text-lg:     20px;
+  --text-xl:     24px;
+  --text-2xl:    30px;
+  --text-3xl:    38px;
+  --text-4xl:    48px;
+  --text-5xl:    64px;
+  --text-display: 84px;
+
+  --lh-tight:   1.1;
+  --lh-snug:    1.25;
+  --lh-normal:  1.45;
+  --lh-relaxed: 1.65;
+
+  --tracking-tight:  -0.02em;
+  --tracking-snug:   -0.01em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.04em;
+  --tracking-caps:    0.14em;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ---------- SPACING -------------------------------------------------- */
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   32px;
+  --space-8:   40px;
+  --space-9:   48px;
+  --space-10:  64px;
+  --space-11:  80px;
+  --space-12:  120px;
+
+  /* ---------- RADII ---------------------------------------------------- */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
+  --radius-pill: 999px;
+
+  /* ---------- ELEVATION ------------------------------------------------ */
+  --elev-0: 0 0 0 1px var(--line-2);
+  --elev-1:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 0 0 1px var(--line-2);
+  --elev-2:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--line-2);
+  --elev-3:
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--line-2);
+  --elev-4:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 64px rgba(0, 0, 0, 0.6),
+    0 0 0 1px var(--line-3);
+
+  --glow-purple-sm: 0 0 0 1px var(--purple-a32), 0 4px 16px var(--purple-a32);
+  --glow-purple-md: 0 0 0 1px var(--purple-a32), 0 8px 32px var(--purple-a48);
+  --glow-purple-lg: 0 0 0 1px var(--purple-a48), 0 16px 64px rgba(159, 78, 243, 0.6);
+
+  /* ---------- MOTION --------------------------------------------------- */
+  --dur-instant: 80ms;
+  --dur-fast:    140ms;
+  --dur-base:    220ms;
+  --dur-slow:    360ms;
+  --dur-slower:  520ms;
+  --dur-ambient: 2400ms;
+
+  --ease-standard:  cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-entrance:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit:      cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-emphasis:  cubic-bezier(0.2, 0.9, 0.1, 1.2);
+  --ease-linear:    linear;
+
+  --stagger-step: 40ms;
+
+  /* ---------- LAYOUT --------------------------------------------------- */
+  --container-max:  1200px;
+  --sidebar-w:      260px;
+  --composer-h:     88px;
+  --topbar-h:       64px;
+}
+
+/* Reduced motion — globally collapse all durations and strip loops */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0.01ms;
+    --dur-fast:    0.01ms;
+    --dur-base:    0.01ms;
+    --dur-slow:    0.01ms;
+    --dur-slower:  0.01ms;
+    --dur-ambient: 0.01ms;
+    --stagger-step: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================================================
+   TAILWIND THEME MAPPING (Tailwind v4 @theme)
+   Exposes the tokens above as Tailwind utility classes, e.g.
+   `bg-brand-500`, `text-fg-1`, `shadow-elev-2`, `rounded-lg`.
+   ========================================================================= */
+
 @theme {
-  /* Brand - Deep Violet */
-  --color-brand-50: #f5f0ff;
-  --color-brand-100: #ede5ff;
-  --color-brand-200: #d4c4ff;
-  --color-brand-300: #b89dff;
-  --color-brand-400: #9b6fff;
-  --color-brand-500: #7c3aed;
-  --color-brand-600: #6d28d9;
-  --color-brand-700: #5b21b6;
-  --color-brand-800: #4c1d95;
-  --color-brand-900: #3b0f7a;
-  --color-brand-950: #1e0a3e;
+  /* Brand ramp: brand-500 is the canonical #9F4EF3. */
+  --color-brand-50:  #F5EEFE;
+  --color-brand-100: #EADCFD;
+  --color-brand-200: #D8B8F9;
+  --color-brand-300: #C296F6;
+  --color-brand-400: #B06DF5;
+  --color-brand-500: #9F4EF3;
+  --color-brand-600: #8A3AE0;
+  --color-brand-700: #6E2CB8;
+  --color-brand-800: #4F1F84;
+  --color-brand-900: #3F1F5C;
+  --color-brand-950: #2A1440;
 
-  /* Dark surface (for dashboard / dark pages) */
-  --color-dark: #0c0a1d;
-  --color-dark-card: #16132d;
-  --color-dark-border: #2a2550;
+  /* Near-black surfaces */
+  --color-bg-0: #07070B;
+  --color-bg-1: #0A0A0F;
+  --color-bg-2: #111119;
+  --color-bg-3: #17171F;
+  --color-bg-4: #1E1E28;
+  --color-bg-5: #272733;
+  --color-bg-plum-1: #120C1E;
+  --color-bg-plum-2: #1A1030;
 
-  /* Agent: Development Director - Emerald */
-  --color-agent-dev: #10b981;
-  --color-agent-dev-light: #d1fae5;
-  --color-agent-dev-dark: #065f46;
+  /* Text */
+  --color-fg-1: #F4F3F7;
+  --color-fg-2: #C8C6D1;
+  --color-fg-3: #8E8B9C;
+  --color-fg-4: #5C5869;
+  --color-fg-on-purple: #0A0A0F;
 
-  /* Agent: Marketing Director - Amber */
-  --color-agent-marketing: #f59e0b;
-  --color-agent-marketing-light: #fef3c7;
-  --color-agent-marketing-dark: #92400e;
+  /* Director archetype accents */
+  --color-dir-exec:      #9F4EF3;
+  --color-dir-events:    #F472B6;
+  --color-dir-dev:       #F59E5C;
+  --color-dir-marketing: #7DD3FC;
+  --color-dir-programs:  #4ADE80;
+  --color-dir-hr:        #FCD34D;
 
-  /* Agent: Executive Assistant - Sky */
-  --color-agent-ea: #0ea5e9;
-  --color-agent-ea-light: #e0f2fe;
-  --color-agent-ea-dark: #075985;
+  /* Semantic (tuned for dark) */
+  --color-success: #4ADE80;
+  --color-warn:    #F5B544;
+  --color-error:   #F97373;
+  --color-info:    #7DD3FC;
 
-  /* Semantic */
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #0ea5e9;
+  /* Fonts */
+  --font-sans: var(--font-instrument-sans, "Instrument Sans"), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Radii */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
 
-  /* Animation */
+  /* Elevation / shadows */
+  --shadow-elev-0: 0 0 0 1px rgba(255,255,255,0.10);
+  --shadow-elev-1:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255,255,255,0.10);
+  --shadow-elev-2:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255,255,255,0.10);
+  --shadow-elev-3:
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255,255,255,0.10);
+  --shadow-elev-4:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 64px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255,255,255,0.16);
+  --shadow-glow-sm: 0 0 0 1px rgba(159,78,243,0.32), 0 4px 16px rgba(159,78,243,0.32);
+  --shadow-glow-md: 0 0 0 1px rgba(159,78,243,0.32), 0 8px 32px rgba(159,78,243,0.48);
+  --shadow-glow-lg: 0 0 0 1px rgba(159,78,243,0.48), 0 16px 64px rgba(159,78,243,0.6);
+
+  /* Legacy animations (kept for existing components that import them). */
   --animate-fade-in: fade-in 0.5s ease-out;
   --animate-slide-in-right: slide-in-right 0.3s ease-out;
   --animate-slide-up: slide-up 0.6s ease-out;
   --animate-bounce-dot: bounce-dot 1.4s ease-in-out infinite;
 }
 
-/* Animations */
+/* =========================================================================
+   BASE STYLES
+   ========================================================================= */
+
+html {
+  background: var(--bg-0);
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--lh-normal);
+  color: var(--fg-1);
+  background: var(--bg-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background: var(--purple-a32);
+  color: var(--fg-1);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-3) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--line-3); background-clip: padding-box; }
+
+/* Display & headings — Instrument Sans' character */
+.display, h1.display {
+  font-size: clamp(48px, 7.5vw, var(--text-display));
+  font-weight: var(--weight-semibold);
+  line-height: 0.98;
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+}
+
+/* Eyebrow / section label — UPPERCASE with tracked caps, in brand tint */
+.eyebrow {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--brand-tint);
+}
+
+.meta {
+  color: var(--fg-3);
+  font-size: var(--text-sm);
+}
+
+.mono, code, kbd, pre {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero";
+}
+
+/* =========================================================================
+   KEYFRAMES
+   ========================================================================= */
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
-
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes bounce-dot {
   0%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-6px); }
 }
-
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
 }
-
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.6); }
+  0%, 100% { box-shadow: 0 0 20px rgba(159, 78, 243, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(159, 78, 243, 0.6); }
+}
+@keyframes active-pulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes hero-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes amber-shift {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes blob-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, 3%) scale(1.08); }
+}
+@keyframes blob-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-4%, -2%) scale(1.1); }
+}
+@keyframes tick-pop {
+  0% { opacity: 0; transform: translateY(4px); }
+  30% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+@keyframes think-dot {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
-/* Base styles */
-@layer base {
-  body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+/* =========================================================================
+   LEGACY COMPONENT CLASSES (kept for existing pages still migrating)
+   New work should use the Claude Design tokens + primitives in
+   `apps/web/src/components/ui/` and avoid these classes.
+   ========================================================================= */
 
-  ::selection {
-    background-color: var(--color-brand-200);
-    color: var(--color-brand-900);
-  }
-
-  .sidebar-scroll::-webkit-scrollbar {
-    width: 4px;
-  }
-  .sidebar-scroll::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(212, 196, 255, 0.2);
-    border-radius: 2px;
-  }
-}
-
-/* Reusable component classes */
 @layer components {
   .card {
     @apply bg-white rounded-xl border border-gray-200 shadow-sm;
@@ -125,13 +441,15 @@
   }
 
   .card-dark {
-    @apply bg-dark-card rounded-2xl border border-dark-border;
+    @apply rounded-2xl;
+    background: var(--bg-2);
+    box-shadow: var(--elev-1);
   }
 
   .input-field {
     @apply w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
       text-slate-900 placeholder:text-slate-400
-      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
+      focus:outline-none focus:ring-2
       transition-colors;
   }
 
@@ -147,7 +465,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-300
       bg-white px-6 py-3 text-sm font-semibold text-slate-700
       hover:bg-slate-50 active:bg-slate-100
-      focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:ring-offset-2
+      focus:outline-none focus:ring-2 focus:ring-offset-2
       transition-all duration-200;
   }
 
@@ -185,9 +503,9 @@
     @apply text-base font-semibold text-gray-900;
   }
 
-  /* Section layouts */
   .section-dark {
-    @apply bg-dark text-white;
+    @apply text-white;
+    background: var(--bg-1);
   }
 
   .section-container {
@@ -198,44 +516,38 @@
     @apply py-24 lg:py-32;
   }
 
-  /* Auth layout hero gradient */
   .hero-gradient {
-    background: linear-gradient(135deg, var(--color-brand-700) 0%, var(--color-brand-500) 50%, var(--color-brand-600) 100%);
+    background: linear-gradient(135deg, var(--brand-plum) 0%, var(--brand-purple) 50%, var(--brand-purple-press) 100%);
   }
 }
 
-/* Decorative glow — subtle on light backgrounds */
+/* Decorative glows — legacy */
 .glow-purple {
-  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(159, 78, 243, 0.10) 0%, transparent 70%);
 }
-
 .glow-purple-intense {
-  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.12) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, rgba(159, 78, 243, 0.16) 0%, transparent 60%);
 }
 
-/* ── Spial Landing Page Styles ─────────────────────────────────── */
+/* =========================================================================
+   SPIAL LANDING PAGE — LEGACY SCOPE
+   Still used by the old landing during migration. The new landing
+   (Phase 6) does not use these classes. Kept so old routes compile.
+   ========================================================================= */
 
-/* Scope all Spial page styles so they don't affect dashboard/auth pages */
 .spial-page {
-  font-family: "Instrument Sans", sans-serif;
-  background-color: #f7f6f5;
-  color: #333;
+  font-family: var(--font-sans);
+  background-color: var(--bg-0);
+  color: var(--fg-1);
   font-size: 16px;
   line-height: 1.7;
   font-weight: 400;
 }
-
 .spial-page *,
 .spial-page *::before,
-.spial-page *::after {
-  box-sizing: border-box;
-}
+.spial-page *::after { box-sizing: border-box; }
+.spial-page html { scroll-behavior: smooth; }
 
-.spial-page html {
-  scroll-behavior: smooth;
-}
-
-/* Container */
 .spial-container {
   max-width: 940px;
   margin-left: auto;
@@ -246,38 +558,35 @@
   box-sizing: border-box;
 }
 
-/* Spial button */
 .spial-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #7C3AED;
-  color: #fff;
+  background-color: var(--brand-purple);
+  color: var(--fg-on-purple);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 14px 22px;
-  font-family: "Instrument Sans", sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all var(--dur-fast) var(--ease-standard);
+  box-shadow: var(--glow-purple-sm);
 }
-
 .spial-btn:hover {
-  background-color: #8B5CF6;
-  transform: translateY(-2px);
+  background-color: var(--brand-purple-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--glow-purple-md);
 }
 
-/* Override heading defaults inside Spial page */
 .spial-page h1,
 .spial-page h2,
 .spial-page h3,
 .spial-page h4,
 .spial-page h5,
-.spial-page h6 {
-  margin: 0;
-}
+.spial-page h6 { margin: 0; }
 
 .spial-page p {
   margin-top: 0;
@@ -285,7 +594,4 @@
   line-height: 1.7;
 }
 
-.spial-page ul {
-  margin: 0;
-  padding: 0;
-}
+.spial-page ul { margin: 0; padding: 0; }

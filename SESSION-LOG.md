@@ -9,6 +9,14 @@
 
 **Branch:** `lopmon/design-system-ingest` (off main)
 
+### Phase 2 — Token ingestion [DONE]
+
+- `apps/web/src/app/globals.css` rewritten. Structure: (1) CSS custom properties `:root` with all Claude Design tokens, (2) prefers-reduced-motion global override, (3) Tailwind v4 `@theme` block exposing utility classes (`bg-brand-500`, `bg-bg-2`, `text-fg-1`, `shadow-elev-2`, `rounded-lg`, `font-sans`, `font-mono`), (4) base styles (dark default, purple focus ring, purple selection, slim scrollbar), (5) keyframes, (6) legacy component classes kept for compat with existing pages during propagation.
+- Brand ramp: `brand-500 = #9F4EF3`. Legacy `brand-500` was `#7C3AED` (deep violet) — documented overwrite. Old deep-violet palette is gone; everything is purple now.
+- `layout.tsx` wired Instrument Sans (400/500/600/700 + italic 400) and JetBrains Mono (400/500) via `next/font/google` as CSS variables (`--font-instrument-sans`, `--font-jetbrains-mono`). Replaced Inter. Removed `bg-slate-50 text-slate-800` classes — body now inherits dark tokens.
+- Legacy `.spial-*` classes still present but rewired to new tokens (purple from `var(--brand-purple)`, near-black surfaces) so the old landing compiles during the transition.
+- `pnpm typecheck` → clean.
+
 ### Phase 1 — Branch + dependencies [DONE]
 
 - Branch created off `main`, confirmed untracked PRD files on main remain unchanged.
