@@ -7,6 +7,7 @@ import { Download } from "lucide-react";
 import type { Message, GeneratedFile } from "../api";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { ARCHETYPE_CONFIG } from "@/lib/archetype-config";
+import { relativeTime } from "@/lib/utils";
 import { ARCHETYPES, ChatBubble, TypingIndicator, FileCard } from "@/components/ui";
 import type { Archetype, ArchetypeKey } from "@/components/ui";
 
@@ -27,23 +28,6 @@ const SLUG_TO_KEY: Record<ArchetypeSlug, ArchetypeKey> = {
   programs_director: "programs",
   hr_volunteer_coordinator: "hr",
 };
-
-// ---------------------------------------------------------------------------
-// Relative timestamp
-// ---------------------------------------------------------------------------
-function relativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const seconds = Math.floor(diff / 1000);
-
-  if (seconds < 10) return "just now";
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 // ---------------------------------------------------------------------------
 // Markdown renderer — react-markdown + remark-gfm
@@ -241,19 +225,6 @@ function FileChips({ files, messageTimestamp, isNew }: FileChipsProps) {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-/** Determine if a message qualifies for the just-arrived FileCard state.
- *  Criteria: it must be the most recent assistant message AND its timestamp
- *  must be within the last 30 seconds. */
-function isJustArrived(msg: Message, messages: Message[]): boolean {
-  if (msg.role !== "assistant") return false;
-  // Find the last assistant message
-  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
-  if (!lastAssistant || lastAssistant.id !== msg.id) return false;
-  // Check if within 30 seconds
-  const age = (Date.now() - new Date(msg.timestamp).getTime()) / 1000;
-  return age <= 30;
-}
-
 export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -261,6 +232,16 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
   const arcKey: ArchetypeKey | undefined = SLUG_TO_KEY[slug];
   const arc: Archetype | undefined = arcKey ? ARCHETYPES[arcKey] : undefined;
   const directorLabel = ARCHETYPE_CONFIG[slug]?.label ?? "Director";
+
+  // Find the last assistant message ID once — used to determine isNew per FileCard spec.
+  // A message qualifies as just-arrived only if it is the most recent assistant message
+  // AND its timestamp is within the last 30 seconds.
+  const lastAssistantMsg = messages.findLast((m) => m.role === "assistant");
+  const justArrivedId =
+    lastAssistantMsg &&
+    (Date.now() - new Date(lastAssistantMsg.timestamp).getTime()) / 1000 <= 30
+      ? lastAssistantMsg.id
+      : null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -285,7 +266,7 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
         }
 
         // Assistant message — use ChatBubble primitive with archetype arc
-        const fileIsNew = isJustArrived(msg, messages);
+        const fileIsNew = msg.id === justArrivedId;
         return (
           <div key={msg.id} className="flex flex-col gap-0.5 animate-slide-up">
             {arc ? (

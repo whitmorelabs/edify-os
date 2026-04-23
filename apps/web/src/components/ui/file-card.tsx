@@ -1,11 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
-
-// ---------------------------------------------------------------------------
-// FileCard — file attachment card primitive
-// Matches design spec in `14-files.html` exactly.
-// ---------------------------------------------------------------------------
+import { relativeTime } from "@/lib/utils";
 
 export interface FileCardProps {
   /** File name, e.g. "Board-prep-Q3-fundraising.pdf" */
@@ -27,6 +23,14 @@ export interface FileCardProps {
 }
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const SHADOW_RESTING = "0 0 0 1px rgba(255,255,255,0.06)";
+const SHADOW_NEW =
+  "0 1px 0 0 rgba(255,255,255,0.04) inset, 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(159,78,243,0.32), 0 0 32px rgba(159,78,243,0.24)";
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -36,76 +40,55 @@ function formatSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-function relativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const seconds = Math.floor(diff / 1000);
+type BadgeTreatment = "pdf" | "docx" | "image";
 
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 2) return "yesterday";
-  if (days < 7) return `${days}d ago`;
-
-  const d = new Date(isoString);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-/** Derive a short badge label from a MIME type or extension string. */
-function badgeLabel(type: string, name: string): string {
-  const normalized = type.toLowerCase();
-  if (normalized === "pdf" || normalized.includes("pdf")) return "PDF";
-  if (normalized === "docx" || normalized.includes("wordprocessingml") || normalized.includes("word")) return "DOCX";
-  if (normalized === "image" || normalized.startsWith("image/")) {
-    const ext = name.split(".").pop()?.toUpperCase();
-    return ext ?? "IMG";
+/** Returns both the visual treatment and display label for the badge in one pass. */
+function badgeInfo(type: string, name: string): { treatment: BadgeTreatment; label: string } {
+  const t = type.toLowerCase();
+  if (t === "pdf" || t.includes("pdf")) return { treatment: "pdf", label: "PDF" };
+  if (t === "image" || t.startsWith("image/")) {
+    const label = name.split(".").pop()?.toUpperCase() ?? "IMG";
+    return { treatment: "image", label };
   }
-  // Fallback: extract extension from name
-  const ext = name.split(".").pop()?.toUpperCase();
-  return ext ?? "FILE";
-}
-
-/** Determine the visual treatment for the badge. */
-function badgeTreatment(type: string, name: string): "pdf" | "docx" | "image" {
-  const normalized = type.toLowerCase();
-  if (normalized === "pdf" || normalized.includes("pdf")) return "pdf";
-  if (normalized === "image" || normalized.startsWith("image/")) return "image";
-  return "docx";
+  if (t === "docx" || t.includes("wordprocessingml") || t.includes("word")) {
+    return { treatment: "docx", label: "DOCX" };
+  }
+  // Unknown extension — DOCX styling with the actual extension text
+  const label = name.split(".").pop()?.toUpperCase() ?? "FILE";
+  return { treatment: "docx", label };
 }
 
 // ---------------------------------------------------------------------------
 // Badge sub-component
 // ---------------------------------------------------------------------------
 
+const BADGE_BASE: React.CSSProperties = {
+  width: 44,
+  height: 54,
+  flexShrink: 0,
+  borderRadius: 6,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontFamily: "var(--font-mono)",
+  fontSize: 10,
+  fontWeight: 500,
+  overflow: "hidden",
+  position: "relative",
+};
+
 interface BadgeProps {
-  treatment: "pdf" | "docx" | "image";
+  treatment: BadgeTreatment;
   label: string;
   thumbnailUrl?: string;
 }
 
 function FileTypeBadge({ treatment, label, thumbnailUrl }: BadgeProps) {
-  const baseStyle: React.CSSProperties = {
-    width: 44,
-    height: 54,
-    flexShrink: 0,
-    borderRadius: 6,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontFamily: "var(--font-mono)",
-    fontSize: 10,
-    fontWeight: 500,
-    overflow: "hidden",
-    position: "relative",
-  };
-
   if (treatment === "pdf") {
     return (
       <div
         style={{
-          ...baseStyle,
+          ...BADGE_BASE,
           background: "#1A1030",
           boxShadow: "inset 0 0 0 1px rgba(159,78,243,0.32)",
           color: "#D8B8F9",
@@ -117,33 +100,23 @@ function FileTypeBadge({ treatment, label, thumbnailUrl }: BadgeProps) {
   }
 
   if (treatment === "image") {
-    if (thumbnailUrl) {
-      return (
-        <div
-          style={{
-            ...baseStyle,
-            background: "linear-gradient(135deg, #3F1F5C, #1A1030)",
-            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+    const imgStyle: React.CSSProperties = {
+      ...BADGE_BASE,
+      background: "linear-gradient(135deg, #3F1F5C, #1A1030)",
+      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
+    };
+    return (
+      <div style={imgStyle}>
+        {thumbnailUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumbnailUrl}
             alt=""
-            aria-hidden
+            aria-hidden={true}
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
-        </div>
-      );
-    }
-    return (
-      <div
-        style={{
-          ...baseStyle,
-          background: "linear-gradient(135deg, #3F1F5C, #1A1030)",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
-        }}
-      />
+        )}
+      </div>
     );
   }
 
@@ -151,7 +124,7 @@ function FileTypeBadge({ treatment, label, thumbnailUrl }: BadgeProps) {
   return (
     <div
       style={{
-        ...baseStyle,
+        ...BADGE_BASE,
         background: "#17171F",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)",
         color: "#8E8B9C",
@@ -176,16 +149,9 @@ export function FileCard({
   thumbnailUrl,
   className,
 }: FileCardProps) {
-  const treatment = badgeTreatment(type, name);
-  const label = badgeLabel(type, name);
-  const time = relativeTime(createdAt);
+  const { treatment, label } = badgeInfo(type, name);
   const sizeStr = size && size > 0 ? formatSize(size) : null;
-  const meta = [sizeStr, time].filter(Boolean).join(" · ");
-
-  const restingShadow =
-    "0 0 0 1px rgba(255,255,255,0.06)";
-  const newShadow =
-    "0 1px 0 0 rgba(255,255,255,0.04) inset, 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(159,78,243,0.32), 0 0 32px rgba(159,78,243,0.24)";
+  const meta = sizeStr ? `${sizeStr} · ${relativeTime(createdAt)}` : relativeTime(createdAt);
 
   return (
     <div
@@ -197,8 +163,7 @@ export function FileCard({
         padding: 14,
         borderRadius: 12,
         background: "var(--bg-2)",
-        boxShadow: isNew ? newShadow : restingShadow,
-        // Glow decay: when isNew, animate from the purple glow shadow to the resting shadow over 5s.
+        boxShadow: isNew ? SHADOW_NEW : SHADOW_RESTING,
         animation: isNew ? "filecard-glow-decay 5s var(--ease-standard) forwards" : undefined,
       }}
     >
@@ -218,18 +183,16 @@ export function FileCard({
         >
           {name}
         </div>
-        {meta && (
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              color: "var(--fg-3)",
-              marginTop: 2,
-            }}
-          >
-            {meta}
-          </div>
-        )}
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--fg-3)",
+            marginTop: 2,
+          }}
+        >
+          {meta}
+        </div>
       </div>
 
       {isNew && (
