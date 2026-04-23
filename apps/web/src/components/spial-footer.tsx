@@ -1,4 +1,5 @@
-import Link from "next/link";
+﻿import Link from "next/link";
+import { LogoLockup } from "@/components/brand/logo-lockup";
 
 export default function SpialFooter() {
   return (
@@ -12,14 +13,11 @@ export default function SpialFooter() {
     >
       <div className="spial-container">
         <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-10 mb-10">
-          {/* Brand */}
+          {/* Brand — wordmark only (no OS chip or PRIVATE BETA in footer context) */}
           <div>
-            <h4
-              className="text-xs font-semibold mb-5 uppercase tracking-[0.14em]"
-              style={{ color: "var(--brand-tint)" }}
-            >
-              Edify OS
-            </h4>
+            <div className="mb-5">
+              <LogoLockup size="sm" showOS={false} showBeta={false} />
+            </div>
             <p className="leading-[1.6]" style={{ color: "var(--fg-3)" }}>
               AI-powered team members built for nonprofits. Six directors working
               around the clock so you can focus on what only you can do: leading.
