@@ -62,17 +62,17 @@ export function ChatInput({
   const isLong = charCount > 400;
 
   return (
-    <div className="border-t border-slate-200 bg-white">
+    <div className="border-t border-[var(--line-1)] bg-[var(--bg-1)]">
       {/* Suggested prompts row */}
       {suggestedPrompts.length > 0 && (
         <div className="px-4 pt-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+            <span className="text-xs font-medium text-[var(--fg-3)] uppercase tracking-wide">
               Suggestions
             </span>
             <button
               onClick={() => setPromptsVisible((v) => !v)}
-              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition"
+              className="flex items-center gap-1 text-xs text-[var(--fg-3)] hover:text-[var(--fg-1)] transition"
             >
               {promptsVisible ? (
                 <ChevronUp size={14} />
@@ -90,7 +90,7 @@ export function ChatInput({
                   key={i}
                   onClick={() => handlePromptClick(prompt)}
                   disabled={isDisabled}
-                  className="text-xs rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                  className="text-xs rounded-full border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-1.5 text-[var(--fg-2)] hover:bg-[var(--bg-3)] hover:border-[var(--line-purple)] hover:text-[var(--fg-1)] transition disabled:opacity-50 disabled:cursor-not-allowed text-left"
                 >
                   {prompt}
                 </button>
@@ -112,8 +112,11 @@ export function ChatInput({
             rows={1}
             disabled={isDisabled}
             className={cn(
-              "input-field resize-none text-sm py-2.5 pr-16",
-              "focus:outline-none focus:[box-shadow:0_0_0_1px_var(--line-purple)]",
+              "w-full rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)]",
+              "px-3.5 py-2.5 text-sm text-[var(--fg-1)] placeholder:text-[var(--fg-4)]",
+              "resize-none pr-16",
+              "outline-none transition-[border-color,box-shadow]",
+              "focus:border-[var(--line-purple)] focus:shadow-[0_0_0_1px_var(--line-purple),0_0_24px_var(--purple-a20)]",
               isDisabled && "opacity-60 cursor-not-allowed"
             )}
           />
@@ -122,7 +125,7 @@ export function ChatInput({
             <span
               className={cn(
                 "absolute bottom-2 right-3 text-xs",
-                isLong ? "text-amber-500" : "text-slate-300"
+                isLong ? "text-amber-500" : "text-[var(--fg-3)]"
               )}
             >
               {charCount}
@@ -140,7 +143,7 @@ export function ChatInput({
         </button>
       </div>
 
-      <p className="px-4 pb-3 text-xs text-slate-400">
+      <p className="px-4 pb-3 text-xs text-[var(--fg-3)]">
         Enter to send &middot; Shift+Enter for new line
       </p>
     </div>

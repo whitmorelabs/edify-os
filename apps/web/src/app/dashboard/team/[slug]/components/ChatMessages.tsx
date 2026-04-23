@@ -7,13 +7,26 @@ import { Download } from "lucide-react";
 import type { Message, GeneratedFile } from "../api";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { ARCHETYPE_CONFIG } from "@/lib/archetype-config";
-import { cn } from "@/lib/utils";
+import { ARCHETYPES, ChatBubble, TypingIndicator } from "@/components/ui";
+import type { Archetype, ArchetypeKey } from "@/components/ui";
 
 interface ChatMessagesProps {
   messages: Message[];
   isTyping: boolean;
   slug: ArchetypeSlug;
 }
+
+// ---------------------------------------------------------------------------
+// Slug → ArchetypeKey mapping (mirrors dashboard/page.tsx)
+// ---------------------------------------------------------------------------
+const SLUG_TO_KEY: Record<ArchetypeSlug, ArchetypeKey> = {
+  executive_assistant: "exec",
+  events_director: "events",
+  development_director: "dev",
+  marketing_director: "marketing",
+  programs_director: "programs",
+  hr_volunteer_coordinator: "hr",
+};
 
 // ---------------------------------------------------------------------------
 // Relative timestamp
@@ -34,7 +47,6 @@ function relativeTime(isoString: string): string {
 
 // ---------------------------------------------------------------------------
 // Markdown renderer — react-markdown + remark-gfm
-// Renders links, bold, italic, lists, code blocks, tables, strikethrough.
 // Links open in a new tab. Raw HTML is NOT allowed (react-markdown default).
 // ---------------------------------------------------------------------------
 
@@ -47,7 +59,7 @@ const MARKDOWN_COMPONENTS: Components = {
       {...props}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-brand-600 underline hover:text-brand-800 break-words"
+      className="text-brand-400 underline hover:text-brand-300 break-words"
     />
   ),
   // Paragraphs
@@ -56,13 +68,13 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   // Headings
   h1: ({ ...props }) => (
-    <h1 {...props} className="text-base font-bold text-slate-900 mt-2 mb-1" />
+    <h1 {...props} className="text-base font-bold text-[var(--fg-1)] mt-2 mb-1" />
   ),
   h2: ({ ...props }) => (
-    <h2 {...props} className="text-sm font-bold text-slate-800 mt-2 mb-0.5" />
+    <h2 {...props} className="text-sm font-bold text-[var(--fg-1)] mt-2 mb-0.5" />
   ),
   h3: ({ ...props }) => (
-    <h3 {...props} className="text-sm font-semibold text-slate-700 mt-1 mb-0.5" />
+    <h3 {...props} className="text-sm font-semibold text-[var(--fg-2)] mt-1 mb-0.5" />
   ),
   // Lists
   ul: ({ ...props }) => (
@@ -79,7 +91,7 @@ const MARKDOWN_COMPONENTS: Components = {
     const isBlock = className?.includes("language-");
     if (isBlock) {
       return (
-        <pre className="bg-slate-100 rounded-lg px-3 py-2 my-1 overflow-x-auto text-xs font-mono">
+        <pre className="bg-[var(--bg-0)] rounded-lg px-3 py-2 my-1 overflow-x-auto text-xs font-mono border border-[var(--line-1)]">
           <code className={className} {...props}>
             {children}
           </code>
@@ -89,7 +101,7 @@ const MARKDOWN_COMPONENTS: Components = {
     return (
       <code
         {...props}
-        className="bg-slate-100 rounded px-1 py-0.5 text-xs font-mono"
+        className="bg-[var(--bg-0)] rounded px-1 py-0.5 text-xs font-mono border border-[var(--line-1)]"
       >
         {children}
       </code>
@@ -97,12 +109,11 @@ const MARKDOWN_COMPONENTS: Components = {
   },
   // Pre wrapper — handled inside code above to prevent double-wrapping
   pre: ({ ...props }) => <>{props.children}</>,
-  // Bold / italic / strikethrough — rely on react-markdown defaults
   // Blockquote
   blockquote: ({ ...props }) => (
     <blockquote
       {...props}
-      className="border-l-2 border-slate-300 pl-3 text-slate-600 italic my-1"
+      className="border-l-2 border-[var(--line-2)] pl-3 text-[var(--fg-3)] italic my-1"
     />
   ),
   // Table (remark-gfm)
@@ -112,16 +123,18 @@ const MARKDOWN_COMPONENTS: Components = {
     </div>
   ),
   th: ({ ...props }) => (
-    <th {...props} className="border border-slate-200 px-2 py-1 bg-slate-50 font-semibold text-left" />
+    <th
+      {...props}
+      className="border border-[var(--line-2)] px-2 py-1 bg-[var(--bg-0)] font-semibold text-left text-[var(--fg-2)]"
+    />
   ),
   td: ({ ...props }) => (
-    <td {...props} className="border border-slate-200 px-2 py-1" />
+    <td {...props} className="border border-[var(--line-2)] px-2 py-1 text-[var(--fg-2)]" />
   ),
 };
 
 function AssistantMarkdown({ content }: { content: string }) {
-  // Defensive: coerce to string in case a non-string value leaks through (e.g.
-  // a message loaded from localStorage that was stored before a type migration).
+  // Defensive: coerce to string in case a non-string value leaks through.
   const safeContent = typeof content === "string" ? content : String(content ?? "");
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
@@ -151,18 +164,17 @@ function FileChip({ file }: { file: GeneratedFile }) {
     <a
       href={file.downloadUrl}
       download={file.name}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 hover:border-brand-300 transition"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--line-purple)] bg-[var(--bg-2)] px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-[var(--bg-3)] transition"
     >
       <Download size={12} className="shrink-0" />
       <span className="truncate max-w-[200px]">{file.name}</span>
-      <span className="text-brand-400">({label})</span>
+      <span className="text-[var(--fg-3)]">({label})</span>
     </a>
   );
 }
 
 // Inline image preview — for PNG/JPEG outputs from tools like render_design_to_image.
-// If the image fails to load (404, expired, etc.), we fall back to the plain FileChip
-// so the user can still grab the file without seeing a broken-image icon.
+// If the image fails to load (404, expired, etc.), we fall back to the plain FileChip.
 function InlineImage({ file }: { file: GeneratedFile }) {
   const [errored, setErrored] = useState(false);
 
@@ -178,13 +190,13 @@ function InlineImage({ file }: { file: GeneratedFile }) {
         aria-label={file.name}
         loading="lazy"
         onError={() => setErrored(true)}
-        className="block h-auto w-auto max-w-full sm:max-w-[420px] rounded-lg border border-slate-200 shadow-sm"
+        className="block h-auto w-auto max-w-full sm:max-w-[420px] rounded-lg border border-[var(--line-1)]"
       />
       <figcaption className="mt-1.5">
         <a
           href={file.downloadUrl}
           download={file.name}
-          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-brand-700 hover:underline"
+          className="inline-flex items-center gap-1 text-xs text-[var(--fg-3)] hover:text-brand-400 hover:underline"
         >
           <Download size={11} className="shrink-0" />
           <span className="truncate max-w-[260px]">Download {file.name}</span>
@@ -221,55 +233,15 @@ function FileChips({ files }: { files: GeneratedFile[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Typing indicator
-// ---------------------------------------------------------------------------
-function TypingBubble() {
-  return (
-    <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-sm px-4 py-3 inline-flex gap-1.5 items-center">
-      {[0, 0.16, 0.32].map((delay, i) => (
-        <span
-          key={i}
-          className="w-2 h-2 rounded-full bg-slate-400 animate-bounce-dot"
-          style={{ animationDelay: `${delay}s` }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Archetype avatar (inlined to avoid importing AgentAvatar which uses agent-colors only)
-// ---------------------------------------------------------------------------
-function ArchetypeAvatar({
-  slug,
-  size = "sm",
-}: {
-  slug: ArchetypeSlug;
-  size?: "sm" | "md";
-}) {
-  const config = ARCHETYPE_CONFIG[slug];
-  const Icon = config.icon;
-  const sizeClass = size === "sm" ? "w-8 h-8" : "w-10 h-10";
-  const iconSize = size === "sm" ? 16 : 20;
-
-  return (
-    <div
-      className={cn(
-        "rounded-full flex items-center justify-center shrink-0",
-        config.bg,
-        sizeClass
-      )}
-    >
-      <Icon size={iconSize} className="text-white" />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Resolve the UI archetype object for ChatBubble + TypingIndicator
+  const arcKey: ArchetypeKey | undefined = SLUG_TO_KEY[slug];
+  const arc: Archetype | undefined = arcKey ? ARCHETYPES[arcKey] : undefined;
+  const directorLabel = ARCHETYPE_CONFIG[slug]?.label ?? "Director";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -280,54 +252,47 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
       {messages.map((msg) => {
         const isUser = msg.role === "user";
 
-        return (
-          <div
-            key={msg.id}
-            className={cn(
-              "flex animate-slide-up",
-              isUser ? "justify-end" : "justify-start"
-            )}
-          >
-            <div
-              className={cn(
-                "flex gap-2 max-w-[85%] sm:max-w-[75%]",
-                isUser ? "flex-row-reverse" : "flex-row"
-              )}
-            >
-              {/* Archetype avatar for assistant messages */}
-              {!isUser && (
-                <div className="mt-1">
-                  <ArchetypeAvatar slug={slug} size="sm" />
-                </div>
-              )}
-
-              <div className={isUser ? "text-right" : "text-left"}>
-                <div
-                  className={cn(
-                    "rounded-2xl px-4 py-2.5",
-                    isUser
-                      ? "bg-brand-500 text-white rounded-br-sm"
-                      : "bg-white border border-slate-200 text-slate-800 rounded-bl-sm"
-                  )}
-                >
-                  {isUser ? (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {msg.content}
-                    </p>
-                  ) : (
-                    <div className="space-y-0.5">
-                      <AssistantMarkdown content={msg.content} />
-                      {msg.files && msg.files.length > 0 && (
-                        <FileChips files={msg.files} />
-                      )}
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400 mt-1 px-1">
-                  {relativeTime(msg.timestamp)}
-                </p>
-              </div>
+        if (isUser) {
+          return (
+            <div key={msg.id} className="flex flex-col items-end gap-0.5 animate-slide-up">
+              <ChatBubble role="user">
+                <span className="whitespace-pre-wrap">{msg.content}</span>
+              </ChatBubble>
+              <p className="text-[10px] font-mono text-[var(--fg-3)] px-1">
+                {relativeTime(msg.timestamp)}
+              </p>
             </div>
+          );
+        }
+
+        // Assistant message — use ChatBubble primitive with archetype arc
+        return (
+          <div key={msg.id} className="flex flex-col gap-0.5 animate-slide-up">
+            {arc ? (
+              <ChatBubble
+                role="agent"
+                arc={arc}
+                trailing={
+                  msg.files && msg.files.length > 0 ? (
+                    <FileChips files={msg.files} />
+                  ) : undefined
+                }
+              >
+                <AssistantMarkdown content={msg.content} />
+              </ChatBubble>
+            ) : (
+              // Fallback if arc resolution fails
+              <div
+                className="max-w-[70%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] leading-[1.55] text-[var(--fg-1)]"
+                style={{ background: "var(--bg-3)", boxShadow: "inset 0 0 0 1px var(--line-2)" }}
+              >
+                <AssistantMarkdown content={msg.content} />
+                {msg.files && msg.files.length > 0 && <FileChips files={msg.files} />}
+              </div>
+            )}
+            <p className="text-[10px] font-mono text-[var(--fg-3)] pl-9">
+              {relativeTime(msg.timestamp)}
+            </p>
           </div>
         );
       })}
@@ -335,12 +300,7 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
       {/* Typing indicator */}
       {isTyping && (
         <div className="flex justify-start animate-slide-up">
-          <div className="flex gap-2">
-            <ArchetypeAvatar slug={slug} size="sm" />
-            <div className="mt-1">
-              <TypingBubble />
-            </div>
-          </div>
+          <TypingIndicator label={`${directorLabel} is thinking`} />
         </div>
       )}
 

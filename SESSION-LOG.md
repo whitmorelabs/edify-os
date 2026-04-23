@@ -5242,3 +5242,50 @@ Schema migrations (`supabase/migrations/00019_task_artifacts.sql`, `combined_mig
 - SHA: a87d63b
 - Message: `simplify: cleanup after inbox-split + task artifacts routing`
 - Pushed to main
+
+---
+
+## 2026-04-23 — Chat Pages Dark Overhaul
+
+**Identity:** Chat Pages Dark Overhaul Agent (Sonnet, spawned by Lopmon)
+**Task:** Full dark-mode conversion of `/dashboard/team/[slug]/` chat pages — the biggest UX regression from the design propagation (Milo's `f31f8ce`). PRD: `PRD-chat-pages-dark-overhaul.md`
+**Branch:** `lopmon/chat-pages-dark-overhaul`
+
+### Problem
+
+The archetype chat pages retained all light-mode classes (`bg-white`, `bg-slate-50`, `text-slate-*`, etc.) from before the dark design system was applied to the rest of the dashboard. Clicking any archetype on the dark dashboard dropped users into a jarring white chat interface.
+
+### Approach
+
+1. Read PRD in full. Read all 5 affected files + `api.ts` (data only — no UI changes needed).
+2. Read dark-mode reference pages (`inbox/page.tsx`, `dashboard/page.tsx`) and key UI primitives (`ChatBubble`, `TypingIndicator`, `SuggestionChip`, `ArchetypeMark`, `Input`).
+3. Identified slug→ArchetypeKey mapping needed for ChatBubble primitive (already established in `dashboard/page.tsx` as `SLUG_TO_KEY`).
+4. Identified that `input-field` CSS class in globals.css is still light-mode (`bg-white`, `text-slate-900`) — replaced with inline dark tokens directly in ChatInput.
+
+### Files Changed
+
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx` — header dark (bg-[var(--bg-1)]/border-[var(--line-1)]), main area dark (bg-[var(--bg-0)]), active badge dark (emerald-950/60 + border), EmptyState headings/body use fg tokens, SuggestionChip primitive replaces hand-rolled light chips, added SuggestionChip import
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — full rewrite: added SLUG_TO_KEY map, switched to ChatBubble primitive for both user and agent messages (agent gets arc + archetype-colored left border), TypingIndicator primitive replaces bespoke TypingBubble, markdown components updated to dark tokens (bg-[var(--bg-0)] code blocks, var(--fg-1/2/3) headings/text, var(--line-1/2) borders), file chips dark, inline image border dark, timestamp uses monospace var(--fg-3)
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatInput.tsx` — replaced `input-field` class with explicit dark-mode tokens (bg-[var(--bg-2)], text-[var(--fg-1)], placeholder:text-[var(--fg-4)], border-[var(--line-2)], focus ring purple), outer wrapper bg-[var(--bg-1)]/border-[var(--line-1)], suggested prompt chips dark, helper text text-[var(--fg-3)]
+- `apps/web/src/app/dashboard/team/[slug]/components/ConversationSidebar.tsx` — all bg-white/bg-slate-*/border-slate-* replaced with dark tokens (bg-[var(--bg-1)], border-[var(--line-1)], text-[var(--fg-*]]), active conversation uses bg-white/15 + text-fg-1, hover uses bg-white/10, collapsed dot buttons use bg-[var(--bg-3)] fallback
+
+### Additional Files Reviewed (no changes needed)
+
+- `apps/web/src/app/dashboard/team/[slug]/api.ts` — data/types only, no UI, no changes
+- `apps/web/src/app/dashboard/team/[slug]/page.tsx` — server shell, calls TeamChatClient, no changes needed
+
+### Notes
+
+- `page.tsx` required no changes — it's a pure server wrapper with zero styling.
+- `api.ts` required no changes — it's pure data/types.
+- The `input-field` global CSS class is still light-mode (used elsewhere on public/auth pages) — did NOT change it; replaced usage in ChatInput.tsx with explicit dark tokens instead.
+- Created junction points in worktree for node_modules to enable proper tsc runs (pnpm monorepo worktrees don't auto-link node_modules).
+
+### Verification
+
+- `tsc --noEmit` — PASS, 0 errors in modified files
+- `npm run build` — PASS, `/dashboard/team/[slug]` compiled at 52.5 kB, all 6 archetype paths built
+
+### Commit SHAs
+
+(to be filled after commit)
