@@ -20,6 +20,11 @@ export interface QuickActionTileProps {
   accent?: string;
   /** Stagger index for entrance. */
   index?: number;
+  /**
+   * Optional count badge rendered as an amber dot at the top-right of the
+   * icon tile. Only rendered when > 0. Design preview §15.
+   */
+  badge?: number;
   className?: string;
 }
 
@@ -35,23 +40,45 @@ export function QuickActionTile({
   onClick,
   accent = "var(--brand-purple)",
   index = 0,
+  badge,
   className,
 }: QuickActionTileProps) {
   const delay = Math.min(index, 6) * 0.05;
 
   const inner = (
     <>
-      <div
-        className="flex items-center justify-center rounded-[10px]"
-        style={{
-          width: 40,
-          height: 40,
-          background: `linear-gradient(135deg, ${accent}2A, ${accent}0A)`,
-          boxShadow: `inset 0 0 0 1px ${accent}55`,
-          color: accent,
-        }}
-      >
-        {icon}
+      <div className="relative inline-flex">
+        <div
+          className="flex items-center justify-center rounded-[10px]"
+          style={{
+            width: 40,
+            height: 40,
+            background: `linear-gradient(135deg, ${accent}2A, ${accent}0A)`,
+            boxShadow: `inset 0 0 0 1px ${accent}55`,
+            color: accent,
+          }}
+        >
+          {icon}
+        </div>
+        {/* Count badge — amber dot, design preview §15 */}
+        {badge != null && badge > 0 && (
+          <span
+            aria-label={`${badge} pending`}
+            className="absolute inline-flex items-center justify-center font-mono font-bold leading-none rounded-full"
+            style={{
+              top: -4,
+              right: -4,
+              minWidth: 16,
+              height: 16,
+              padding: "0 4px",
+              fontSize: 10,
+              background: "var(--warn)",
+              color: "#0A0A0F",
+            }}
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
       </div>
       <div className="mt-4">
         <div className="text-[15px] font-medium text-[var(--fg-1)]">{title}</div>

@@ -105,7 +105,7 @@ export function ApprovalCard({
         <div
           className="rounded-[10px] px-4 py-3.5 text-[14px] italic leading-[1.65] text-[var(--fg-2)] mb-4"
           style={{
-            background: "var(--bg-1)",
+            background: "var(--bg-0)",
             boxShadow: "inset 0 0 0 1px var(--line-2)",
           }}
         >
