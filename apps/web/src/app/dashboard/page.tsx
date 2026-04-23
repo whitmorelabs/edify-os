@@ -16,6 +16,7 @@ import {
   type ArchetypeKey,
 } from "@/components/ui";
 import { DURATION, EASE } from "@/lib/motion";
+import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 
 /* --------------------------------------------------------------------- */
 /* Slug → ArchetypeKey mapping                                            */
@@ -28,6 +29,16 @@ const SLUG_TO_KEY: Record<AgentRoleSlug, ArchetypeKey> = {
   marketing_director: "marketing",
   programs_director: "programs",
   hr_volunteer_coordinator: "hr",
+};
+
+/** Reverse mapping: ArchetypeKey → database slug, for name lookups */
+const KEY_TO_SLUG: Record<ArchetypeKey, AgentRoleSlug> = {
+  exec: "executive_assistant",
+  events: "events_director",
+  dev: "development_director",
+  marketing: "marketing_director",
+  programs: "programs_director",
+  hr: "hr_volunteer_coordinator",
 };
 
 /* --------------------------------------------------------------------- */
@@ -96,7 +107,12 @@ function AmbientBG() {
 /* Presentational subcomponents                                             */
 /* --------------------------------------------------------------------- */
 
-function NameSlot({ big = false }: { big?: boolean }) {
+function NameSlot({ big = false, name }: { big?: boolean; name?: string }) {
+  if (name) {
+    return (
+      <span style={{ fontSize: big ? undefined : "inherit" }}>{name}</span>
+    );
+  }
   return (
     <span
       className="italic font-normal"
@@ -179,7 +195,7 @@ function MiniBar({
   );
 }
 
-function TeamCard({ arc, index }: { arc: Archetype; index: number }) {
+function TeamCard({ arc, index, name }: { arc: Archetype; index: number; name?: string }) {
   const delay = Math.min(index, 6) * 0.06 + 0.1;
   return (
     <motion.div
@@ -216,7 +232,7 @@ function TeamCard({ arc, index }: { arc: Archetype; index: number }) {
             {arc.short}
           </div>
           <div className="text-[14px] font-medium mt-0.5" style={{ color: "var(--fg-2)" }}>
-            <NameSlot />
+            <NameSlot name={name} />
           </div>
         </div>
         <div
@@ -306,6 +322,7 @@ function TimeSlot({
 export default function DashboardHome() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const { names: archetypeNames } = useArchetypeNames();
 
   useEffect(() => {
     fetch("/api/dashboard/summary")
@@ -332,6 +349,7 @@ export default function DashboardHome() {
 
   // Spotlight defaults to the Executive Assistant.
   const spotlight = ARCHETYPES.exec;
+  const spotlightName = archetypeNames[KEY_TO_SLUG[spotlight.key]];
   const otherDirectors = ARCHETYPE_LIST.filter((a) => a.key !== spotlight.key);
 
   const tasksCompleted = summary?.stats.tasksCompleted ?? 0;
@@ -341,7 +359,7 @@ export default function DashboardHome() {
     <div className="relative isolate min-h-full">
       <AmbientBG />
       <div
-        className="relative z-10 mx-auto px-8 py-12 lg:px-12 lg:py-14"
+        className="relative z-10 mx-auto"
         style={{ maxWidth: 1280 }}
       >
         {/* ————— EDITORIAL HEADER ————— */}
@@ -384,7 +402,7 @@ export default function DashboardHome() {
 
         {/* ————— HERO + ASYMMETRIC STATS ————— */}
         <div
-          className="grid gap-5 mt-10 mb-14"
+          className="grid gap-6 mt-12 mb-16"
           style={{
             gridTemplateColumns: "minmax(0, 1.45fr) minmax(0, 1fr)",
           }}
@@ -430,17 +448,19 @@ export default function DashboardHome() {
               <div className="flex gap-7 items-start flex-wrap">
                 <ArchetypePortrait arc={spotlight} size={200} />
                 <div className="flex-1 min-w-[220px] pt-4">
-                  <div
-                    className="font-mono text-[12px] mb-1"
-                    style={{ color: "var(--fg-3)" }}
-                  >
-                    you haven&apos;t named them yet
-                  </div>
+                  {!spotlightName && (
+                    <div
+                      className="font-mono text-[12px] mb-1"
+                      style={{ color: "var(--fg-3)" }}
+                    >
+                      you haven&apos;t named them yet
+                    </div>
+                  )}
                   <h2
                     className="font-semibold leading-[1.02] tracking-[-0.025em] mb-3"
                     style={{ fontSize: 44, margin: "0 0 12px" }}
                   >
-                    <NameSlot big />
+                    <NameSlot big name={spotlightName} />
                   </h2>
                   <p
                     className="m-0 max-w-[360px] leading-[1.6]"
@@ -476,7 +496,7 @@ export default function DashboardHome() {
           </motion.div>
 
           {/* Right column — approvals + week summary */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             <Link href="/dashboard/inbox">
               <Card
                 elevation={1}
@@ -525,31 +545,29 @@ export default function DashboardHome() {
             <Card elevation={0} className="p-5">
               <span className="eyebrow">THIS WEEK</span>
               <div className="mt-3.5 flex flex-col gap-2.5">
-                <MiniBar
-                  label="Tasks done"
-                  value={Math.min(tasksCompleted, 40)}
-                  max={40}
-                  color="var(--brand-purple)"
-                />
-                <MiniBar
-                  label="Emails"
-                  value={64}
-                  max={80}
-                  color="var(--dir-marketing)"
-                />
-                <MiniBar
-                  label="Hours saved"
-                  value={12}
-                  max={16}
-                  color="var(--dir-programs)"
-                />
+                {loading ? (
+                  <div className="text-[13px] py-2" style={{ color: "var(--fg-3)" }}>
+                    Loading…
+                  </div>
+                ) : tasksCompleted === 0 ? (
+                  <div className="text-[13px] py-2" style={{ color: "var(--fg-3)" }}>
+                    No activity yet — start a conversation to kick things off.
+                  </div>
+                ) : (
+                  <MiniBar
+                    label="Tasks done"
+                    value={Math.min(tasksCompleted, 40)}
+                    max={40}
+                    color="var(--brand-purple)"
+                  />
+                )}
               </div>
             </Card>
           </div>
         </div>
 
         {/* ————— REST OF TEAM ————— */}
-        <div className="mb-5">
+        <div className="mb-6">
           <div className="flex items-baseline gap-4">
             <h2
               className="font-medium tracking-[-0.015em] m-0"
@@ -563,17 +581,22 @@ export default function DashboardHome() {
           </div>
         </div>
         <div
-          className="grid gap-3 mb-14"
+          className="grid gap-4 mb-16"
           style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
         >
           {otherDirectors.map((arc, i) => (
-            <TeamCard key={arc.key} arc={arc} index={i} />
+            <TeamCard
+              key={arc.key}
+              arc={arc}
+              index={i}
+              name={archetypeNames[KEY_TO_SLUG[arc.key]]}
+            />
           ))}
         </div>
 
         {/* ————— ACTIVITY ————— */}
         <div
-          className="grid gap-12 mt-6"
+          className="grid gap-14 mt-8"
           style={{ gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)" }}
         >
           <div>

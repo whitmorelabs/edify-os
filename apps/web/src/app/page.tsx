@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
 import { AnimatedDashboard } from "@/components/landing/animated-dashboard";
@@ -181,7 +181,7 @@ function HowItWorks() {
     <section
       className="relative"
       style={{
-        padding: "96px 0",
+        padding: "128px 0",
         background: "var(--bg-1)",
         borderTop: "1px solid var(--line-1)",
       }}
@@ -194,7 +194,7 @@ function HowItWorks() {
             fontWeight: 600,
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
-            margin: "12px 0 20px",
+            margin: "16px 0 24px",
             color: "var(--fg-1)",
           }}
         >
@@ -216,7 +216,7 @@ function HowItWorks() {
         </p>
 
         <div
-          className="grid gap-5 mt-14"
+          className="grid gap-5 mt-16"
           style={{
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           }}
@@ -292,7 +292,11 @@ function MeetYourTeam() {
   return (
     <section
       id="team"
-      style={{ padding: "96px 0", background: "var(--bg-0)" }}
+      style={{
+        padding: "128px 0",
+        background: "var(--bg-2)",
+        borderTop: "1px solid var(--line-1)",
+      }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
         <span className="eyebrow">YOUR TEAM</span>
@@ -302,7 +306,7 @@ function MeetYourTeam() {
             fontWeight: 600,
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
-            margin: "12px 0 20px",
+            margin: "16px 0 24px",
             color: "var(--fg-1)",
           }}
         >
@@ -323,7 +327,7 @@ function MeetYourTeam() {
         </p>
 
         <div
-          className="grid mt-14"
+          className="grid mt-16"
           style={{
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
             gap: 16,
@@ -336,7 +340,7 @@ function MeetYourTeam() {
               style={{
                 padding: 22,
                 borderRadius: 16,
-                background: "var(--bg-2)",
+                background: "var(--bg-3)",
                 boxShadow: `0 0 0 1px ${arc.color}22, var(--elev-1)`,
                 minHeight: 160,
                 transitionDuration: "var(--dur-fast)",
@@ -470,7 +474,13 @@ function FeaturesDeepDive() {
   const active = tabs[activeTab];
 
   return (
-    <section style={{ padding: "96px 0", background: "var(--bg-1)" }}>
+    <section
+      style={{
+        padding: "128px 0",
+        background: "var(--bg-1)",
+        borderTop: "1px solid var(--line-1)",
+      }}
+    >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
         <span className="eyebrow">FEATURES</span>
         <h2
@@ -479,7 +489,7 @@ function FeaturesDeepDive() {
             fontWeight: 600,
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
-            margin: "12px 0 40px",
+            margin: "16px 0 48px",
             color: "var(--fg-1)",
           }}
         >
@@ -592,124 +602,6 @@ function FeaturesDeepDive() {
   );
 }
 
-/* ── Testimonials ────────────────────────────────────────────── */
-function TestimonialsSection() {
-  const reviews = [
-    {
-      name: "Marcus T.",
-      org: "Community Food Network, Executive Director",
-      text: "We were spending 15 hours a week on grant writing. Now the Development Director drafts the first pass overnight and I spend an hour reviewing. That is time I actually get to spend in our programs.",
-    },
-    {
-      name: "Priya M.",
-      org: "Youth Arts Initiative, Development Manager",
-      text: "The Decision Lab changed how our leadership team operates. We tested a major program expansion through it and the Programs Director caught a compliance risk we hadn't even thought about.",
-    },
-    {
-      name: "Linda K.",
-      org: "Senior Services Coalition, Executive Director",
-      text: "I was doing the work of four people. Edify OS didn't replace me — it filled the roles I couldn't fill. Having an Events Director and HR Coordinator I can actually talk to is something I didn't think was possible at our budget.",
-    },
-    {
-      name: "James R.",
-      org: "Coastal Conservation Alliance, Programs Director",
-      text: "The outcome reports used to take me two full days per grant. The Programs Director gets them done in 20 minutes. The data is right, the narrative is in our voice, and funders have noticed the quality.",
-    },
-    {
-      name: "Sofia D.",
-      org: "Education Equity Fund, Executive Director",
-      text: "What sold me was the heartbeats. I stopped worrying about what I was missing because the team tells me every morning. That peace of mind is worth everything.",
-    },
-    {
-      name: "Terrence A.",
-      org: "Housing First Network, Development Director",
-      text: "We raised 40% more in our annual campaign this year. I can not attribute all of that to Edify OS, but the Marketing Director's campaign strategy and the donor outreach it handled were a huge part of it.",
-    },
-  ];
-
-  return (
-    <section style={{ padding: "96px 0", background: "var(--bg-0)" }}>
-      <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
-        <span className="eyebrow">WHAT LEADERS SAY</span>
-        <h2
-          style={{
-            fontSize: "clamp(36px, 5vw, 56px)",
-            fontWeight: 600,
-            letterSpacing: "-0.025em",
-            lineHeight: 1.04,
-            margin: "12px 0 20px",
-            color: "var(--fg-1)",
-          }}
-        >
-          From nonprofit leaders
-          <br />
-          <span style={{ color: "var(--fg-3)" }}>who know the struggle.</span>
-        </h2>
-        <div
-          className="grid gap-6 mt-14"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          }}
-        >
-          {reviews.map((r, i) => (
-            <div
-              key={i}
-              style={{
-                background: "var(--bg-2)",
-                borderRadius: 16,
-                padding: 24,
-                boxShadow: "var(--elev-1)",
-              }}
-            >
-              <div className="flex gap-3 mb-4">
-                <div
-                  className="shrink-0"
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 9999,
-                    background:
-                      "linear-gradient(135deg, var(--brand-plum), var(--brand-purple))",
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="font-medium mb-1"
-                    style={{ color: "var(--fg-1)" }}
-                  >
-                    {r.name}
-                  </div>
-                  <div
-                    className="text-sm"
-                    style={{ color: "var(--fg-3)" }}
-                  >
-                    {r.org}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-1 mb-3">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className="w-4 h-4"
-                    style={{ fill: "var(--warn)", color: "var(--warn)" }}
-                  />
-                ))}
-              </div>
-              <div
-                className="leading-[1.6]"
-                style={{ fontSize: 15, color: "var(--fg-2)" }}
-              >
-                {r.text}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ── Blog Section ─────────────────────────────────────────────── */
 function BlogSection() {
   const blogs = [
@@ -718,25 +610,35 @@ function BlogSection() {
       title: "Why AI Won't Replace Your Team. It'll Complete It.",
       date: "Apr 8, 2026",
       href: "/blog/ai-wont-replace-your-team",
+      accent: "rgba(159,78,243,0.35)",
+      accentDeep: "rgba(63,31,92,0.8)",
     },
     {
       category: "Fundraising",
       title: "The Grant Research Problem Nobody Talks About",
       date: "Apr 1, 2026",
       href: "/blog/grant-research-problem",
+      accent: "rgba(245,158,92,0.3)",
+      accentDeep: "rgba(63,31,92,0.7)",
     },
     {
       category: "Leadership",
       title: "From Drowning in Admin to Leading with Vision",
       date: "Mar 24, 2026",
       href: "/blog/from-drowning-to-leading",
+      accent: "rgba(125,211,252,0.25)",
+      accentDeep: "rgba(18,12,30,0.85)",
     },
   ];
 
   return (
     <section
       id="blogs"
-      style={{ padding: "96px 0", background: "var(--bg-1)" }}
+      style={{
+        padding: "128px 0",
+        background: "var(--bg-0)",
+        borderTop: "1px solid var(--line-1)",
+      }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
         <span className="eyebrow">FROM THE BLOG</span>
@@ -746,7 +648,7 @@ function BlogSection() {
             fontWeight: 600,
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
-            margin: "12px 0 40px",
+            margin: "16px 0 56px",
             color: "var(--fg-1)",
           }}
         >
@@ -772,14 +674,62 @@ function BlogSection() {
                 boxShadow: "var(--elev-1)",
               }}
             >
+              {/* Article cover — gradient with title overlaid */}
               <div
-                aria-hidden
                 style={{
                   height: 180,
-                  background:
-                    "linear-gradient(135deg, var(--bg-plum-1), var(--bg-2))",
+                  position: "relative",
+                  background: `linear-gradient(135deg, ${b.accentDeep} 0%, var(--bg-plum-2) 60%, ${b.accent} 100%)`,
+                  overflow: "hidden",
                 }}
-              />
+              >
+                {/* ambient glow */}
+                <div
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    bottom: -20,
+                    right: -20,
+                    width: 140,
+                    height: 140,
+                    borderRadius: "50%",
+                    background: `radial-gradient(circle, ${b.accent}, transparent 70%)`,
+                    filter: "blur(20px)",
+                  }}
+                />
+                {/* category label on cover */}
+                <div
+                  className="font-mono"
+                  style={{
+                    position: "absolute",
+                    top: 18,
+                    left: 18,
+                    fontSize: 10,
+                    color: "var(--brand-tint)",
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    opacity: 0.85,
+                  }}
+                >
+                  {b.category}
+                </div>
+                {/* article title on cover */}
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 18,
+                    left: 18,
+                    right: 18,
+                    fontSize: 15,
+                    fontWeight: 500,
+                    color: "var(--fg-1)",
+                    lineHeight: 1.35,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {b.title}
+                </div>
+              </div>
               <div className="p-6">
                 <div
                   className="font-mono mb-2.5"
@@ -814,7 +764,7 @@ function BlogSection() {
             </Link>
           ))}
         </div>
-        <div className="text-center mt-10">
+        <div className="text-center mt-12">
           <Link
             href="/blog"
             className="no-underline font-medium inline-flex items-center gap-2 transition-colors duration-300"
@@ -863,14 +813,20 @@ function FAQSection() {
   const toggle = (idx: number) => setOpenIndex(openIndex === idx ? null : idx);
 
   return (
-    <section style={{ padding: "96px 0", background: "var(--bg-0)" }}>
+    <section
+      style={{
+        padding: "128px 0",
+        background: "var(--bg-2)",
+        borderTop: "1px solid var(--line-1)",
+      }}
+    >
       <div className="mx-auto px-8 text-center" style={{ maxWidth: 760 }}>
         <h2
           style={{
             fontSize: "clamp(28px, 4vw, 42px)",
             fontWeight: 600,
             letterSpacing: "-0.02em",
-            marginBottom: 40,
+            marginBottom: 56,
             color: "var(--fg-1)",
           }}
         >
@@ -927,7 +883,13 @@ function FAQSection() {
 /* ── Final CTA ─────────────────────────────────────────────── */
 function CTASection() {
   return (
-    <section style={{ padding: "96px 0", background: "var(--bg-1)" }}>
+    <section
+      style={{
+        padding: "128px 0",
+        background: "var(--bg-1)",
+        borderTop: "1px solid var(--line-1)",
+      }}
+    >
       <div className="mx-auto px-8" style={{ maxWidth: 1040 }}>
         <div
           className="relative overflow-hidden text-center"
@@ -1015,7 +977,6 @@ export default function LandingPage() {
       <HowItWorks />
       <MeetYourTeam />
       <FeaturesDeepDive />
-      <TestimonialsSection />
       <BlogSection />
       <FAQSection />
       <CTASection />
