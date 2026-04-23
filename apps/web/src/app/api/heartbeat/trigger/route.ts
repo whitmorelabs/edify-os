@@ -5,6 +5,7 @@ import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 import { ARCHETYPE_HEARTBEAT_PROMPTS } from "@/lib/heartbeat-prompts";
 import { runArchetypeTurn } from "@/lib/chat/run-archetype-turn";
 import type { HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
+import { insertActivityEvent } from "@/lib/hours-saved/insert-event";
 
 // Give Vercel enough runway for a full tool-use loop (up to 8 rounds).
 // A heartbeat with tool calls can take 30-50s; the default 10s limit would cut it off.
@@ -116,6 +117,13 @@ export async function POST(request: Request) {
       model: "haiku", // B. Haiku routing — heartbeats are simple summaries, 5× cheaper
     });
     finalText = text;
+    // Fire-and-forget: track the completed heartbeat check-in for hours-saved counter.
+    void insertActivityEvent(serviceClient, {
+      orgId,
+      eventKey: "heartbeat:daily_brief",
+      archetypeSlug: archetype,
+      userId: memberId,
+    });
   } catch (err) {
     console.error("[heartbeat/trigger] runArchetypeTurn failed:", err);
     finalText = err instanceof Error ? err.message : "An unexpected error occurred during the check-in.";

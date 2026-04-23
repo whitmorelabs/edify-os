@@ -50,6 +50,139 @@
 
 ---
 
+## 2026-04-23 — Hours-Saved Counter
+
+**Identity:** Hours-Saved Counter Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/hours-saved-counter`
+**Task:** Replace the empty-state placeholder left after Z removed the fake "12/16hrs saved" hardcode. Ship a real, uncapped, transparent hours-saved counter backed by a new `activity_events` table.
+
+### Approach
+
+1. Read PRD in full. Read `apps/web/src/app/dashboard/page.tsx` (confirmed no empty-state stub — the section was fully removed, leaving a gap in the right column). Read `run-archetype-turn.ts`, `skills/registry.ts`, heartbeat trigger route, and dashboard summary route for context.
+2. Checked `supabase/migrations/` — highest existing number was `00020`. Used `00021`.
+3. Checked `components/ui/index.ts` — `Dialog` already exported from the barrel. Used it for the info popover.
+4. Verified no existing `activity_events` or similar table in any migration file.
+5. Verified actual tool names in `lib/tools/*.ts` — they use `gmail_send_message` not `gmail:send_email`. Updated estimates table to match real tool names.
+
+### Files Created
+
+- `supabase/migrations/00021_activity_events.sql` — table + index + RLS policy
+- `apps/web/src/lib/hours-saved/estimates.ts` — typed estimates map + `minutesSaved()` helper
+- `apps/web/src/lib/hours-saved/insert-event.ts` — fire-and-forget insert helper
+- `apps/web/src/app/api/stats/hours-saved/route.ts` — read API (aggregates in JS, `revalidate: 60`)
+
+### Files Modified
+
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — instrumented tool calls (`tool:<tool_name>`) and no-tool turns (`chat:turn_no_tools`); also tracked skill file generation (`skill:docx|xlsx|pptx|pdf`) in `collectFileOutput`
+- `apps/web/src/app/api/heartbeat/trigger/route.ts` — inserts `heartbeat:daily_brief` on successful heartbeat run
+- `apps/web/src/app/dashboard/page.tsx` — added `HoursSavedCard` component with `HowWeCalculateDialog`, placed in right column below the "THIS WEEK" card
+
+### Estimate Table Shipped (2026-04-23)
+
+Keys use actual Anthropic tool names (e.g. `tool:gmail_send_message`, not `tool:gmail:send_email`):
+
+| Event Key | Minutes Saved |
+|---|---|
+| `tool:gmail_send_message` | 15 |
+| `tool:gmail_create_draft` | 12 |
+| `tool:gmail_list_messages` | 3 |
+| `tool:gmail_get_message` | 2 |
+| `tool:gmail_list_threads` | 3 |
+| `tool:gmail_get_thread` | 2 |
+| `tool:gmail_modify_labels` | 2 |
+| `tool:gmail_list_labels` | 1 |
+| `tool:calendar_create_event` | 5 |
+| `tool:calendar_list_events` | 2 |
+| `tool:calendar_get_event` | 1 |
+| `tool:calendar_update_event` | 4 |
+| `tool:calendar_delete_event` | 2 |
+| `tool:grants_search` | 45 |
+| `tool:grants_get_details` | 15 |
+| `tool:crm_log_interaction` | 8 |
+| `tool:crm_list_donors` | 3 |
+| `tool:crm_get_donor` | 2 |
+| `tool:crm_create_donor` | 10 |
+| `tool:crm_log_donation` | 6 |
+| `tool:render_design_to_image` | 30 |
+| `tool:social_post` | 15 |
+| `tool:search_stock_photo` | 5 |
+| `tool:drive_create_file` | 20 |
+| `tool:drive_list_files` | 2 |
+| `tool:drive_search_files` | 3 |
+| `tool:drive_get_file` | 2 |
+| `tool:drive_download_content` | 3 |
+| `tool:drive_share_file` | 3 |
+| `skill:docx` | 45 |
+| `skill:xlsx` | 30 |
+| `skill:pptx` | 60 |
+| `skill:pdf` | 20 |
+| `chat:turn_no_tools` | 5 |
+| `heartbeat:daily_brief` | 10 |
+
+### Decisions Made
+
+- **Approved methodology: Option A (per-tool-call estimates)** — values are in code, not DB, so they can be tuned without a data migration.
+- **Tool name mapping:** Discovered the PRD estimate table used hypothetical key names. Corrected to match actual Anthropic tool block names. Events for keys with no estimate match are inserted (tracked) but contribute 0 minutes (won't inflate numbers silently).
+- **Skill tracking:** Added optional `SkillTrackingContext` param to `collectFileOutput`. Only the one call-site that has both `attachSkills = true` and context passes it; backward-compatible.
+- **DB aggregation strategy:** JS-side group-by for simplicity at current scale. Escalation path: DB-level `COUNT(*) GROUP BY event_key` RPC when event counts exceed ~10k rows.
+- **`revalidate: 60`** on the stats route — Next.js route-level cache, no in-memory map.
+- **No-tool turns fire once per turn** (at the outer return, not per round) — prevents event inflation from multi-round non-tool responses.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` — passes clean (no output).
+- `npm run build` in `apps/web/` — all 97 pages compile + generate successfully. Pre-existing ENOENT `500.html` rename error on Windows (confirmed present on `main` before these changes).
+- Migration: `00021_activity_events.sql` ready to apply. Apply with: `supabase db push` or Supabase dashboard SQL editor.
+
+### Open Questions for Lopmon
+
+- **None blocking.** No escalation triggers were hit.
+
+---
+
+## 2026-04-23 — Pricing Page: Single Tier + Enterprise
+
+**Identity:** Pricing Single-Tier Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/pricing-single-tier`
+**Task:** Collapse multi-tier pricing page (Starter/Growth/Enterprise) to single-tier model per Z's request: $249/month + Enterprise custom.
+
+### Approach
+
+1. Read PRD, read existing `apps/web/src/app/pricing/page.tsx` in full.
+2. Checked footer (`spial-footer.tsx`) for site-wide contact email — found `connect@edifyanother.com`. PRD said `hello@edifyos.com` "or whichever contact email is already used site-wide" — used the footer email.
+3. Confirmed no Stripe integration on the public pricing page (only the internal dashboard billing page, which is a demo/mock and out of scope).
+4. Confirmed CTA routes: "Start with Edify OS" → `/signup` (existing route), "Contact sales" → `mailto:connect@edifyanother.com`.
+5. Rewrote `pricing/page.tsx`: two-card layout using `Card`, `CardHeader`, `CardBody`, `CardFooter`, `Badge` primitives. Brand-accented top border on primary card. FAQ section retained and updated. Comparison table removed (no longer relevant with one tier).
+
+### Decisions
+
+- Contact email: `connect@edifyanother.com` (from footer) rather than `hello@edifyos.com` (from PRD guess). PRD deferred to site-wide email.
+- Kept the bottom CTA section ("Still have questions?") — it was already present and still useful.
+- "Per organization" subcopy added under card heading — PRD said to clarify this is per-org.
+- No annual discount, no free trial tier created (per PRD non-goals).
+
+### Simplify Pass
+
+- Removed redundant `border-t border-bg-3` from `CardFooter` calls (`CardFooter` has a built-in top border via `border-t border-[var(--line-1)]`).
+- FAQ items were using hand-rolled div/shadow — switched to `Card` primitive for consistency.
+- Stripped decorative `──` from section comments.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` — passes clean (no output).
+- `npm run build` — compiled successfully, all 96 pages generated. ENOENT rename error on `500.html` is a pre-existing Windows/Next.js 14 environment issue (confirmed by running build on `main` before change — same error).
+
+### Commits
+
+- `50df0ea` — `refactor(pricing): collapse multi-tier to single $249/mo + enterprise`
+- `946cba5` — `refactor(pricing): simplify pass — remove redundant borders, use Card for FAQ`
+
+### Open Questions for Lopmon
+
+- **None blocking.** The one decision made without explicit Citlali confirmation: using `connect@edifyanother.com` for the enterprise "Contact sales" mailto. If Z prefers `hello@edifyos.com` or another address, a one-line change is needed.
+
+---
+
 ## 2026-04-23 — Design System Propagation: All Dashboard Pages
 
 **Identity:** Coding Agent (Sonnet, spawned by Milo)
