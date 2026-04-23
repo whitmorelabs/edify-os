@@ -15,10 +15,10 @@ export default function DashboardLayout({
   return (
     <NotificationProvider>
       <SupportChatProvider>
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen overflow-hidden bg-bg-1 text-fg-1">
           <Sidebar />
-          <main className="flex-1 min-w-0 overflow-y-auto bg-gray-50 pt-14 lg:pt-0">
-            <div className="p-4 md:p-6 lg:p-8 w-full max-w-[1600px] mx-auto">
+          <main className="flex-1 min-w-0 overflow-y-auto bg-bg-1 pt-14 lg:pt-0">
+            <div className="w-full max-w-[1280px] mx-auto">
               {children}
             </div>
           </main>

@@ -3,10 +3,10 @@
 import { forwardRef, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export type CardElevation = 1 | 2 | 3;
+export type CardElevation = 0 | 1 | 2 | 3;
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  /** Elevation recipe — 1 (default card), 2 (raised), 3 (sheet). */
+  /** Elevation recipe — 0 (hairline only), 1 (default card), 2 (raised), 3 (sheet). */
   elevation?: CardElevation;
   /** Render with a plum-tinted hero background. Used once per screen. */
   hero?: boolean;
@@ -15,6 +15,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const shadowByElev: Record<CardElevation, string> = {
+  0: "shadow-elev-0",
   1: "shadow-elev-1",
   2: "shadow-elev-2",
   3: "shadow-elev-3",

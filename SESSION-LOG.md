@@ -9,6 +9,21 @@
 
 **Branch:** `lopmon/design-system-ingest` (off main)
 
+### Phase 5 — Dashboard home rebuild [DONE]
+
+- `apps/web/src/app/dashboard/page.tsx` rewritten against the Claude Design editorial layout: dayname/week/clock eyebrow → giant greeting with count-up tasks inline → 2-col hero (spotlight director portrait + approvals/this-week column) → 5-col team grid → activity + today/reminders rail. Real data from `/api/dashboard/summary` still powers `tasksCompleted` and `pendingApprovals`; activity rows use the slug → archetype key map.
+- `apps/web/src/app/dashboard/layout.tsx` main area background: `bg-gray-50` → `bg-bg-1` (dark). Container max 1280px, outer padding removed so page-level padding can own the layout.
+- Card primitive: extended `CardElevation` to include `0` (hairline only) to match the "THIS WEEK" mini-bar card.
+- Activity feed falls back to a friendly "Your team hasn't done anything yet" empty state.
+- Typecheck clean.
+
+### Phase 5 — Dashboard home rebuild [START]
+
+- Rebuild `apps/web/src/app/dashboard/page.tsx` to match Claude Design's editorial hero-spotlight layout (`screens.jsx::Dashboard`).
+- Update `apps/web/src/app/dashboard/layout.tsx` main area bg from `bg-gray-50` to `bg-bg-1` so the new dark dashboard renders without a light surround.
+- Keep the existing `/api/dashboard/summary` fetch so real data still flows; compose `StatCard`, `ActivityRow`, `QuickActionTile`, `ArchetypePortrait`, `ArchetypeMark` from `@/components/ui`.
+- Use italic "— unnamed —" placeholder where org-named directors would appear.
+
 ### Phase 4 — Component primitives [DONE]
 
 All 14 primitives (plus 2 helpers) live in `apps/web/src/components/ui/`:
