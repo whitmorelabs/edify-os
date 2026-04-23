@@ -348,7 +348,7 @@ Keys use actual Anthropic tool names (e.g. `tool:gmail_send_message`, not `tool:
 
 ### Commit SHAs
 
-(to be filled after commit)
+- `6df3ac3` — `fix(dashboard): wrap TeamCard in Link to /dashboard/team/:slug` (includes all whitespace changes + SESSION-LOG)
 
 ### Open Questions for Lopmon
 
