@@ -9,6 +9,29 @@
 
 **Branch:** `lopmon/design-system-ingest` (off main)
 
+### Phase 8 — UI README [DONE]
+
+- `apps/web/src/components/ui/README.md` published. Covers: file map, token reference (colors/shadows/radii), typography rules, motion-by-intent, per-primitive usage recipes, the unnamed-director slot convention, 13-step propagation checklist, and a "what NOT to do" list capturing the brand/UX constraints (no title case, no emoji in chrome, no colored left-border cliché, no mix of 8/12px radii, etc.).
+
+### Wrap-up
+
+- **Branch:** `lopmon/design-system-ingest` (pushed to origin).
+- **Commits:** 8 clean phased commits on the branch.
+- **Build:** `pnpm build` clean (60+ routes), `pnpm dev` starts in 3.3s, `pnpm typecheck` clean.
+- **Scope delivered:** full token + motion + 14 primitives + dashboard home + landing reskin + animated hero + README.
+- **Known deviations from PRD:** (a) PRD mentions `tailwind.config.ts` — this repo uses Tailwind v4 so tokens go in `globals.css` via `@theme`, documented above. (b) Landing section structure differs slightly from the old Spial landing (DecisionLab + Heartbeat callouts were consolidated into the FeaturesDeepDive tabs and MeetYourTeam cards, matching Claude Design's landing variant). Flagging for Citlali review.
+- **Open to propagation agents next:** every other dashboard route (inbox, tasks, team, settings, decision-lab, briefing, onboarding) still renders against the old light SaaS look. Next sprint applies the primitives per screen.
+
+### Phase 8 — UI README [START]
+
+Writing `apps/web/src/components/ui/README.md` with usage examples, token reference, and propagation guidance for the next Sonnet sprint.
+
+### Phase 7 — Smoke test [DONE]
+
+- `pnpm build` in `apps/web` — clean, zero errors, zero warnings. All 60+ routes compile. Dashboard route: 4.41 kB / 151 kB First Load JS. Landing route (`/`): 1.86 kB.
+- `pnpm dev` — Next.js 14.2.35 starts in 3.3s, ready on `http://localhost:3000`.
+- Reduced-motion: covered globally by the `@media (prefers-reduced-motion: reduce)` block in globals.css (collapses all CSS durations + animations) plus per-component `useReducedMotion()` hooks in StatCard count-up and AnimatedDashboard hero loop. Verified conceptually; browser verification is Citlali's call in the Vercel preview.
+
 ### Phase 6 — Landing reskin [DONE]
 
 - `apps/web/src/app/page.tsx` rewritten: dark hero + ambient purple blobs + "Your nonprofit, run by a team you name." headline + animated mini-dashboard to the right. Hero CTA uses purple glow. New "4 PILOT ORGS · 200+ HOURS SAVED THIS MONTH" live ticker.
