@@ -92,6 +92,49 @@ Keys use actual Anthropic tool names (e.g. `tool:gmail_send_message`, not `tool:
 
 ---
 
+## 2026-04-23 — Pricing Page: Single Tier + Enterprise
+
+**Identity:** Pricing Single-Tier Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/pricing-single-tier`
+**Task:** Collapse multi-tier pricing page (Starter/Growth/Enterprise) to single-tier model per Z's request: $249/month + Enterprise custom.
+
+### Approach
+
+1. Read PRD, read existing `apps/web/src/app/pricing/page.tsx` in full.
+2. Checked footer (`spial-footer.tsx`) for site-wide contact email — found `connect@edifyanother.com`. PRD said `hello@edifyos.com` "or whichever contact email is already used site-wide" — used the footer email.
+3. Confirmed no Stripe integration on the public pricing page (only the internal dashboard billing page, which is a demo/mock and out of scope).
+4. Confirmed CTA routes: "Start with Edify OS" → `/signup` (existing route), "Contact sales" → `mailto:connect@edifyanother.com`.
+5. Rewrote `pricing/page.tsx`: two-card layout using `Card`, `CardHeader`, `CardBody`, `CardFooter`, `Badge` primitives. Brand-accented top border on primary card. FAQ section retained and updated. Comparison table removed (no longer relevant with one tier).
+
+### Decisions
+
+- Contact email: `connect@edifyanother.com` (from footer) rather than `hello@edifyos.com` (from PRD guess). PRD deferred to site-wide email.
+- Kept the bottom CTA section ("Still have questions?") — it was already present and still useful.
+- "Per organization" subcopy added under card heading — PRD said to clarify this is per-org.
+- No annual discount, no free trial tier created (per PRD non-goals).
+
+### Simplify Pass
+
+- Removed redundant `border-t border-bg-3` from `CardFooter` calls (`CardFooter` has a built-in top border via `border-t border-[var(--line-1)]`).
+- FAQ items were using hand-rolled div/shadow — switched to `Card` primitive for consistency.
+- Stripped decorative `──` from section comments.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` — passes clean (no output).
+- `npm run build` — compiled successfully, all 96 pages generated. ENOENT rename error on `500.html` is a pre-existing Windows/Next.js 14 environment issue (confirmed by running build on `main` before change — same error).
+
+### Commits
+
+- `50df0ea` — `refactor(pricing): collapse multi-tier to single $249/mo + enterprise`
+- `946cba5` — `refactor(pricing): simplify pass — remove redundant borders, use Card for FAQ`
+
+### Open Questions for Lopmon
+
+- **None blocking.** The one decision made without explicit Citlali confirmation: using `connect@edifyanother.com` for the enterprise "Contact sales" mailto. If Z prefers `hello@edifyos.com` or another address, a one-line change is needed.
+
+---
+
 ## 2026-04-23 — Design System Propagation: All Dashboard Pages
 
 **Identity:** Coding Agent (Sonnet, spawned by Milo)
