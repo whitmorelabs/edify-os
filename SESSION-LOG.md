@@ -5242,3 +5242,56 @@ Schema migrations (`supabase/migrations/00019_task_artifacts.sql`, `combined_mig
 - SHA: a87d63b
 - Message: `simplify: cleanup after inbox-split + task artifacts routing`
 - Pushed to main
+
+---
+
+## About Image Fill Agent — 2026-04-23
+
+**Identity:** About Image Fill Agent (Sonnet, spawned by Lopmon)
+**Branch:** lopmon/about-image-fill
+**PRD:** PRD-about-image-fill.md
+
+### Task
+Fill the empty "The Problem" `<Placeholder>` on `/about` page with a real Unsplash image. Audit all other `<Placeholder>` usages across the app.
+
+### Placeholder Audit Results
+
+Total `<Placeholder>` instances in codebase: 3
+
+| File | Label | src? | Status |
+|------|-------|------|--------|
+| `apps/web/src/app/about/page.tsx:52` | "Edify Studio" | Yes (Unsplash URL) | Already filled — no action needed |
+| `apps/web/src/app/about/page.tsx:61` | "The Problem" | No | FIXED in this session |
+| `apps/web/src/components/archetype-page.tsx:86` | `{archetype.name}` | No | ESCALATION — see below |
+
+### Fix Applied
+
+- Downloaded Unsplash photo `P0Q1V-7wqrQ` by Chu CHU (@chuchu123456) to `apps/web/public/about/the-problem.jpg`
+- Photo description: Woman on phone at messy desk surrounded by papers and a laptop — directly mirrors the copy about executive directors buried in operational tasks
+- Updated `apps/web/src/app/about/page.tsx` line 61: added `src="/about/the-problem.jpg"`
+- Appended attribution to `photo-credits.md`
+
+### Escalation: archetype-page.tsx Placeholder
+
+`apps/web/src/components/archetype-page.tsx:86` contains a `<Placeholder>` with no `src`. This single component renders on 6 routes:
+- `/agents/development-director`
+- `/agents/events-director`
+- `/agents/executive-assistant`
+- `/agents/hr-volunteer-coordinator`
+- `/agents/marketing-director`
+- `/agents/programs-director`
+
+Filling this requires either:
+(a) Adding an `image?: string` prop to the `ArchetypeData` interface and updating all 6 archetype page.tsx files with distinct photos, OR
+(b) A single generic "team at work" image for all 6 pages
+
+This is 6 new photos + interface change — scope exceeds the PRD's implied single fix. Surfacing to Lopmon before acting.
+
+### Verification
+- `pnpm typecheck` — 4/4 tasks successful, exit 0
+- `pnpm build` — 4/4 tasks successful, exit 0, 97 static pages generated
+
+### Files Changed
+- `apps/web/src/app/about/page.tsx` — added `src="/about/the-problem.jpg"` to "The Problem" Placeholder
+- `apps/web/public/about/the-problem.jpg` — new file, 155KB JPEG
+- `photo-credits.md` — appended Chu CHU attribution

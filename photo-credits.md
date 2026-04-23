@@ -16,3 +16,10 @@ Blog article cover photos (Unsplash free license):
 
 All photos are free to use under the [Unsplash License](https://unsplash.com/license).
 Attribution is not legally required but is noted here for our records.
+
+---
+
+About page photos (Unsplash free license):
+
+- `about/the-problem.jpg` — by Chu CHU (@chuchu123456) — https://unsplash.com/photos/P0Q1V-7wqrQ
+  _Woman on phone at a messy desk surrounded by papers and a laptop. Chosen for the "The Problem" / insight section — directly mirrors the copy about Executive Directors buried in operational work they cannot afford to delegate._

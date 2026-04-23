@@ -58,7 +58,7 @@ export default function AboutPage() {
       <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-            <Placeholder className="w-full aspect-[4/3]" label="The Problem" />
+            <Placeholder className="w-full aspect-[4/3]" label="The Problem" src="/about/the-problem.jpg" />
             <div>
               <div className="eyebrow mb-4">The insight</div>
               <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-5">
