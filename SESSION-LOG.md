@@ -9,6 +9,20 @@
 
 **Branch:** `lopmon/design-system-ingest` (off main)
 
+### Phase 3 — Motion library [DONE]
+
+- `apps/web/src/lib/motion.ts` ships the motion vocabulary as typed exports.
+- `useMotionPrefs()` returns `{ reduced, duration, ease, stagger }` — components call this to opt into reduced-motion (Framer Motion `useReducedMotion`).
+- `useCountUp` intentionally not here — count-up state is per-component and requires an effect; a `countUpEase` pure helper is provided so primitives can port the same curve.
+
+### Phase 3 — Motion library [START]
+
+- Create `apps/web/src/lib/motion.ts` with:
+  - Duration exports (instant/fast/base/slow/slower/ambient) matching CSS tokens.
+  - Easing exports as `[x1,y1,x2,y2]` tuples for Framer Motion consumers (`ease-standard`, `-entrance`, `-exit`, `-emphasis`, `-linear`).
+  - Shared variants: `fadeIn`, `entrance`, `staggerContainer`, `approvalAccept`, `approvalReject`, `fileArrival`, `pageTransition`.
+  - `useReducedMotionSafe()` hook that wraps `useReducedMotion()` from framer-motion and returns collapsed-duration variants when enabled.
+
 ### Phase 2 — Token ingestion [DONE]
 
 - `apps/web/src/app/globals.css` rewritten. Structure: (1) CSS custom properties `:root` with all Claude Design tokens, (2) prefers-reduced-motion global override, (3) Tailwind v4 `@theme` block exposing utility classes (`bg-brand-500`, `bg-bg-2`, `text-fg-1`, `shadow-elev-2`, `rounded-lg`, `font-sans`, `font-mono`), (4) base styles (dark default, purple focus ring, purple selection, slim scrollbar), (5) keyframes, (6) legacy component classes kept for compat with existing pages during propagation.
