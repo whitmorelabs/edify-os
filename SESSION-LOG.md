@@ -2,6 +2,96 @@
 
 ---
 
+## 2026-04-23 — Hours-Saved Counter
+
+**Identity:** Hours-Saved Counter Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/hours-saved-counter`
+**Task:** Replace the empty-state placeholder left after Z removed the fake "12/16hrs saved" hardcode. Ship a real, uncapped, transparent hours-saved counter backed by a new `activity_events` table.
+
+### Approach
+
+1. Read PRD in full. Read `apps/web/src/app/dashboard/page.tsx` (confirmed no empty-state stub — the section was fully removed, leaving a gap in the right column). Read `run-archetype-turn.ts`, `skills/registry.ts`, heartbeat trigger route, and dashboard summary route for context.
+2. Checked `supabase/migrations/` — highest existing number was `00020`. Used `00021`.
+3. Checked `components/ui/index.ts` — `Dialog` already exported from the barrel. Used it for the info popover.
+4. Verified no existing `activity_events` or similar table in any migration file.
+5. Verified actual tool names in `lib/tools/*.ts` — they use `gmail_send_message` not `gmail:send_email`. Updated estimates table to match real tool names.
+
+### Files Created
+
+- `supabase/migrations/00021_activity_events.sql` — table + index + RLS policy
+- `apps/web/src/lib/hours-saved/estimates.ts` — typed estimates map + `minutesSaved()` helper
+- `apps/web/src/lib/hours-saved/insert-event.ts` — fire-and-forget insert helper
+- `apps/web/src/app/api/stats/hours-saved/route.ts` — read API (aggregates in JS, `revalidate: 60`)
+
+### Files Modified
+
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — instrumented tool calls (`tool:<tool_name>`) and no-tool turns (`chat:turn_no_tools`); also tracked skill file generation (`skill:docx|xlsx|pptx|pdf`) in `collectFileOutput`
+- `apps/web/src/app/api/heartbeat/trigger/route.ts` — inserts `heartbeat:daily_brief` on successful heartbeat run
+- `apps/web/src/app/dashboard/page.tsx` — added `HoursSavedCard` component with `HowWeCalculateDialog`, placed in right column below the "THIS WEEK" card
+
+### Estimate Table Shipped (2026-04-23)
+
+Keys use actual Anthropic tool names (e.g. `tool:gmail_send_message`, not `tool:gmail:send_email`):
+
+| Event Key | Minutes Saved |
+|---|---|
+| `tool:gmail_send_message` | 15 |
+| `tool:gmail_create_draft` | 12 |
+| `tool:gmail_list_messages` | 3 |
+| `tool:gmail_get_message` | 2 |
+| `tool:gmail_list_threads` | 3 |
+| `tool:gmail_get_thread` | 2 |
+| `tool:gmail_modify_labels` | 2 |
+| `tool:gmail_list_labels` | 1 |
+| `tool:calendar_create_event` | 5 |
+| `tool:calendar_list_events` | 2 |
+| `tool:calendar_get_event` | 1 |
+| `tool:calendar_update_event` | 4 |
+| `tool:calendar_delete_event` | 2 |
+| `tool:grants_search` | 45 |
+| `tool:grants_get_details` | 15 |
+| `tool:crm_log_interaction` | 8 |
+| `tool:crm_list_donors` | 3 |
+| `tool:crm_get_donor` | 2 |
+| `tool:crm_create_donor` | 10 |
+| `tool:crm_log_donation` | 6 |
+| `tool:render_design_to_image` | 30 |
+| `tool:social_post` | 15 |
+| `tool:search_stock_photo` | 5 |
+| `tool:drive_create_file` | 20 |
+| `tool:drive_list_files` | 2 |
+| `tool:drive_search_files` | 3 |
+| `tool:drive_get_file` | 2 |
+| `tool:drive_download_content` | 3 |
+| `tool:drive_share_file` | 3 |
+| `skill:docx` | 45 |
+| `skill:xlsx` | 30 |
+| `skill:pptx` | 60 |
+| `skill:pdf` | 20 |
+| `chat:turn_no_tools` | 5 |
+| `heartbeat:daily_brief` | 10 |
+
+### Decisions Made
+
+- **Approved methodology: Option A (per-tool-call estimates)** — values are in code, not DB, so they can be tuned without a data migration.
+- **Tool name mapping:** Discovered the PRD estimate table used hypothetical key names. Corrected to match actual Anthropic tool block names. Events for keys with no estimate match are inserted (tracked) but contribute 0 minutes (won't inflate numbers silently).
+- **Skill tracking:** Added optional `SkillTrackingContext` param to `collectFileOutput`. Only the one call-site that has both `attachSkills = true` and context passes it; backward-compatible.
+- **DB aggregation strategy:** JS-side group-by for simplicity at current scale. Escalation path: DB-level `COUNT(*) GROUP BY event_key` RPC when event counts exceed ~10k rows.
+- **`revalidate: 60`** on the stats route — Next.js route-level cache, no in-memory map.
+- **No-tool turns fire once per turn** (at the outer return, not per round) — prevents event inflation from multi-round non-tool responses.
+
+### Verification
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` — passes clean (no output).
+- `npm run build` in `apps/web/` — all 97 pages compile + generate successfully. Pre-existing ENOENT `500.html` rename error on Windows (confirmed present on `main` before these changes).
+- Migration: `00021_activity_events.sql` ready to apply. Apply with: `supabase db push` or Supabase dashboard SQL editor.
+
+### Open Questions for Lopmon
+
+- **None blocking.** No escalation triggers were hit.
+
+---
+
 ## 2026-04-23 — Design System Propagation: All Dashboard Pages
 
 **Identity:** Coding Agent (Sonnet, spawned by Milo)
