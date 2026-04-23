@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
+import { LogoLockup } from "@/components/brand/logo-lockup";
 
 const archetypes = [
   { label: "Executive Assistant", href: "/agents/executive-assistant" },
@@ -38,13 +39,9 @@ export default function SpialNavbar() {
       >
         <div className="spial-container">
           <div className="flex justify-between items-center">
-            {/* Logo */}
-            <Link
-              href="/"
-              className="text-xl font-bold flex items-center gap-2.5 no-underline"
-              style={{ color: "var(--fg-1)" }}
-            >
-              Edify
+            {/* Logo lockup */}
+            <Link href="/" className="no-underline flex items-center">
+              <LogoLockup size="md" />
             </Link>
 
             {/* Desktop inline nav links (xl and above) */}
