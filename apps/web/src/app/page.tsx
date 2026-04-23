@@ -13,7 +13,7 @@ function Hero() {
   return (
     <section
       className="relative overflow-hidden"
-      style={{ padding: "72px 0 96px", background: "var(--bg-1)" }}
+      style={{ padding: "96px 0 128px", background: "var(--bg-1)" }}
     >
       {/* ambient blobs */}
       <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -82,7 +82,7 @@ function Hero() {
               </span>
             </h1>
             <p
-              className="leading-[1.55] mb-8"
+              className="leading-[1.65] mb-8"
               style={{
                 color: "var(--fg-2)",
                 fontSize: 19,
@@ -216,7 +216,7 @@ function HowItWorks() {
         </p>
 
         <div
-          className="grid gap-5 mt-16"
+          className="grid gap-6 mt-16"
           style={{
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           }}
@@ -330,7 +330,7 @@ function MeetYourTeam() {
           className="grid mt-16"
           style={{
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 16,
+            gap: 20,
           }}
         >
           {ARCHETYPE_LIST.map((arc, i) => (
@@ -657,7 +657,7 @@ function BlogSection() {
           <span style={{ color: "var(--fg-3)" }}>doing the work.</span>
         </h2>
         <div
-          className="grid gap-6"
+          className="grid gap-8"
           style={{
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           }}

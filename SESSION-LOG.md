@@ -280,6 +280,82 @@ Keys use actual Anthropic tool names (e.g. `tool:gmail_send_message`, not `tool:
 
 ---
 
+## 2026-04-23 — Breathing-Room Pass + TeamCard Click-to-Chat Fix
+
+**Identity:** Breathing-Room + TeamCard Agent (Sonnet, spawned by Lopmon)
+**Task:** (a) Targeted whitespace pass across marketing + dashboard pages — Z flagged "tooooo dark", Citlali confirmed it still feels dense after Milo's first pass. (b) Fix the TeamCard cursor-pointer bug — cards had `cursor-pointer group` but no `<Link>` or `onClick`, so clicking did nothing.
+**Branch:** `lopmon/breathing-room-teamcard`
+**PRD:** `PRD-breathing-room-teamcard-fix.md`
+
+### TeamCard Fix
+
+`function TeamCard` in `apps/web/src/app/dashboard/page.tsx` (line 338) wrapped `motion.div` with `cursor-pointer group` but had no click handler. Fixed by:
+- Wrapping the outer `motion.div` in `<Link href={/dashboard/team/${slug}}>` using the existing `KEY_TO_SLUG` mapping already in the file.
+- Added `hover:-translate-y-[2px]` on the motion.div for subtle affordance feedback.
+- `Link` gets `className="block no-underline"` so it doesn't break the card's block layout.
+- No hidden existing click handler was found — confirmed clean before applying fix.
+
+### Whitespace Pass — Per-Page Summary
+
+**`apps/web/src/app/dashboard/page.tsx`:**
+- Main container: added `px-6 lg:px-10` (was no horizontal padding on the content wrapper)
+- Hero/stats grid: `gap-6 mt-12 mb-16` → `gap-8 mt-14 mb-20`
+- "The rest of your team" header bottom margin: `mb-6` → `mb-8`
+- Team card grid: `gap-4 mb-16` → `gap-6 mb-20`
+- Activity section: `gap-14 mt-8` → `gap-16 mt-10 pb-20` (also adds bottom padding)
+
+**`apps/web/src/app/page.tsx` (home marketing):**
+- Hero section padding: `72px 0 96px` → `96px 0 128px`
+- Hero body copy line-height: `leading-[1.55]` → `leading-[1.65]`
+- "How It Works" card grid: `gap-5` → `gap-6`
+- "Meet Your Team" card grid: `gap: 16` → `gap: 20`
+- Blog section card grid: `gap-6` → `gap-8`
+
+**`apps/web/src/app/about/page.tsx`:**
+- Hero: `py-20` → `py-28`, `mb-5` → `mb-6`, `leading-[1.7]` → `leading-[1.75]`
+- Origin Story section: `py-20` → `py-28`
+- The Insight section: `py-20` → `py-28`
+- "What Edify Does" section: `py-20` → `py-28`, `mb-[50px]` → `mb-14`, card grid `gap-6` → `gap-8`
+- Contact section: `py-20` → `py-28`
+
+**`apps/web/src/app/contact/page.tsx`:**
+- Hero: `py-20` → `py-28`, `mb-5` → `mb-6`, `leading-[1.7]` → `leading-[1.75]`
+- Contact content section: `py-20` → `py-28`
+
+**`apps/web/src/app/integrations-page/page.tsx`:**
+- Hero: `py-20` → `py-28`, `mb-5` → `mb-6`, `leading-[1.7]` → `leading-[1.75]`
+- Integration principle section: `py-14` → `py-20`
+- Integration grid section: `py-20` → `py-28`, legend `mb-10` → `mb-12`, caption `mb-[50px]` → `mb-14`, card grid `gap-6` → `gap-8`
+
+**`apps/web/src/app/pricing/page.tsx` (light touch):**
+- Hero: `py-20` → `py-28`, `mb-5` → `mb-6`, `leading-[1.7]` → `leading-[1.75]`
+- Cards section: `py-20` → `py-28`
+- FAQ section: `py-20` → `py-28`, section now on `bg-bg-0` (was `bg-bg-1`, same as cards above — alternation fix), `mb-10` → `mb-12`, card grid `gap-8` → `gap-10`
+- Bottom CTA: `py-20` → `py-28`, `bg-bg-0` → `bg-bg-1` (alternation with FAQ above)
+
+### What Was Left Alone
+
+- Chat pages (`dashboard/team/[slug]/`) — Agent A's scope
+- Tokens, primitives, logo — not touched
+- Home page 128px sections (HowItWorks, MeetYourTeam, FeaturesDeepDive, BlogSection, FAQSection, CTASection) — already at 128px from Milo's first pass, no reason to bump further
+- Dashboard inbox, tasks, memory pages — spot-checked, they have adequate internal card spacing
+
+### Verification
+
+- `node_modules/.bin/tsc --noEmit -p apps/web/tsconfig.json` (from main repo context): 0 errors on changed files. All tsc failures in worktree are environment-only (`_onboarding-old` dead file + missing worktree node_modules), pre-existing on `main`.
+- `apps/web/node_modules/.bin/next build` from main repo: PASS — all routes compile cleanly including `/dashboard`, `/dashboard/team/[slug]`, `/integrations-page`, `/pricing`, `/about`, `/contact`, and `/` (home).
+- TeamCard: `KEY_TO_SLUG` lookup already existed in file; `<Link>` wraps the `motion.div` with correct slug derivation.
+
+### Commit SHAs
+
+(to be filled after commit)
+
+### Open Questions for Lopmon
+
+- None blocking. No escalation triggers were hit.
+
+---
+
 ## 2026-04-22 — Simplify Pass: Design System Ingest
 
 **Identity:** Simplify Agent (Sonnet, spawned by Lopmon)
