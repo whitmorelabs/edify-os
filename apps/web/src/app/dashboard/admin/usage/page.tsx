@@ -104,7 +104,7 @@ export default function UsagePage() {
               value={data.summary.totalConversations}
               change={changeMap.totalConversations}
               icon={MessageSquare}
-              iconBg="bg-brand-50"
+              iconBg="bg-brand-500/15"
               iconColor="text-brand-500"
             />
             <StatCard
@@ -112,7 +112,7 @@ export default function UsagePage() {
               value={data.summary.totalMessages}
               change={changeMap.totalMessages}
               icon={MessageCircle}
-              iconBg="bg-sky-50"
+              iconBg="bg-sky-500/15"
               iconColor="text-sky-600"
             />
             <StatCard
@@ -120,7 +120,7 @@ export default function UsagePage() {
               value={data.summary.tasksCreated}
               change={changeMap.tasksCreated}
               icon={CheckSquare}
-              iconBg="bg-emerald-50"
+              iconBg="bg-emerald-500/15"
               iconColor="text-emerald-600"
             />
             <StatCard
@@ -128,7 +128,7 @@ export default function UsagePage() {
               value={data.summary.heartbeatsDelivered}
               change={changeMap.heartbeatsDelivered}
               icon={Bell}
-              iconBg="bg-amber-50"
+              iconBg="bg-amber-500/15"
               iconColor="text-amber-600"
             />
             <StatCard
@@ -136,7 +136,7 @@ export default function UsagePage() {
               value={data.summary.documentsUploaded}
               change={changeMap.documentsUploaded}
               icon={FileText}
-              iconBg="bg-violet-50"
+              iconBg="bg-violet-500/15"
               iconColor="text-violet-600"
             />
           </div>

@@ -57,19 +57,19 @@ const CATEGORIES: Record<
   string,
   { label: string; badgeBg: string; badgeText: string }
 > = {
-  email:               { label: 'Email',         badgeBg: 'bg-blue-50',    badgeText: 'text-blue-700' },
-  calendar:            { label: 'Calendar',      badgeBg: 'bg-purple-50',  badgeText: 'text-purple-700' },
-  crm:                 { label: 'CRM & Donors',  badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700' },
-  marketing:           { label: 'Marketing',     badgeBg: 'bg-pink-50',    badgeText: 'text-pink-700' },
-  social_media:        { label: 'Social Media',  badgeBg: 'bg-indigo-50',  badgeText: 'text-indigo-700' },
-  documents:           { label: 'Documents',     badgeBg: 'bg-amber-50',   badgeText: 'text-amber-700' },
-  grants:              { label: 'Grants',        badgeBg: 'bg-teal-50',    badgeText: 'text-teal-700' },
-  project_management:  { label: 'Project Mgmt',  badgeBg: 'bg-orange-50',  badgeText: 'text-orange-700' },
-  finance:             { label: 'Finance',       badgeBg: 'bg-lime-50',    badgeText: 'text-lime-700' },
-  website:             { label: 'Website',       badgeBg: 'bg-cyan-50',    badgeText: 'text-cyan-700' },
-  communication:       { label: 'Communication', badgeBg: 'bg-violet-50',  badgeText: 'text-violet-700' },
-  events:              { label: 'Events',        badgeBg: 'bg-rose-50',    badgeText: 'text-rose-700' },
-  payments:            { label: 'Payments',      badgeBg: 'bg-sky-50',     badgeText: 'text-sky-700' },
+  email:               { label: 'Email',         badgeBg: 'bg-blue-500/15',    badgeText: 'text-blue-300' },
+  calendar:            { label: 'Calendar',      badgeBg: 'bg-purple-500/15',  badgeText: 'text-purple-300' },
+  crm:                 { label: 'CRM & Donors',  badgeBg: 'bg-emerald-500/15', badgeText: 'text-emerald-400' },
+  marketing:           { label: 'Marketing',     badgeBg: 'bg-pink-500/15',    badgeText: 'text-pink-300' },
+  social_media:        { label: 'Social Media',  badgeBg: 'bg-indigo-500/15',  badgeText: 'text-indigo-300' },
+  documents:           { label: 'Documents',     badgeBg: 'bg-amber-500/15',   badgeText: 'text-amber-300' },
+  grants:              { label: 'Grants',        badgeBg: 'bg-teal-500/15',    badgeText: 'text-teal-300' },
+  project_management:  { label: 'Project Mgmt',  badgeBg: 'bg-orange-500/15',  badgeText: 'text-orange-300' },
+  finance:             { label: 'Finance',       badgeBg: 'bg-lime-500/15',    badgeText: 'text-lime-300' },
+  website:             { label: 'Website',       badgeBg: 'bg-cyan-500/15',    badgeText: 'text-cyan-300' },
+  communication:       { label: 'Communication', badgeBg: 'bg-violet-500/15',  badgeText: 'text-violet-300' },
+  events:              { label: 'Events',        badgeBg: 'bg-rose-500/15',    badgeText: 'text-rose-300' },
+  payments:            { label: 'Payments',      badgeBg: 'bg-sky-500/15',     badgeText: 'text-sky-300' },
 };
 
 /* ------------------------------------------------------------------ */
@@ -862,8 +862,8 @@ function IntegrationsPageInner() {
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                     <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                   </span>
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${cat?.badgeBg ?? 'bg-slate-50'}`}>
-                    <Icon className={`h-4 w-4 ${cat?.badgeText ?? 'text-slate-600'}`} />
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${cat?.badgeBg ?? 'bg-bg-3'}`}>
+                    <Icon className={`h-4 w-4 ${cat?.badgeText ?? 'text-fg-3'}`} />
                   </span>
                   <span className="text-sm font-medium text-fg-1">{i.name}</span>
                   <button
@@ -940,12 +940,12 @@ function IntegrationsPageInner() {
               {/* Top row */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-slate-50'}`}>
-                    <Icon className={`h-5 w-5 ${cat?.badgeText ?? 'text-slate-600'}`} />
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-bg-3'}`}>
+                    <Icon className={`h-5 w-5 ${cat?.badgeText ?? 'text-fg-3'}`} />
                   </span>
                   <span className="font-semibold text-fg-1">{i.name}</span>
                 </div>
-                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-slate-50'} ${cat?.badgeText ?? 'text-slate-600'}`}>
+                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-bg-3'} ${cat?.badgeText ?? 'text-fg-3'}`}>
                   {cat?.label ?? i.category}
                 </span>
               </div>
@@ -1047,12 +1047,12 @@ function IntegrationsPageInner() {
                   {/* Modal header */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <span className={`flex h-12 w-12 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-slate-50'}`}>
-                        <Icon className={`h-6 w-6 ${cat?.badgeText ?? 'text-slate-600'}`} />
+                      <span className={`flex h-12 w-12 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-bg-3'}`}>
+                        <Icon className={`h-6 w-6 ${cat?.badgeText ?? 'text-fg-3'}`} />
                       </span>
                       <div>
                         <h2 className="heading-3">{i.name}</h2>
-                        <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-slate-50'} ${cat?.badgeText ?? 'text-slate-600'}`}>
+                        <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-bg-3'} ${cat?.badgeText ?? 'text-fg-3'}`}>
                           {cat?.label ?? i.category}
                         </span>
                       </div>
@@ -1178,8 +1178,8 @@ function IntegrationsPageInner() {
           integrationId={oauthIntegration.id}
           serviceName={oauthIntegration.name}
           serviceIcon={oauthIntegration.icon}
-          iconBg={CATEGORIES[oauthIntegration.category]?.badgeBg ?? 'bg-slate-50'}
-          iconText={CATEGORIES[oauthIntegration.category]?.badgeText ?? 'text-slate-600'}
+          iconBg={CATEGORIES[oauthIntegration.category]?.badgeBg ?? 'bg-bg-3'}
+          iconText={CATEGORIES[oauthIntegration.category]?.badgeText ?? 'text-fg-3'}
           onClose={() => setOauthModalId(null)}
           onSuccess={() => handleOAuthSuccess(oauthIntegration.id)}
         />
@@ -1192,7 +1192,7 @@ export default function IntegrationsPage() {
   return (
     <Suspense fallback={
       <div className="mx-auto max-w-7xl p-6 lg:p-10">
-        <div className="h-8 w-48 animate-pulse rounded bg-slate-100" />
+        <div className="h-8 w-48 animate-pulse rounded bg-bg-3" />
       </div>
     }>
       <IntegrationsPageInner />
