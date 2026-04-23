@@ -5288,4 +5288,4 @@ The archetype chat pages retained all light-mode classes (`bg-white`, `bg-slate-
 
 ### Commit SHAs
 
-(to be filled after commit)
+- `f9d6ba3` — `feat(chat): convert team/[slug] chat pages to dark design system`
