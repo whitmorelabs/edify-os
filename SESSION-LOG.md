@@ -49,3 +49,55 @@
 ## Open Follow-ups
 1. Add `size: number` to GeneratedFile type + API response
 2. isNew re-shows glow on hard-refresh within 30s window — acceptable per spec
+
+---
+
+# SESSION-LOG — Archetype Page Photos Agent
+
+**Identity:** Archetype Page Photos Agent (Sonnet)
+**Branch:** `lopmon/archetype-photos`
+**Worktree:** `C:/Users/Araly/AppData/Local/Temp/edify-archetype-photos`
+**Date:** 2026-04-23
+**PRD:** `PRD-archetype-page-photos.md`
+
+---
+
+## Commits
+
+| SHA | Message |
+|-----|---------|
+| `d263553` | chore(assets): add 6 archetype-themed hero photos |
+| `f99d5d4` | feat(archetype): wire themed photos into each director page |
+
+## What Was Built
+
+### `apps/web/public/agents/` (NEW)
+6 JPEG photos (85–188KB each), each themed to the archetype's icon concept:
+- `executive-assistant.jpg` — Alexa Williams (ODjT0FbSA5U) — person writing at planner table
+- `development-director.jpg` — Vitaly Gariev (1uf2JCPFAkU) — three professionals reviewing docs in meeting
+- `marketing-director.jpg` — Vitaly Gariev (5oA1MUmh2Go) — two women collaborating on design/color work
+- `programs-director.jpg` — Frederick Shaw (eJjbInxdbVE) — woman in red speaking to group outdoors
+- `events-director.jpg` — Jose Marroquin (cNxEE79UAe8) — formal gala dining table setup
+- `hr-volunteer-coordinator.jpg` — Christina @ wocintechchat.com (4PU-OC8sW98) — two WOC in conversation with pens
+
+### `apps/web/src/components/archetype-page.tsx` (MODIFIED)
+- Added `image?: string` to `ArchetypeData` interface
+- Wired `archetype.image` as `src` prop to `<Placeholder>` at line 86
+
+### 6 archetype page files (MODIFIED)
+- Added `image: "/agents/<slug>.jpg"` to each archetype data object
+
+### `photo-credits.md` (MODIFIED)
+- Appended "Archetype page photos" section with 6 attribution entries
+
+## Decisions / Notes
+
+- No Unsplash API key was available; photos were sourced manually via Unsplash web search + direct download URLs.
+- Diverse representation confirmed: women of color in 4 of 6 photos; only events-director uses a table-only shot (no people — appropriate for gala aesthetic).
+- All files 85–188KB, within the 150–250KB PRD target (executive-assistant at 85KB is slightly under but acceptable).
+- TypeScript typecheck: CLEAN (0 errors).
+- Build: CLEAN (4 tasks successful, 4 total).
+- Worktree node_modules symlinked from main repo for tsc + build to work correctly.
+
+## Open Follow-ups
+None — all PRD requirements met.
