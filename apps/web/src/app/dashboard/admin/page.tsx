@@ -91,9 +91,9 @@ function StatsSkeleton() {
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {overviewCards.map((card) => (
         <div key={card.key} className="card p-5 animate-pulse">
-          <div className="mb-3 h-10 w-10 rounded-lg bg-gray-200" />
-          <div className="h-8 w-12 rounded bg-gray-200" />
-          <div className="mt-2 h-4 w-32 rounded bg-gray-200" />
+          <div className="mb-3 h-10 w-10 rounded-lg bg-bg-3" />
+          <div className="h-8 w-12 rounded bg-bg-3" />
+          <div className="mt-2 h-4 w-32 rounded bg-bg-3" />
         </div>
       ))}
     </div>
@@ -121,7 +121,7 @@ export default function AdminPage() {
         </div>
         <div>
           <h1 className="heading-1">Admin Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-fg-3 mt-0.5">
             Manage your team, monitor usage, and configure Edify OS for your organization.
           </p>
         </div>
@@ -145,13 +145,13 @@ export default function AdminPage() {
                 </div>
                 {isEmpty ? (
                   <>
-                    <p className="text-3xl font-bold text-slate-300">0</p>
-                    <p className="mt-1 text-sm text-slate-500">{card.emptyLabel}</p>
+                    <p className="text-3xl font-bold text-fg-4">0</p>
+                    <p className="mt-1 text-sm text-fg-3">{card.emptyLabel}</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-3xl font-bold text-slate-900">{value}</p>
-                    <p className="mt-1 text-sm text-slate-500">{card.label}</p>
+                    <p className="text-3xl font-bold text-fg-1">{value}</p>
+                    <p className="mt-1 text-sm text-fg-3">{card.label}</p>
                   </>
                 )}
               </div>
@@ -178,11 +178,11 @@ export default function AdminPage() {
                   <Icon className={`h-5 w-5 ${link.iconColor}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 flex items-center gap-1">
+                  <p className="font-semibold text-fg-1 flex items-center gap-1">
                     {link.label}
-                    <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-fg-4 shrink-0" />
                   </p>
-                  <p className="text-sm text-slate-500 mt-0.5">{link.description}</p>
+                  <p className="text-sm text-fg-3 mt-0.5">{link.description}</p>
                 </div>
               </Link>
             );

@@ -70,13 +70,13 @@ export default function UsagePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="heading-1">Usage</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-fg-3 mt-0.5">
             How your organization is using Edify OS.
           </p>
         </div>
 
         {/* Period toggle */}
-        <div className="flex rounded-xl border border-slate-200 bg-white p-1 gap-1 self-start">
+        <div className="flex rounded-xl border border-bg-3 bg-bg-3 p-1 gap-1 self-start">
           {periods.map((p) => (
             <button
               key={p.value}
@@ -84,7 +84,7 @@ export default function UsagePage() {
               className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 selectedPeriod === p.value
                   ? "bg-brand-500 text-white shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-fg-2 hover:text-fg-1"
               }`}
             >
               {p.label}
@@ -94,7 +94,7 @@ export default function UsagePage() {
       </div>
 
       {loading || !data ? (
-        <div className="py-24 text-center text-slate-500 text-sm">Loading usage data...</div>
+        <div className="py-24 text-center text-fg-3 text-sm">Loading usage data...</div>
       ) : (
         <>
           {/* Summary stat cards */}
@@ -146,19 +146,19 @@ export default function UsagePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
               <div>
                 <h2 className="heading-2">Your AI Team</h2>
-                <p className="text-sm text-slate-500 mt-0.5">Which team members are used most.</p>
+                <p className="text-sm text-fg-3 mt-0.5">Which team members are used most.</p>
               </div>
 
               {/* Metric toggle */}
-              <div className="flex rounded-xl border border-slate-200 bg-white p-1 gap-1 self-start">
+              <div className="flex rounded-xl border border-bg-3 bg-bg-3 p-1 gap-1 self-start">
                 {(["conversations", "messages", "tasks"] as const).map((m) => (
                   <button
                     key={m}
                     onClick={() => setArchetypeMetric(m)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                       archetypeMetric === m
-                        ? "bg-slate-800 text-white shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-bg-2 text-fg-1 shadow-elev-1"
+                        : "text-fg-2 hover:text-fg-1"
                     }`}
                   >
                     {m}
@@ -179,25 +179,25 @@ export default function UsagePage() {
             <div className="mt-6 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="pb-2 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Team Member</th>
-                    <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Conversations</th>
-                    <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-slate-500 hidden sm:table-cell">Messages</th>
-                    <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Tasks</th>
+                  <tr className="border-b border-bg-3">
+                    <th className="pb-2 text-left text-xs font-medium uppercase tracking-wider text-fg-3">Team Member</th>
+                    <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-fg-3">Conversations</th>
+                    <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-fg-3 hidden sm:table-cell">Messages</th>
+                    <th className="pb-2 text-right text-xs font-medium uppercase tracking-wider text-fg-3">Tasks</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-bg-2">
                   {data.byArchetype.map((a) => (
                     <tr key={a.slug}>
                       <td className="py-2.5">
                         <div className="flex items-center gap-2">
                           <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${a.color}`} />
-                          <span className="text-slate-700">{a.label}</span>
+                          <span className="text-fg-2">{a.label}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 text-right text-slate-600 tabular-nums">{a.conversations.toLocaleString()}</td>
-                      <td className="py-2.5 text-right text-slate-600 tabular-nums hidden sm:table-cell">{a.messages.toLocaleString()}</td>
-                      <td className="py-2.5 text-right text-slate-600 tabular-nums">{a.tasks.toLocaleString()}</td>
+                      <td className="py-2.5 text-right text-fg-2 tabular-nums">{a.conversations.toLocaleString()}</td>
+                      <td className="py-2.5 text-right text-fg-2 tabular-nums hidden sm:table-cell">{a.messages.toLocaleString()}</td>
+                      <td className="py-2.5 text-right text-fg-2 tabular-nums">{a.tasks.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -208,7 +208,7 @@ export default function UsagePage() {
           {/* Hourly distribution */}
           <div className="card p-6">
             <h2 className="heading-2 mb-1">Most Active Hours</h2>
-            <p className="text-sm text-slate-500 mb-6">When your team sees the most activity.</p>
+            <p className="text-sm text-fg-3 mb-6">When your team sees the most activity.</p>
             <UsageChart
               data={data.hourlyDistribution.map((h) => ({
                 label: h.label,

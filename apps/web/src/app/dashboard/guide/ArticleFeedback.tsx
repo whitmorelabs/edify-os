@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Card, Button, Textarea } from '@/components/ui';
 
 interface ArticleFeedbackProps {
   slug: string;
@@ -23,57 +24,62 @@ export function ArticleFeedback({ slug: _slug }: ArticleFeedbackProps) {
 
   if (state === 'submitted') {
     return (
-      <div className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-5 text-center">
-        <p className="text-sm font-medium text-slate-700">Thanks for the feedback!</p>
-        <p className="mt-1 text-xs text-slate-500">It helps us improve the help center.</p>
-      </div>
+      <Card elevation={1} className="mt-10 p-5 text-center">
+        <p className="text-sm font-medium text-fg-1">Thanks for the feedback!</p>
+        <p className="mt-1 text-xs text-fg-3">It helps us improve the help center.</p>
+      </Card>
     );
   }
 
   return (
-    <div className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-5">
-      <p className="text-sm font-medium text-slate-700">Was this article helpful?</p>
+    <Card elevation={1} className="mt-10 p-5">
+      <p className="text-sm font-medium text-fg-1">Was this article helpful?</p>
 
       {state === 'idle' && (
         <div className="mt-3 flex gap-3">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
+            leadingIcon={<ThumbsUp size={14} />}
             onClick={() => handleFeedback(true)}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-emerald-300 hover:text-emerald-700 transition"
           >
-            <ThumbsUp size={14} />
             Yes, helpful
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            leadingIcon={<ThumbsDown size={14} />}
             onClick={() => handleFeedback(false)}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-red-300 hover:text-red-600 transition"
           >
-            <ThumbsDown size={14} />
             Not really
-          </button>
+          </Button>
         </div>
       )}
 
       {state === 'no' && (
         <div className="mt-3 space-y-3">
-          <p className="text-xs text-slate-500">What could be better?</p>
-          <textarea
-            className="input-field text-xs"
+          <p className="text-xs text-fg-3">What could be better?</p>
+          <Textarea
             rows={3}
             placeholder="Tell us what's missing or confusing..."
+            className="text-xs"
           />
-          <button onClick={handleSubmit} className="btn-primary text-xs px-4 py-2">
-            Send Feedback
-          </button>
+          <Button variant="primary" size="sm" onClick={handleSubmit}>
+            Send feedback
+          </Button>
         </div>
       )}
 
       {state === 'yes' && (
         <div className="mt-3">
-          <button onClick={handleSubmit} className="text-xs text-slate-400 hover:text-slate-600 transition">
+          <button
+            onClick={handleSubmit}
+            className="text-xs text-fg-3 hover:text-fg-1 transition"
+          >
             Thanks, dismiss
           </button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

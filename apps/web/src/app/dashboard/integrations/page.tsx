@@ -834,8 +834,8 @@ function IntegrationsPageInner() {
 
       {/* Header */}
       <div>
-        <h1 className="heading-1">Connected Accounts</h1>
-        <p className="mt-1 text-slate-500">
+        <h1 className="heading-1">Connected accounts</h1>
+        <p className="mt-1 text-fg-3">
           Connect your accounts so your team can work with real data and take real actions on your behalf.
         </p>
         <div className="mt-3 flex items-center gap-3">
@@ -843,7 +843,7 @@ function IntegrationsPageInner() {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             {connected.size} Connected
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-bg-3 px-3 py-1 text-xs font-medium text-fg-3">
             {INTEGRATIONS.length} Available
           </span>
         </div>
@@ -865,7 +865,7 @@ function IntegrationsPageInner() {
                   <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${cat?.badgeBg ?? 'bg-slate-50'}`}>
                     <Icon className={`h-4 w-4 ${cat?.badgeText ?? 'text-slate-600'}`} />
                   </span>
-                  <span className="text-sm font-medium text-slate-700">{i.name}</span>
+                  <span className="text-sm font-medium text-fg-1">{i.name}</span>
                   <button
                     onClick={() => setExpandedId(i.id)}
                     className="btn-ghost ml-1 px-2 py-1 text-xs"
@@ -882,7 +882,7 @@ function IntegrationsPageInner() {
       {/* Search + Category tabs */}
       <div className="space-y-4">
         <div className="relative max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-4" />
           <input
             type="text"
             placeholder="Search accounts..."
@@ -897,8 +897,8 @@ function IntegrationsPageInner() {
             onClick={() => setActiveCategory('all')}
             className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
               activeCategory === 'all'
-                ? 'bg-brand-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-brand-500 text-fg-on-purple'
+                : 'bg-bg-3 text-fg-3 hover:bg-bg-2'
             }`}
           >
             All ({INTEGRATIONS.length})
@@ -913,7 +913,7 @@ function IntegrationsPageInner() {
                 className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
                   activeCategory === slug
                     ? 'bg-brand-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-bg-3 text-fg-3 hover:bg-bg-2'
                 }`}
               >
                 {cat.label} ({count})
@@ -943,7 +943,7 @@ function IntegrationsPageInner() {
                   <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${cat?.badgeBg ?? 'bg-slate-50'}`}>
                     <Icon className={`h-5 w-5 ${cat?.badgeText ?? 'text-slate-600'}`} />
                   </span>
-                  <span className="font-semibold text-slate-900">{i.name}</span>
+                  <span className="font-semibold text-fg-1">{i.name}</span>
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cat?.badgeBg ?? 'bg-slate-50'} ${cat?.badgeText ?? 'text-slate-600'}`}>
                   {cat?.label ?? i.category}
@@ -951,7 +951,7 @@ function IntegrationsPageInner() {
               </div>
 
               {/* Description */}
-              <p className="mt-3 text-sm text-slate-500 line-clamp-2">{i.description}</p>
+              <p className="mt-3 text-sm text-fg-3 line-clamp-2">{i.description}</p>
 
               {/* Agent dots */}
               <div className="mt-3 flex items-center gap-2">
@@ -960,7 +960,7 @@ function IntegrationsPageInner() {
                   return (
                     <span key={slug} className="flex items-center gap-1.5">
                       <span className={`inline-block h-2.5 w-2.5 rounded-full ${ac.bg}`} title={ac.label} />
-                      <span className="text-[11px] text-slate-400">{ac.label.split(' ')[0]}</span>
+                      <span className="text-[11px] text-fg-4">{ac.label.split(' ')[0]}</span>
                     </span>
                   );
                 })}
@@ -969,7 +969,7 @@ function IntegrationsPageInner() {
               {/* Capabilities */}
               <div className="mt-3 space-y-1">
                 {i.capabilities.slice(0, 2).map((cap) => (
-                  <div key={cap} className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <div key={cap} className="flex items-center gap-1.5 text-xs text-fg-3">
                     <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
                     {cap}
                   </div>
@@ -986,8 +986,8 @@ function IntegrationsPageInner() {
 
               {/* Google email badge */}
               {isConnected && GOOGLE_INTEGRATION_IDS.has(i.id) && googleEmail && (
-                <p className="mt-2 text-xs text-slate-400">
-                  Connected as <span className="font-medium text-slate-600">{googleEmail}</span>
+                <p className="mt-2 text-xs text-fg-4">
+                  Connected as <span className="font-medium text-fg-2">{googleEmail}</span>
                 </p>
               )}
 
@@ -1020,7 +1020,7 @@ function IntegrationsPageInner() {
         })}
 
         {filtered.length === 0 && (
-          <div className="col-span-full py-16 text-center text-slate-400">
+          <div className="col-span-full py-16 text-center text-fg-4">
             No accounts match your search.
           </div>
         )}
@@ -1034,7 +1034,7 @@ function IntegrationsPageInner() {
             if (e.target === e.currentTarget) setExpandedId(null);
           }}
         >
-          <div className="card-elevated mx-4 max-h-[85vh] w-full max-w-lg overflow-y-auto animate-slide-up">
+          <div className="bg-bg-2 shadow-elev-4 rounded-xl mx-4 max-h-[85vh] w-full max-w-lg overflow-y-auto animate-slide-up">
             {(() => {
               const i = expandedIntegration;
               const cat = CATEGORIES[i.category];
@@ -1062,16 +1062,16 @@ function IntegrationsPageInner() {
                     </button>
                   </div>
 
-                  <p className="mt-4 text-sm text-slate-500">{i.description}</p>
+                  <p className="mt-4 text-sm text-fg-3">{i.description}</p>
 
                   {/* Capabilities */}
                   <div className="mt-6">
-                    <h3 className="label text-xs uppercase tracking-wider text-slate-400 mb-2">
+                    <h3 className="label eyebrow mb-2">
                       What this enables
                     </h3>
                     <ul className="space-y-2">
                       {i.capabilities.map((cap) => (
-                        <li key={cap} className="flex items-center gap-2 text-sm text-slate-600">
+                        <li key={cap} className="flex items-center gap-2 text-sm text-fg-2">
                           <CheckCircle className="h-4 w-4 shrink-0 text-emerald-500" />
                           {cap}
                         </li>
@@ -1081,7 +1081,7 @@ function IntegrationsPageInner() {
 
                   {/* Agents */}
                   <div className="mt-6">
-                    <h3 className="label text-xs uppercase tracking-wider text-slate-400 mb-2">
+                    <h3 className="label eyebrow mb-2">
                       Used by
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -1106,7 +1106,7 @@ function IntegrationsPageInner() {
                   </div>
 
                   {/* Connection section */}
-                  <div className="mt-6 border-t border-slate-100 pt-6">
+                  <div className="mt-6 border-t border-bg-3 pt-6">
                     {isConnected ? (
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">

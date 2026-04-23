@@ -75,7 +75,7 @@ export default function LoginPage() {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={googleLoading || loading}
-        className="w-full inline-flex items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 active:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 transition-all duration-150 disabled:opacity-50 mb-4"
+        className="w-full inline-flex items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 active:bg-white/5 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all duration-150 disabled:opacity-50 mb-4"
       >
         {/* Google "G" logo SVG */}
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -118,7 +118,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@nonprofit.org"
               required
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors"
             />
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function LoginPage() {
             </label>
             <a
               href="#"
-              className="text-xs font-medium text-[#8B5CF6] hover:text-[#a78bfa]"
+              className="text-xs font-medium text-brand-500 hover:opacity-70"
             >
               Forgot password?
             </a>
@@ -144,7 +144,7 @@ export default function LoginPage() {
               placeholder="Enter your password"
               required
               minLength={8}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors"
             />
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading || googleLoading}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#7C3AED] px-6 py-3 text-sm font-semibold text-white hover:bg-[#8B5CF6] active:bg-[#6D28D9] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 focus:ring-offset-2 focus:ring-offset-[#243b44] transition-all duration-200 disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-500 px-6 py-3 text-sm font-semibold text-[var(--fg-on-purple)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 disabled:opacity-50"
         >
           {loading ? "Signing in..." : "Sign In"}
           <ArrowRight className="h-4 w-4" />
@@ -169,7 +169,7 @@ export default function LoginPage() {
 
           <Link
             href="/dashboard?demo=true"
-            className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#8B5CF6] hover:bg-white/5 transition-all duration-150"
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-brand-500 hover:bg-white/5 transition-all duration-150"
           >
             Skip to Demo Dashboard
             <ArrowRight className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function LoginPage() {
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"
-          className="font-semibold text-[#8B5CF6] hover:text-[#a78bfa]"
+          className="font-semibold text-brand-500 hover:opacity-70"
         >
           Create one free
         </Link>

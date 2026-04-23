@@ -2,6 +2,52 @@
 
 ---
 
+## 2026-04-23 — Design System Propagation: All Dashboard Pages
+
+**Identity:** Coding Agent (Sonnet, spawned by Milo)
+**Task:** Propagate the new dark design system across ALL dashboard pages (except `dashboard/page.tsx`, already done). Apply 13 design rules from `apps/web/src/components/ui/README.md`.
+
+### Pages Updated
+
+- **`dashboard/tasks/page.tsx`** — removed `border-l-4` left borders (banned), replaced status/kind badge colors with bg-bg-3/text-fg-* tokens, used Button primitive for all buttons, dark modal (shadow-elev-4), dark loading skeletons
+- **`dashboard/team/page.tsx`** — cards now `bg-bg-2 shadow-elev-1`, online indicator darkened (`bg-emerald-950/60 border-emerald-500/30 text-emerald-400`), all text tokens applied
+- **`dashboard/inbox/page.tsx`** — tab bar darkened, approval badges use `bg-brand-500 text-fg-on-purple`, Button primitives throughout, dark modal, confidence bar track `bg-bg-3`
+- **`dashboard/briefing/page.tsx`** — heading sentence-cased, step indicators dark tokens, progress bar track `bg-bg-3`
+- **`dashboard/memory/page.tsx`** — all `text-slate-*` → `text-fg-*`, category tabs dark, error banner dark red, loading skeletons `bg-bg-3`
+- **`dashboard/decision-lab/page.tsx`** — text tokens, error banner dark, skeletons `bg-bg-3`, `.eyebrow` class for labels
+- **`dashboard/integrations/page.tsx`** — heading sentence-cased, category pills use brand-500/bg-bg-3, modal dark, `.eyebrow` for section labels
+- **`dashboard/settings/page.tsx`** — all slate tokens replaced, autonomy selector uses brand-500/bg-bg-3, role badges darkened
+- **`dashboard/settings/billing/page.tsx`** — all slate tokens replaced, plan banner dark, upgrade modal dark, table borders `border-bg-3`
+- **`dashboard/settings/heartbeats/page.tsx`** — skeleton bg `bg-bg-2`, text tokens, back link darkened
+- **`dashboard/admin/page.tsx`** — skeleton bg `bg-bg-3`, text tokens
+- **`dashboard/admin/members/page.tsx`** — owner badge `bg-brand-500/20 text-brand-200`, confirm modal dark, toasts dark
+- **`dashboard/admin/ai-config/page.tsx`** — dropdown trigger/panel/items dark tokens, text tokens
+- **`dashboard/admin/usage/page.tsx`** — period/metric toggles dark, table borders `border-bg-3`, text tokens
+- **`dashboard/onboarding/page.tsx`** — heading sentence-cased, completion circle `bg-brand-500/20`, body/skip text tokens
+- **`dashboard/guide/meet-your-team/page.tsx`** — ArchetypeMark + Card primitives, dark tokens, added `"use client"` to fix server/client boundary error
+
+### Sub-components Updated
+
+- **`dashboard/guide/meet-your-team/[slug]/page.tsx`** — ArchetypeMark, dark badge, TOC tokens
+
+### Bug Fixed
+
+- **`ArchetypeMark` server/client boundary error** — Next.js 14 build was failing because `meet-your-team/[slug]/page.tsx` (server component) passed a full `arc` object (containing an `Icon` function) to `ArchetypeMark` (client component). Fixed by:
+  1. Adding `arcKey` prop to `ArchetypeMark` so server components can pass just the string key
+  2. `ArchetypeMark` does its own `ARCHETYPES[arcKey]` lookup internally (safe — runs client-side)
+  3. `meet-your-team/page.tsx` marked `"use client"` (no server data fetching)
+  4. `meet-your-team/[slug]/page.tsx` passes `arcKey={arcKey}` instead of `arc={arc}`
+
+### Pre-existing Issues (not introduced by this session)
+
+- Missing packages `framer-motion`, `react-icons`, `react-markdown`, `remark-gfm` — installed via `pnpm --filter @edify/web add`
+
+### Verification
+
+- `npx next build` passes cleanly. All 16 dashboard routes compile to static/SSG, no errors or new warnings.
+
+---
+
 ## 2026-04-22 — Simplify Pass: Design System Ingest
 
 **Identity:** Simplify Agent (Sonnet, spawned by Lopmon)

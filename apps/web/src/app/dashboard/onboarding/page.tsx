@@ -64,8 +64,8 @@ export default function OnboardingPage() {
       {step !== 'welcome' && step !== 'done' && (
         <div className="flex items-start justify-between gap-6">
           <div>
-            <h1 className="heading-1">Meet Your Team</h1>
-            <p className="mt-1 text-slate-500">
+            <h1 className="heading-1">Meet your team</h1>
+            <p className="mt-1 text-fg-3">
               Work with each specialist to see what they can do for you.
             </p>
           </div>
@@ -79,12 +79,12 @@ export default function OnboardingPage() {
 
       {step === 'done' && (
         <div className="text-center space-y-8 animate-slide-up py-8">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-brand-50">
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-brand-500/20">
             <Rocket size={44} className="text-brand-500" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-slate-900">You&apos;ve met everyone!</h2>
-            <p className="text-slate-500 max-w-md mx-auto">
+            <h2 className="text-3xl font-semibold text-fg-1">You&apos;ve met everyone!</h2>
+            <p className="text-fg-3 max-w-md mx-auto">
               Your team is ready. Now go put them to work -- for real this time.
             </p>
           </div>
@@ -135,7 +135,7 @@ export default function OnboardingPage() {
               <div className="mt-4 text-center">
                 <Link
                   href="/dashboard"
-                  className="text-xs text-slate-400 hover:text-slate-600 transition"
+                  className="text-xs text-fg-4 hover:text-fg-2 transition"
                 >
                   Skip intro, go to dashboard
                 </Link>

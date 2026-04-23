@@ -119,7 +119,7 @@ export default function DecisionLabPage() {
           <FlaskConical className="h-7 w-7 text-brand-500" />
           Decision Lab
         </h1>
-        <p className="mt-1 text-slate-500">
+        <p className="mt-1 text-fg-3">
           Run any decision by your full team and get honest analysis from every angle.
         </p>
       </div>
@@ -136,7 +136,7 @@ export default function DecisionLabPage() {
 
           {/* Error */}
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-400">
               {error}
             </div>
           )}
@@ -144,20 +144,20 @@ export default function DecisionLabPage() {
           {/* Loading skeleton */}
           {isLoading && (
             <div className="space-y-4">
-              <p className="text-sm font-medium text-slate-500">
+              <p className="text-sm font-medium text-fg-3">
                 Your team is reviewing this decision...
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="card p-4 space-y-3 animate-pulse">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-9 w-9 rounded-lg bg-slate-100" />
-                      <div className="h-4 w-32 rounded bg-slate-100" />
+                      <div className="h-9 w-9 rounded-lg bg-bg-3" />
+                      <div className="h-4 w-32 rounded bg-bg-3" />
                     </div>
                     <div className="space-y-2">
-                      <div className="h-3 rounded bg-slate-100" />
-                      <div className="h-3 w-4/5 rounded bg-slate-100" />
-                      <div className="h-3 w-3/5 rounded bg-slate-100" />
+                      <div className="h-3 rounded bg-bg-3" />
+                      <div className="h-3 w-4/5 rounded bg-bg-3" />
+                      <div className="h-3 w-3/5 rounded bg-bg-3" />
                     </div>
                   </div>
                 ))}
@@ -168,14 +168,14 @@ export default function DecisionLabPage() {
           {/* No scenario yet: example prompts */}
           {!isLoading && !result && !error && (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-slate-500">Try an example</p>
+              <p className="text-sm font-medium text-fg-3">Try an example</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {EXAMPLE_SCENARIOS.map((scenario) => (
                   <button
                     key={scenario}
                     type="button"
                     onClick={() => handleRun(scenario)}
-                    className="card-interactive p-4 text-left text-sm text-slate-700 hover:text-brand-700 leading-snug"
+                    className="card-interactive p-4 text-left text-sm text-fg-2 hover:text-brand-200 leading-snug"
                   >
                     &ldquo;{scenario}&rdquo;
                   </button>
@@ -188,16 +188,17 @@ export default function DecisionLabPage() {
           {!isLoading && result && (
             <div className="space-y-6">
               {/* Scenario label */}
-              <div className="rounded-xl bg-slate-100 px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">
+              <div className="rounded-xl bg-bg-3 px-4 py-3">
+                <p className="eyebrow mb-1">
                   Scenario reviewed
                 </p>
-                <p className="text-sm text-slate-800">{result.scenario_text}</p>
+                <p className="text-sm text-fg-1">{result.scenario_text}</p>
               </div>
 
               {/* Archetype cards */}
               <div>
                 <h2 className="heading-2 mb-4">Team responses</h2>
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   {result.responses.map((resp) => (
                     <ArchetypeCard

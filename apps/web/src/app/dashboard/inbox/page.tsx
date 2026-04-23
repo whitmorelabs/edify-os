@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui";
 import { AGENT_COLORS, type AgentRoleSlug } from "@/lib/agent-colors";
 import { ARCHETYPE_SLUGS } from "@/lib/archetypes";
 import {
@@ -36,10 +37,10 @@ type FilterTab = "all" | "pending" | "approved" | "rejected";
 type InboxSection = "approvals" | "team-updates";
 
 const urgencyColors = {
-  low: "bg-slate-100 text-slate-600",
-  normal: "bg-sky-50 text-sky-700",
-  high: "bg-amber-50 text-amber-700",
-  critical: "bg-red-50 text-red-700",
+  low: "bg-bg-3 text-fg-3",
+  normal: "bg-bg-3 text-sky-400",
+  high: "bg-bg-3 text-amber-400",
+  critical: "bg-bg-3 text-red-400",
 };
 
 function formatCreatedAt(iso: string): string {
@@ -60,12 +61,10 @@ function formatCreatedAt(iso: string): string {
 export default function InboxPage() {
   const router = useRouter();
 
-  // Data state
   const [items, setItems] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // UI state
   const [filter, setFilter] = useState<FilterTab>("pending");
   const [previewExpandedId, setPreviewExpandedId] = useState<string | null>(null);
   const [expandedModalId, setExpandedModalId] = useState<string | null>(null);
@@ -73,7 +72,6 @@ export default function InboxPage() {
   const [editContent, setEditContent] = useState<string>("");
   const [section, setSection] = useState<InboxSection>("approvals");
 
-  // Heartbeat state
   const [heartbeats, setHeartbeats] = useState<HeartbeatResult[]>([]);
   const [heartbeatsLoading, setHeartbeatsLoading] = useState(false);
   const [triggeringArchetypes, setTriggeringArchetypes] = useState<Set<ArchetypeSlug>>(new Set());
@@ -103,7 +101,6 @@ export default function InboxPage() {
   const updateStatus = (id: string, status: ApprovalStatus) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
-    // Optimistic local update first for snappy UI
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status } : i))
     );
@@ -111,7 +108,6 @@ export default function InboxPage() {
       setItems((prev) =>
         prev.map((i) => (i.id === id ? { ...i, status: item.status } : i))
       );
-    // Persist to DB (every inbox item now comes from the approvals table)
     fetch(`/api/inbox/pending/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -136,8 +132,6 @@ export default function InboxPage() {
 
   const saveEdit = (id: string) => {
     const captured = editContent;
-
-    // Every inbox item is backed by a real approvals row now — persist to DB.
     fetch(`/api/inbox/pending/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -150,8 +144,7 @@ export default function InboxPage() {
           );
         }
       })
-      .catch(() => {/* ignore — user can retry */});
-
+      .catch(() => {/* ignore */});
     setEditingId(null);
     setEditContent("");
   };
@@ -162,7 +155,7 @@ export default function InboxPage() {
   };
 
   const runCheckIn = async (archetype: ArchetypeSlug) => {
-    if (triggeringArchetypes.has(archetype)) return; // already running
+    if (triggeringArchetypes.has(archetype)) return;
     setTriggeringArchetypes((prev) => new Set(prev).add(archetype));
     try {
       const result = await triggerHeartbeat(archetype);
@@ -199,7 +192,6 @@ export default function InboxPage() {
     { key: "all", label: "All" },
   ];
 
-  // Item being shown in expand modal
   const expandedItem = expandedModalId
     ? items.find((i) => i.id === expandedModalId)
     : null;
@@ -210,27 +202,24 @@ export default function InboxPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-1">Inbox</h1>
-          <p className="mt-1 text-slate-500">
+          <p className="mt-1 text-fg-3">
             Approvals from your team and proactive updates.
           </p>
         </div>
         {section === "approvals" && highConfidenceCount > 0 && (
-          <button
-            onClick={bulkApproveHighConfidence}
-            className="btn-secondary"
-          >
-            <Zap className="h-4 w-4 text-amber-500" />
+          <Button variant="secondary" onClick={bulkApproveHighConfidence}>
+            <Zap className="h-4 w-4 text-amber-400" />
             Auto-approve {highConfidenceCount} high-confidence
-          </button>
+          </Button>
         )}
         {section === "team-updates" && (
-          <button
+          <Button
+            variant="secondary"
             onClick={async () => {
               const allSlugs = Object.keys(ARCHETYPE_CONFIG) as ArchetypeSlug[];
               await Promise.allSettled(allSlugs.map((slug) => runCheckIn(slug)));
             }}
             disabled={triggeringArchetypes.size > 0}
-            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {triggeringArchetypes.size > 0 ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -239,24 +228,24 @@ export default function InboxPage() {
             )}
             {triggeringArchetypes.size > 0
               ? `Running ${triggeringArchetypes.size} check-in${triggeringArchetypes.size > 1 ? "s" : ""}…`
-              : "Run All Check-ins"}
-          </button>
+              : "Run all check-ins"}
+          </Button>
         )}
       </div>
 
       {/* Section tabs */}
-      <div className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">
+      <div className="flex gap-1 rounded-lg bg-bg-3 p-1 w-fit">
         <button
           onClick={() => setSection("approvals")}
           className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
             section === "approvals"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-bg-2 text-fg-1 shadow-elev-1"
+              : "text-fg-3 hover:text-fg-2"
           }`}
         >
-          Approval Queue
+          Approval queue
           {pendingCount > 0 && (
-            <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+            <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-fg-on-purple">
               {pendingCount}
             </span>
           )}
@@ -265,12 +254,12 @@ export default function InboxPage() {
           onClick={() => setSection("team-updates")}
           className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5 ${
             section === "team-updates"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-bg-2 text-fg-1 shadow-elev-1"
+              : "text-fg-3 hover:text-fg-2"
           }`}
         >
           <Users className="h-3.5 w-3.5" />
-          Team Updates
+          Team updates
         </button>
       </div>
 
@@ -279,20 +268,20 @@ export default function InboxPage() {
         <>
           {/* Filter Tabs */}
           {!loading && !error && items.length > 0 && (
-            <div className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">
+            <div className="flex gap-1 rounded-lg bg-bg-3 p-1 w-fit">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setFilter(tab.key)}
                   className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
                     filter === tab.key
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-bg-2 text-fg-1 shadow-elev-1"
+                      : "text-fg-3 hover:text-fg-2"
                   }`}
                 >
                   {tab.label}
                   {tab.count !== undefined && tab.count > 0 && (
-                    <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-white">
+                    <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-xs text-fg-on-purple">
                       {tab.count}
                     </span>
                   )}
@@ -305,22 +294,22 @@ export default function InboxPage() {
           <div className="space-y-3">
             {loading ? (
               <>
-                <div className="h-40 rounded-xl bg-slate-100 animate-pulse" />
-                <div className="h-40 rounded-xl bg-slate-100 animate-pulse" />
+                <div className="h-40 rounded-xl bg-bg-2 animate-pulse" />
+                <div className="h-40 rounded-xl bg-bg-2 animate-pulse" />
               </>
             ) : error ? (
               <div className="card p-12 text-center">
-                <p className="text-sm text-red-500">{error}</p>
+                <p className="text-sm text-red-400">{error}</p>
               </div>
             ) : items.length === 0 ? (
               <div className="card p-12 text-center">
-                <Filter className="mx-auto h-10 w-10 text-slate-300" />
-                <p className="mt-4 font-medium text-slate-700">
+                <Filter className="mx-auto h-10 w-10 text-fg-4" />
+                <p className="mt-4 font-semibold text-fg-1">
                   Nothing needs your attention right now.
                 </p>
-                <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
+                <p className="mt-1 text-sm text-fg-3 max-w-sm mx-auto">
                   Your team is working — see the{" "}
-                  <Link href="/dashboard/tasks" className="text-brand-600 hover:underline">
+                  <Link href="/dashboard/tasks" className="text-brand-200 hover:underline">
                     Tasks page
                   </Link>{" "}
                   for completed work.
@@ -328,8 +317,8 @@ export default function InboxPage() {
               </div>
             ) : filtered.length === 0 ? (
               <div className="card p-12 text-center">
-                <Filter className="mx-auto h-8 w-8 text-slate-300" />
-                <p className="mt-3 text-sm text-slate-500">
+                <Filter className="mx-auto h-8 w-8 text-fg-4" />
+                <p className="mt-3 text-sm text-fg-3">
                   No items match this filter.
                 </p>
               </div>
@@ -348,7 +337,7 @@ export default function InboxPage() {
                 return (
                   <div
                     key={item.id}
-                    className={`card border-l-4 ${agentConfig.border} overflow-hidden`}
+                    className="bg-bg-2 shadow-elev-1 rounded-lg overflow-hidden"
                   >
                     <div className="p-5">
                       <div className="flex items-start justify-between">
@@ -359,10 +348,10 @@ export default function InboxPage() {
                             <agentConfig.icon className="h-5 w-5 text-white" />
                           </div>
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-slate-900">
+                            <h3 className="font-semibold text-fg-1">
                               {item.title}
                             </h3>
-                            <p className="mt-0.5 text-sm text-slate-500">
+                            <p className="mt-0.5 text-sm text-fg-3">
                               {item.summary}
                             </p>
                           </div>
@@ -376,7 +365,7 @@ export default function InboxPage() {
                           >
                             {item.urgency}
                           </span>
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-fg-4">
                             {formatCreatedAt(item.createdAt)}
                           </span>
                         </div>
@@ -385,21 +374,21 @@ export default function InboxPage() {
                       {/* Confidence Bar */}
                       <div className="mt-3 flex items-center gap-3">
                         <div className="flex-1">
-                          <div className="h-1.5 rounded-full bg-slate-100">
+                          <div className="h-1.5 rounded-full bg-bg-3">
                             <div
                               className={`h-1.5 rounded-full ${confidenceColor} transition-all duration-500`}
                               style={{ width: `${item.confidence * 100}%` }}
                             />
                           </div>
                         </div>
-                        <span className="text-xs font-medium text-slate-500">
+                        <span className="text-xs font-medium text-fg-3">
                           {Math.round(item.confidence * 100)}% confidence
                         </span>
                         <button
                           onClick={() =>
                             setPreviewExpandedId(isPreviewExpanded ? null : item.id)
                           }
-                          className="text-slate-400 hover:text-slate-600"
+                          className="text-fg-4 hover:text-fg-2 transition-colors"
                           title="Toggle preview"
                         >
                           {isPreviewExpanded ? (
@@ -410,9 +399,9 @@ export default function InboxPage() {
                         </button>
                       </div>
 
-                      {/* Inline Preview (collapsed snippet) */}
+                      {/* Inline Preview */}
                       {isPreviewExpanded && !isEditing && (
-                        <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
+                        <div className="mt-4 rounded-lg bg-bg-3 p-4 text-sm text-fg-2 whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
                           {item.preview}
                         </div>
                       )}
@@ -427,19 +416,21 @@ export default function InboxPage() {
                             rows={10}
                           />
                           <div className="flex gap-2">
-                            <button
+                            <Button
+                              variant="primary"
+                              size="sm"
                               onClick={() => saveEdit(item.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
                             >
                               <Save className="h-3.5 w-3.5" />
                               Save
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={cancelEdit}
-                              className="btn-ghost text-sm"
                             >
                               Cancel
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -447,36 +438,42 @@ export default function InboxPage() {
                       {/* Actions */}
                       {item.status === "pending" && (
                         <div className="mt-4 flex flex-wrap gap-2">
-                          <button
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={() => updateStatus(item.id, "approved")}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
+                            className="bg-emerald-600 hover:bg-emerald-700"
                           >
                             <CheckCircle className="h-4 w-4" />
                             Approve
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => updateStatus(item.id, "rejected")}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                            className="text-red-400 hover:text-red-300"
                           >
                             <XCircle className="h-4 w-4" />
                             Reject
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openExpand(item.id)}
-                            className="btn-ghost"
                             title="View full content"
                           >
                             <Maximize2 className="h-4 w-4" />
                             Expand
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openEdit(item)}
-                            className="btn-ghost"
                             title="Edit content"
                           >
                             <Pencil className="h-4 w-4" />
                             Edit
-                          </button>
+                          </Button>
                         </div>
                       )}
 
@@ -485,8 +482,8 @@ export default function InboxPage() {
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
                               item.status === "approved"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-red-50 text-red-700"
+                                ? "bg-emerald-950/60 border border-emerald-500/30 text-emerald-400"
+                                : "bg-red-950/60 border border-red-500/30 text-red-400"
                             }`}
                           >
                             {item.status === "approved" ? (
@@ -496,13 +493,14 @@ export default function InboxPage() {
                             )}
                             {item.status === "approved" ? "Approved" : "Rejected"}
                           </span>
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openExpand(item.id)}
-                            className="btn-ghost text-xs"
                           >
                             <Maximize2 className="h-3.5 w-3.5" />
                             Expand
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -543,25 +541,24 @@ export default function InboxPage() {
 
           {heartbeatsLoading ? (
             <>
-              <div className="h-36 bg-slate-100 rounded-xl animate-pulse" />
-              <div className="h-36 bg-slate-100 rounded-xl animate-pulse" />
-              <div className="h-36 bg-slate-100 rounded-xl animate-pulse" />
+              <div className="h-36 bg-bg-2 rounded-xl animate-pulse" />
+              <div className="h-36 bg-bg-2 rounded-xl animate-pulse" />
+              <div className="h-36 bg-bg-2 rounded-xl animate-pulse" />
             </>
           ) : heartbeats.length === 0 ? (
             <div className="card p-12 text-center">
-              <Users className="mx-auto h-8 w-8 text-slate-300" />
-              <p className="mt-3 font-medium text-slate-700">
+              <Users className="mx-auto h-8 w-8 text-fg-4" />
+              <p className="mt-3 font-semibold text-fg-1">
                 Your team hasn&apos;t checked in yet.
               </p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-fg-3">
                 Run a check-in above or configure scheduled check-ins in Settings.
               </p>
-              <Link
-                href="/dashboard/settings/heartbeats"
-                className="btn-secondary mt-4 inline-flex items-center gap-1.5"
-              >
-                <Settings className="h-4 w-4" />
-                Configure Check-ins
+              <Link href="/dashboard/settings/heartbeats">
+                <Button variant="secondary" className="mt-4">
+                  <Settings className="h-4 w-4" />
+                  Configure check-ins
+                </Button>
               </Link>
             </div>
           ) : (
@@ -583,59 +580,64 @@ export default function InboxPage() {
       {/* ── Full-content expand modal ── */}
       {expandedItem && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={closeExpand}
         >
           <div
-            className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl bg-white shadow-2xl p-6"
+            className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl bg-bg-2 shadow-elev-4 p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h2 className="font-semibold text-slate-900 text-lg">
+                <h2 className="font-semibold text-fg-1 text-lg">
                   {expandedItem.title}
                 </h2>
-                <p className="text-sm text-slate-500 mt-0.5">{expandedItem.summary}</p>
+                <p className="text-sm text-fg-3 mt-0.5">{expandedItem.summary}</p>
               </div>
               <button
                 onClick={closeExpand}
-                className="ml-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="ml-4 rounded-lg p-1.5 text-fg-4 hover:bg-bg-3 hover:text-fg-2 transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">
+            <div className="rounded-lg bg-bg-3 p-4 text-sm text-fg-2 whitespace-pre-wrap font-mono leading-relaxed">
               {expandedItem.preview || "No content available."}
             </div>
             <div className="mt-4 flex gap-2">
               {expandedItem.status === "pending" && (
                 <>
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => { updateStatus(expandedItem.id, "approved"); closeExpand(); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
+                    className="bg-emerald-600 hover:bg-emerald-700"
                   >
                     <CheckCircle className="h-4 w-4" />
                     Approve
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => { updateStatus(expandedItem.id, "rejected"); closeExpand(); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                    className="text-red-400 hover:text-red-300"
                   >
                     <XCircle className="h-4 w-4" />
                     Reject
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => { closeExpand(); openEdit(expandedItem); }}
-                    className="btn-ghost"
                   >
                     <Pencil className="h-4 w-4" />
                     Edit
-                  </button>
+                  </Button>
                 </>
               )}
-              <button onClick={closeExpand} className="btn-ghost ml-auto">
+              <Button variant="ghost" size="sm" onClick={closeExpand} className="ml-auto">
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         </div>

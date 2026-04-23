@@ -168,7 +168,7 @@ export default function SettingsPage() {
     <div className="max-w-3xl space-y-8 animate-fade-in">
       <div>
         <h1 className="heading-1">Settings</h1>
-        <p className="mt-1 text-slate-500">
+        <p className="mt-1 text-fg-3">
           Manage your organization and AI team configuration.
         </p>
       </div>
@@ -181,7 +181,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Organization Briefing</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               Update your organization&apos;s profile and documents so your team stays current.
             </p>
           </div>
@@ -203,7 +203,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Your Team&apos;s Schedule</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               Configure proactive check-ins from each team member.
             </p>
           </div>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Rename your team</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               Give each AI team member a personal name. They&apos;ll introduce themselves by it in chat.
             </p>
           </div>
@@ -236,7 +236,7 @@ export default function SettingsPage() {
             const config = ARCHETYPE_CONFIG[slug];
             return (
               <div key={slug} className="flex items-center gap-3">
-                <label className="w-44 shrink-0 text-sm font-medium text-slate-700 truncate">
+                <label className="w-44 shrink-0 text-sm font-medium text-fg-1 truncate">
                   {config.label}
                 </label>
                 <input
@@ -254,7 +254,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-fg-4">
             Leave a field blank to use the default role title.
           </p>
           <button
@@ -289,7 +289,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Billing &amp; Subscription</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               Starter plan &mdash; $49/mo
             </p>
           </div>
@@ -311,11 +311,11 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Organization Profile</h2>
-            <p className="text-sm text-slate-500">Basic info about your organization.</p>
+            <p className="text-sm text-fg-3">Basic info about your organization.</p>
           </div>
         </div>
         {orgLoading ? (
-          <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+          <div className="flex items-center gap-2 text-fg-4 text-sm py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading…
           </div>
@@ -344,7 +344,7 @@ export default function SettingsPage() {
             {orgData?.plan && (
               <div>
                 <label className="label mb-1.5 block">Plan</label>
-                <p className="text-sm text-slate-700 capitalize">{orgData.plan}</p>
+                <p className="text-sm text-fg-1 capitalize">{orgData.plan}</p>
               </div>
             )}
             <div className="flex justify-end">
@@ -385,18 +385,18 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Anthropic Access Key</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               Bring your own key to power your AI team.
             </p>
           </div>
         </div>
 
-        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-4">
+        <div className="mb-4 rounded-lg bg-amber-950/40 border border-amber-500/30 p-4">
           <div className="flex gap-3">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />
-            <div className="text-sm text-amber-800">
-              <p className="font-medium">Why Bring Your Own Key?</p>
-              <p className="mt-1 text-amber-700">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400 mt-0.5" />
+            <div className="text-sm text-amber-300">
+              <p className="font-medium">Why bring your own key?</p>
+              <p className="mt-1 text-amber-400">
                 Your access key is encrypted at rest and never shared. You control
                 your AI usage and costs directly through your Anthropic account.
               </p>
@@ -405,21 +405,21 @@ export default function SettingsPage() {
         </div>
 
         {apiKeySet ? (
-          <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-950/40 p-4">
             <div className="flex items-center gap-3">
               <Check className="h-5 w-5 text-emerald-500" />
               <div>
-                <p className="text-sm font-medium text-emerald-800">
+                <p className="text-sm font-medium text-emerald-400">
                   Access key saved
                 </p>
-                <p className="text-xs text-emerald-600">
+                <p className="text-xs text-emerald-500">
                   sk-ant-...{orgData?.anthropic_api_key_hint ?? (apiKey.slice(-4) || "xxxx")}
                 </p>
               </div>
             </div>
             <Link
               href="/dashboard/admin/ai-config"
-              className="text-sm font-medium text-brand-600 hover:text-brand-700"
+              className="text-sm font-medium text-brand-200 hover:text-brand-500"
             >
               Manage Key
             </Link>
@@ -437,7 +437,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-4 hover:text-fg-2"
               >
                 {showApiKey ? (
                   <EyeOff className="h-4 w-4" />
@@ -466,7 +466,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Autonomy Level</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               How much control your AI team has.
             </p>
           </div>
@@ -479,15 +479,15 @@ export default function SettingsPage() {
               onClick={() => setAutonomy(level.value)}
               className={`flex items-start gap-4 rounded-xl border-2 p-4 text-left transition-all ${
                 autonomy === level.value
-                  ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/20"
-                  : "border-slate-200 hover:border-slate-300"
+                  ? "border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/20"
+                  : "border-bg-3 hover:border-bg-3/80"
               }`}
             >
               <div
                 className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 ${
                   autonomy === level.value
                     ? "border-brand-500 bg-brand-500"
-                    : "border-slate-300"
+                    : "border-fg-4"
                 }`}
               >
                 {autonomy === level.value && (
@@ -495,8 +495,8 @@ export default function SettingsPage() {
                 )}
               </div>
               <div>
-                <p className="font-semibold text-slate-900">{level.label}</p>
-                <p className="mt-0.5 text-sm text-slate-500">
+                <p className="font-semibold text-fg-1">{level.label}</p>
+                <p className="mt-0.5 text-sm text-fg-3">
                   {level.description}
                 </p>
               </div>
@@ -513,19 +513,19 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="heading-3">Team Members</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               People who can access this organization.
             </p>
           </div>
         </div>
 
         {membersLoading ? (
-          <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+          <div className="flex items-center gap-2 text-fg-4 text-sm py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading…
           </div>
         ) : members.length === 0 ? (
-          <p className="text-sm text-slate-400 py-2">No members found.</p>
+          <p className="text-sm text-fg-4 py-2">No members found.</p>
         ) : (
           <div className="space-y-3">
             {members.map((member) => {
@@ -535,39 +535,39 @@ export default function SettingsPage() {
               return (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 p-3"
+                  className="flex items-center justify-between rounded-lg border border-bg-3 p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/20 text-sm font-bold text-brand-200">
                       {member.avatarInitials}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-fg-1 flex items-center gap-1.5">
                         {member.name}
                         {isYou && (
-                          <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
+                          <span className="rounded-full bg-brand-500/20 px-1.5 py-0.5 text-xs font-medium text-brand-200">
                             You
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-slate-500">{member.email}</p>
+                      <p className="text-xs text-fg-3">{member.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         member.role === "owner"
-                          ? "bg-brand-50 text-brand-700"
+                          ? "bg-brand-500/20 text-brand-200"
                           : member.role === "admin"
-                          ? "bg-sky-50 text-sky-700"
-                          : "bg-slate-100 text-slate-600"
+                          ? "bg-sky-900/40 text-sky-400"
+                          : "bg-bg-3 text-fg-3"
                       }`}
                     >
                       {roleCapitalized}
                     </span>
                     {member.role !== "owner" && !isYou && (
                       <button
-                        className="text-slate-400 hover:text-red-500"
+                        className="text-fg-4 hover:text-red-500"
                         title="Remove member (coming soon)"
                         disabled
                       >
@@ -597,7 +597,7 @@ export default function SettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="card w-full max-w-sm p-6 space-y-4">
             <h3 className="heading-3">Invite a Team Member</h3>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-3">
               Team invites are coming soon. You&apos;ll be able to invite colleagues by email once this feature launches.
             </p>
             <div className="flex justify-end">

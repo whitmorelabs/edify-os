@@ -185,10 +185,10 @@ function ProgressBar({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-sm font-medium text-slate-700">{label}</span>
-        <span className="text-sm text-slate-500">{detail}</span>
+        <span className="text-sm font-medium text-fg-2">{label}</span>
+        <span className="text-sm text-fg-3">{detail}</span>
       </div>
-      <div className="h-2 w-full rounded-full bg-slate-100">
+      <div className="h-2 w-full rounded-full bg-bg-3">
         <div
           className={`h-2 rounded-full transition-all ${
             isHigh ? "bg-amber-500" : "bg-brand-500"
@@ -243,40 +243,40 @@ export default function BillingPage() {
       <div>
         <Link
           href="/dashboard/settings"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-500 transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-fg-3 hover:text-brand-500 transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Settings
         </Link>
         <h1 className="heading-1">Billing &amp; Subscription</h1>
-        <p className="mt-1 text-slate-500">
+        <p className="mt-1 text-fg-3">
           Manage your plan and billing details.
         </p>
       </div>
 
       {/* ---- Current Plan Banner ---- */}
-      <div className="card border-2 border-brand-500/30 bg-gradient-to-r from-brand-50/60 to-white p-6">
+      <div className="card border-2 border-brand-500/30 bg-bg-2 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-brand-100 px-3 py-0.5 text-xs font-semibold text-brand-700">
+              <span className="inline-flex items-center rounded-full bg-brand-500/20 px-3 py-0.5 text-xs font-semibold text-brand-200">
                 Current Plan
               </span>
             </div>
             <h2 className="heading-2 mt-2">{activePlan.name}</h2>
-            <p className="text-slate-500 text-sm mt-0.5">
+            <p className="text-fg-3 text-sm mt-0.5">
               {activePlan.price !== "Custom" ? (
                 <>
-                  <span className="text-2xl font-bold text-slate-900">
+                  <span className="text-2xl font-bold text-fg-1">
                     {activePlan.price}
                   </span>
-                  <span className="text-slate-500">/mo</span>
-                  <span className="ml-3 text-slate-400">
+                  <span className="text-fg-3">/mo</span>
+                  <span className="ml-3 text-fg-4">
                     Renews May 10, 2026
                   </span>
                 </>
               ) : (
-                <span className="text-xl font-bold text-slate-900">
+                <span className="text-xl font-bold text-fg-1">
                   Custom pricing
                 </span>
               )}
@@ -328,8 +328,8 @@ export default function BillingPage() {
                   plan.popular
                     ? "border-brand-500 shadow-brand-500/10 shadow-lg"
                     : plan.dark
-                    ? "border-slate-800 bg-brand-950 text-white"
-                    : "border-slate-200"
+                    ? "border-bg-3 bg-bg-plum-1 text-fg-1"
+                    : "border-bg-3"
                 }`}
               >
                 {/* Popular badge */}
@@ -344,17 +344,17 @@ export default function BillingPage() {
                   <div
                     className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                       plan.dark
-                        ? "bg-white/10 text-white"
+                        ? "bg-white/10 text-fg-1"
                         : plan.popular
-                        ? "bg-brand-100 text-brand-600"
-                        : "bg-slate-100 text-slate-600"
+                        ? "bg-brand-500/20 text-brand-200"
+                        : "bg-bg-3 text-fg-2"
                     }`}
                   >
                     {plan.icon}
                   </div>
                   <h3
                     className={`heading-3 ${
-                      plan.dark ? "text-white" : ""
+                      plan.dark ? "text-fg-1" : ""
                     }`}
                   >
                     {plan.name}
@@ -365,7 +365,7 @@ export default function BillingPage() {
                 <div className="mb-2">
                   <span
                     className={`text-3xl font-bold ${
-                      plan.dark ? "text-white" : "text-slate-900"
+                      plan.dark ? "text-fg-1" : "text-fg-1"
                     }`}
                   >
                     {plan.price}
@@ -373,7 +373,7 @@ export default function BillingPage() {
                   {plan.priceNote && (
                     <span
                       className={`text-sm ${
-                        plan.dark ? "text-slate-400" : "text-slate-500"
+                        plan.dark ? "text-fg-4" : "text-fg-3"
                       }`}
                     >
                       {plan.priceNote}
@@ -384,7 +384,7 @@ export default function BillingPage() {
                 {/* Description */}
                 <p
                   className={`text-sm mb-5 ${
-                    plan.dark ? "text-slate-400" : "text-slate-500"
+                    plan.dark ? "text-fg-4" : "text-fg-3"
                   }`}
                 >
                   {plan.description}
@@ -428,7 +428,7 @@ export default function BillingPage() {
                       />
                       <span
                         className={`text-sm ${
-                          plan.dark ? "text-slate-300" : "text-slate-600"
+                          plan.dark ? "text-fg-4" : "text-fg-2"
                         }`}
                       >
                         {f.text}
@@ -460,10 +460,10 @@ export default function BillingPage() {
             />
 
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-fg-2">
                 Tasks this month
               </span>
-              <span className="text-sm font-semibold text-slate-900">
+              <span className="text-sm font-semibold text-fg-1">
                 {usage.tasksMonth.toLocaleString()} total
               </span>
             </div>
@@ -506,28 +506,28 @@ export default function BillingPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="pb-2 text-left font-medium text-slate-500">
+                <tr className="border-b border-bg-3">
+                  <th className="pb-2 text-left font-medium text-fg-3">
                     Period
                   </th>
-                  <th className="pb-2 text-left font-medium text-slate-500">
+                  <th className="pb-2 text-left font-medium text-fg-3">
                     Amount
                   </th>
-                  <th className="pb-2 text-left font-medium text-slate-500">
+                  <th className="pb-2 text-left font-medium text-fg-3">
                     Status
                   </th>
-                  <th className="pb-2 text-right font-medium text-slate-500">
+                  <th className="pb-2 text-right font-medium text-fg-3">
                     Invoice
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-bg-3">
                 {invoices.map((inv) => (
                   <tr key={inv.month}>
-                    <td className="py-3 font-medium text-slate-900">
+                    <td className="py-3 font-medium text-fg-1">
                       {inv.month}
                     </td>
-                    <td className="py-3 text-slate-700">{inv.amount}</td>
+                    <td className="py-3 text-fg-2">{inv.amount}</td>
                     <td className="py-3">
                       <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                         {inv.status}
@@ -545,7 +545,7 @@ export default function BillingPage() {
             </table>
           </div>
 
-          <div className="mt-5 border-t border-slate-200 pt-5">
+          <div className="mt-5 border-t border-bg-3 pt-5">
             <button className="btn-secondary w-full justify-center">
               <CreditCard className="h-4 w-4" />
               Update Payment Method
@@ -564,18 +564,18 @@ export default function BillingPage() {
                 onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
                 className="flex w-full items-center justify-between p-4 text-left"
               >
-                <span className="text-sm font-medium text-slate-900">
+                <span className="text-sm font-medium text-fg-1">
                   {faq.question}
                 </span>
                 {expandedFaq === i ? (
-                  <ChevronUp className="h-4 w-4 text-slate-400 shrink-0" />
+                  <ChevronUp className="h-4 w-4 text-fg-4 shrink-0" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
+                  <ChevronDown className="h-4 w-4 text-fg-4 shrink-0" />
                 )}
               </button>
               {expandedFaq === i && (
-                <div className="border-t border-slate-100 px-4 pb-4 pt-3">
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                <div className="border-t border-bg-3 px-4 pb-4 pt-3">
+                  <p className="text-sm text-fg-2 leading-relaxed">
                     {faq.answer}
                   </p>
                 </div>
@@ -587,8 +587,8 @@ export default function BillingPage() {
 
       {/* ---- Upgrade / Downgrade Modal ---- */}
       {showUpgradeModal && selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="card mx-4 w-full max-w-md p-6 shadow-2xl animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-bg-2 shadow-elev-4 rounded-xl mx-4 w-full max-w-md p-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <h3 className="heading-3">
                 {getPlanIndex(selectedPlan) > getPlanIndex(currentPlan)
@@ -601,23 +601,23 @@ export default function BillingPage() {
                   setShowUpgradeModal(false);
                   setSelectedPlan(null);
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-fg-4 hover:text-fg-2"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Price change */}
-            <div className="rounded-lg bg-slate-50 p-4 mb-5">
+            <div className="rounded-lg bg-bg-3 p-4 mb-5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">Current plan</span>
-                <span className="font-medium text-slate-900">
+                <span className="text-fg-3">Current plan</span>
+                <span className="font-medium text-fg-1">
                   {activePlan.name} ({activePlan.price}
                   {activePlan.priceNote || ""})
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm mt-2">
-                <span className="text-slate-500">New plan</span>
+                <span className="text-fg-3">New plan</span>
                 <span className="font-semibold text-brand-600">
                   {plans.find((p) => p.id === selectedPlan)?.name} (
                   {plans.find((p) => p.id === selectedPlan)?.price}
@@ -629,14 +629,14 @@ export default function BillingPage() {
             {/* New features they gain (only on upgrade) */}
             {getPlanIndex(selectedPlan) > getPlanIndex(currentPlan) && (
               <div className="mb-5">
-                <p className="text-sm font-medium text-slate-700 mb-2">
+                <p className="text-sm font-medium text-fg-2 mb-2">
                   What you&apos;ll gain:
                 </p>
                 <ul className="space-y-1.5">
                   {getNewFeatures(currentPlan, selectedPlan).map((feat) => (
                     <li
                       key={feat}
-                      className="flex items-center gap-2 text-sm text-slate-600"
+                      className="flex items-center gap-2 text-sm text-fg-2"
                     >
                       <CheckCircle className="h-4 w-4 text-brand-500 shrink-0" />
                       {feat}
@@ -648,8 +648,8 @@ export default function BillingPage() {
 
             {/* Downgrade warning */}
             {getPlanIndex(selectedPlan) < getPlanIndex(currentPlan) && (
-              <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <p className="text-sm text-amber-800">
+              <div className="mb-5 rounded-lg border border-amber-500/30 bg-amber-950/40 p-3">
+                <p className="text-sm text-amber-300">
                   Downgrading will take effect at the end of your current
                   billing cycle. Some features and data exceeding the new
                   plan&apos;s limits may become inaccessible.

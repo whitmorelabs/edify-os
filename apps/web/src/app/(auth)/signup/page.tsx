@@ -64,7 +64,7 @@ export default function SignupPage() {
               onChange={(e) => setOrgName(e.target.value)}
               placeholder="Hope Community Foundation"
               required
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors"
             />
           </div>
         </div>
@@ -81,7 +81,7 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@nonprofit.org"
               required
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors"
             />
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function SignupPage() {
               placeholder="Min 8 characters"
               required
               minLength={8}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors"
             />
           </div>
         </div>
@@ -107,7 +107,7 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#7C3AED] px-6 py-3 text-sm font-semibold text-white hover:bg-[#8B5CF6] active:bg-[#6D28D9] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 focus:ring-offset-2 focus:ring-offset-[#243b44] transition-all duration-200 disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-500 px-6 py-3 text-sm font-semibold text-[var(--fg-on-purple)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 disabled:opacity-50"
         >
           {loading ? "Creating your team..." : "Create Account"}
           <ArrowRight className="h-4 w-4" />
@@ -128,7 +128,7 @@ export default function SignupPage() {
 
           <Link
             href="/dashboard?demo=true"
-            className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-[#8B5CF6] hover:bg-white/5 transition-all duration-150"
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-brand-500 hover:bg-white/5 transition-all duration-150"
           >
             Skip to Demo Dashboard
             <ArrowRight className="h-4 w-4" />
@@ -140,7 +140,7 @@ export default function SignupPage() {
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-semibold text-[#8B5CF6] hover:text-[#a78bfa]"
+          className="font-semibold text-brand-500 hover:opacity-70"
         >
           Sign in
         </Link>

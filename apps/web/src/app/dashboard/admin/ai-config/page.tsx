@@ -174,7 +174,7 @@ export default function AIConfigPage() {
       {/* Header */}
       <div>
         <h1 className="heading-1">AI Configuration</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <p className="text-sm text-fg-3 mt-0.5">
           Control which team members are active, how much autonomy they have, and any custom instructions.
         </p>
       </div>
@@ -183,7 +183,7 @@ export default function AIConfigPage() {
       <div className="space-y-4">
         {archetypes.map((archetype) => {
           const Icon = ARCHETYPE_ICONS[archetype.slug] || Landmark;
-          const colorClass = ARCHETYPE_COLORS[archetype.slug] || "bg-slate-50 text-slate-600";
+          const colorClass = ARCHETYPE_COLORS[archetype.slug] || "bg-bg-3 text-fg-3";
           const isAutonomyOpen = openDropdown === `autonomy-${archetype.slug}`;
 
           return (
@@ -200,7 +200,7 @@ export default function AIConfigPage() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900">{archetype.label}</p>
+                  <p className="font-semibold text-fg-1">{archetype.label}</p>
                 </div>
 
                 {/* Toggle */}
@@ -230,16 +230,16 @@ export default function AIConfigPage() {
                     <div className="relative">
                       <button
                         onClick={() => setOpenDropdown(isAutonomyOpen ? null : `autonomy-${archetype.slug}`)}
-                        className="w-full flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 hover:bg-slate-50 transition-colors"
+                        className="w-full flex items-center justify-between rounded-lg border border-bg-3 bg-bg-3 px-3.5 py-2.5 text-sm text-fg-1 hover:bg-bg-2 transition-colors"
                       >
                         <span>{autonomyOptions.find((o) => o.value === archetype.autonomyLevel)?.label}</span>
-                        <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", isAutonomyOpen && "rotate-180")} />
+                        <ChevronDown className={cn("h-4 w-4 text-fg-4 transition-transform", isAutonomyOpen && "rotate-180")} />
                       </button>
 
                       {isAutonomyOpen && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
-                          <div className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                          <div className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg border border-bg-3 bg-bg-3 py-1 shadow-elev-3">
                             {autonomyOptions.map((opt) => (
                               <button
                                 key={opt.value}
@@ -247,13 +247,13 @@ export default function AIConfigPage() {
                                   updateArchetype(archetype.slug, { autonomyLevel: opt.value });
                                   setOpenDropdown(null);
                                 }}
-                                className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                                className="w-full px-4 py-3 text-left hover:bg-bg-2 transition-colors"
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-slate-900">{opt.label}</span>
+                                  <span className="text-sm font-medium text-fg-1">{opt.label}</span>
                                   {archetype.autonomyLevel === opt.value && <Check className="h-4 w-4 text-brand-500" />}
                                 </div>
-                                <p className="text-xs text-slate-500 mt-0.5">{opt.description}</p>
+                                <p className="text-xs text-fg-3 mt-0.5">{opt.description}</p>
                               </button>
                             ))}
                           </div>
@@ -288,7 +288,7 @@ export default function AIConfigPage() {
           </div>
           <div>
             <h2 className="heading-3">AI Provider</h2>
-            <p className="text-sm text-slate-500">Configure which provider powers your team.</p>
+            <p className="text-sm text-fg-3">Configure which provider powers your team.</p>
           </div>
         </div>
 
@@ -299,15 +299,15 @@ export default function AIConfigPage() {
             <div className="relative">
               <button
                 onClick={() => setProviderDropdownOpen(!providerDropdownOpen)}
-                className="w-full flex items-center justify-between rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 hover:bg-slate-50 transition-colors max-w-sm"
+                className="w-full flex items-center justify-between rounded-lg border border-bg-3 bg-bg-3 px-3.5 py-2.5 text-sm text-fg-1 hover:bg-bg-2 transition-colors max-w-sm"
               >
                 <span>{provider?.provider || "Select provider"}</span>
-                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", providerDropdownOpen && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 text-fg-4 transition-transform", providerDropdownOpen && "rotate-180")} />
               </button>
               {providerDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setProviderDropdownOpen(false)} />
-                  <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                  <div className="absolute left-0 top-full mt-1 z-20 w-64 rounded-lg border border-bg-3 bg-bg-3 py-1 shadow-elev-3">
                     {providers.map((p) => (
                       <button
                         key={p}
@@ -358,7 +358,7 @@ export default function AIConfigPage() {
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-4 hover:text-fg-2"
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

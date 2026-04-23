@@ -1,6 +1,5 @@
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
-import SectionLabel from "@/components/section-label";
 
 export const metadata = {
   title: "Integrations | Edify OS",
@@ -22,27 +21,27 @@ const integrations = [
   },
   {
     name: "Slack",
-    category: "Team Communication",
+    category: "Team communication",
     desc: "Receive heartbeat updates and team check-ins in your Slack workspace. Post AI-drafted content for team review before publishing.",
-    status: "Coming Soon",
+    status: "Coming soon",
   },
   {
     name: "Instagram",
-    category: "Social Media",
+    category: "Social media",
     desc: "The Marketing Director monitors engagement data, suggests content calendar items, and drafts posts formatted for Instagram's character limits and visual style.",
-    status: "Coming Soon",
+    status: "Coming soon",
   },
   {
     name: "Facebook",
-    category: "Social Media",
+    category: "Social media",
     desc: "Publish approved content, track engagement metrics, and let the Marketing Director analyze what is resonating with your community audience.",
-    status: "Coming Soon",
+    status: "Coming soon",
   },
   {
     name: "LinkedIn",
-    category: "Social Media",
+    category: "Social media",
     desc: "Professional content for board members, major donors, and sector partners. The Marketing Director writes in LinkedIn's native tone and format.",
-    status: "Coming Soon",
+    status: "Coming soon",
   },
   {
     name: "Salesforce Nonprofit Success Pack",
@@ -64,13 +63,13 @@ const integrations = [
   },
   {
     name: "Candid / Foundation Directory",
-    category: "Grant Research",
+    category: "Grant research",
     desc: "Search funder profiles, track foundation priorities, and let the Development Director identify matches before opportunities close.",
     status: "Planned",
   },
   {
     name: "Grants.gov",
-    category: "Grant Research",
+    category: "Grant research",
     desc: "Monitor federal grant opportunities matching your mission. Never miss a federal deadline again.",
     status: "Planned",
   },
@@ -82,32 +81,32 @@ const integrations = [
   },
 ];
 
-const statusColors: Record<string, string> = {
-  "Available": "bg-emerald-100 text-emerald-700",
-  "Coming Soon": "bg-amber-100 text-amber-700",
-  "Planned": "bg-[#f5f0ff] text-[#7c3aed]",
+const statusStyles: Record<string, string> = {
+  "Available": "bg-[#4ADE80]/15 text-[#4ADE80]",
+  "Coming soon": "bg-[#FCD34D]/15 text-[#FCD34D]",
+  "Planned": "bg-brand-500/15 text-brand-500",
 };
 
 export default function IntegrationsPage() {
   return (
-    <div className="spial-page">
+    <div className="bg-bg-0 min-h-screen">
       <SpialNavbar />
 
       {/* Hero */}
-      <section className="bg-[#1a2b32] py-20">
+      <section className="bg-bg-plum-1 py-20">
         <div className="spial-container mx-auto text-center">
-          <SectionLabel text="Integrations" />
-          <h1 className="text-white text-[36px] md:text-[52px] font-semibold leading-[1.2] mb-5">
+          <div className="eyebrow mb-4">Integrations</div>
+          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
             Your team works where you work.
           </h1>
-          <p className="text-white/80 text-lg leading-[1.7] max-w-[700px] mx-auto">
+          <p className="text-fg-2 text-lg leading-[1.7] max-w-[700px] mx-auto">
             Edify OS connects to the tools your organization already uses. The more your team can see, the more value they can surface.
           </p>
         </div>
       </section>
 
       {/* Integration principle */}
-      <section className="py-14 bg-[#392e3b] text-white">
+      <section className="py-14 bg-bg-0">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -124,9 +123,9 @@ export default function IntegrationsPage() {
                 desc: "Heartbeat check-ins are most powerful when they have real data to scan. Grant deadlines from Candid. Email volume from Gmail. Campaign data from social platforms.",
               },
             ].map((f, i) => (
-              <div key={i} className="bg-white/10 rounded-xl p-7 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-3">{f.title}</h3>
-                <p className="text-white/70 text-sm leading-[1.7]">{f.desc}</p>
+              <div key={i} className="bg-bg-2 shadow-elev-1 rounded-xl p-7">
+                <h3 className="text-lg font-semibold text-fg-1 mb-3">{f.title}</h3>
+                <p className="text-fg-3 text-sm leading-[1.7]">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -134,19 +133,19 @@ export default function IntegrationsPage() {
       </section>
 
       {/* Integration Grid */}
-      <section className="py-20 bg-[#f7f6f5]">
+      <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
-          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4 text-center">
+          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-4 text-center">
             Supported integrations
           </h2>
-          <p className="text-center text-[#666] leading-[1.7] max-w-[600px] mx-auto mb-[50px]">
-            Available integrations work today. Coming Soon are in active development. Planned are on the roadmap.
+          <p className="text-center text-fg-3 leading-[1.7] max-w-[600px] mx-auto mb-[50px]">
+            Available integrations work today. Coming soon are in active development. Planned are on the roadmap.
           </p>
 
           {/* Status legend */}
           <div className="flex flex-wrap gap-4 justify-center mb-10">
-            {["Available", "Coming Soon", "Planned"].map((s) => (
-              <span key={s} className={`text-sm px-3 py-1 rounded-full font-medium ${statusColors[s]}`}>
+            {["Available", "Coming soon", "Planned"].map((s) => (
+              <span key={s} className={`text-sm px-3 py-1 rounded-full font-medium ${statusStyles[s]}`}>
                 {s}
               </span>
             ))}
@@ -156,29 +155,29 @@ export default function IntegrationsPage() {
             {integrations.map((integ) => (
               <div
                 key={integ.name}
-                className="bg-white rounded-xl p-7 shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-[#f0f0f0]"
+                className="bg-bg-2 shadow-elev-1 rounded-xl p-7"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-black text-lg">{integ.name}</h3>
-                    <p className="text-xs text-[#999] mt-0.5">{integ.category}</p>
+                    <h3 className="font-semibold text-fg-1 text-lg">{integ.name}</h3>
+                    <p className="text-xs text-fg-4 mt-0.5">{integ.category}</p>
                   </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ml-3 shrink-0 ${statusColors[integ.status]}`}>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ml-3 shrink-0 ${statusStyles[integ.status]}`}>
                     {integ.status}
                   </span>
                 </div>
-                <p className="text-sm text-[#666] leading-[1.6]">{integ.desc}</p>
+                <p className="text-sm text-fg-3 leading-[1.6]">{integ.desc}</p>
               </div>
             ))}
           </div>
 
           <div className="text-center mt-12">
-            <p className="text-[#666] leading-[1.7] mb-4">
+            <p className="text-fg-3 leading-[1.7] mb-4">
               Don&apos;t see an integration you need? Let us know.
             </p>
             <a
               href="mailto:connect@edifyanother.com"
-              className="text-[#8B5CF6] font-medium no-underline hover:underline"
+              className="text-brand-500 font-medium no-underline hover:underline"
             >
               connect@edifyanother.com
             </a>

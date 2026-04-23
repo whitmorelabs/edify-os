@@ -159,8 +159,8 @@ export default function BriefingPage() {
     <div className="max-w-2xl mx-auto animate-fade-in">
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="heading-1">Brief Your Team</h1>
-        <p className="mt-1 text-slate-500">
+        <h1 className="heading-1">Brief your team</h1>
+        <p className="mt-1 text-fg-3">
           Help your team understand your organization so they can give you the best advice.
         </p>
       </div>
@@ -175,8 +175,8 @@ export default function BriefingPage() {
                   i < step
                     ? 'border-brand-500 bg-brand-500 text-white'
                     : i === step
-                    ? 'border-brand-500 bg-brand-50 text-brand-500'
-                    : 'border-slate-200 bg-white text-slate-400'
+                    ? 'border-brand-500 bg-brand-500/10 text-brand-200'
+                    : 'border-bg-3 bg-bg-2 text-fg-4'
                 }`}
               >
                 {i < step ? (
@@ -187,14 +187,14 @@ export default function BriefingPage() {
               </div>
               <span
                 className={`hidden sm:block text-xs font-medium transition-colors ${
-                  i <= step ? 'text-brand-600' : 'text-slate-400'
+                  i <= step ? 'text-brand-200' : 'text-fg-4'
                 }`}
               >
                 {s.label}
               </span>
               <span
                 className={`sm:hidden text-xs font-medium transition-colors ${
-                  i <= step ? 'text-brand-600' : 'text-slate-400'
+                  i <= step ? 'text-brand-200' : 'text-fg-4'
                 }`}
               >
                 {s.short}
@@ -202,13 +202,13 @@ export default function BriefingPage() {
             </div>
           ))}
         </div>
-        <div className="mt-4 h-1 rounded-full bg-slate-100">
+        <div className="mt-4 h-1 rounded-full bg-bg-3">
           <div
             className="h-1 rounded-full bg-brand-500 transition-all duration-500"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
-        <p className="mt-2 text-xs text-slate-400 text-right">
+        <p className="mt-2 text-xs text-fg-4 text-right">
           Step {step + 1} of {STEPS.length}
         </p>
       </div>
@@ -276,7 +276,7 @@ export default function BriefingPage() {
       </div>
 
       {/* Footer note */}
-      <p className="mt-4 text-center text-xs text-slate-400">
+      <p className="mt-4 text-center text-xs text-fg-4">
         Your progress is saved automatically. Come back anytime.
       </p>
     </div>

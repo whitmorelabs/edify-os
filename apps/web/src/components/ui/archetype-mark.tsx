@@ -4,17 +4,26 @@
  * ArchetypeMark — the visual "avatar" for a director archetype.
  * Layered identity (plaque + diagonal hairline + glyph), not a flat icon.
  * Use anywhere we'd reach for a user avatar.
+ *
+ * Accepts either a full `arc` object (client usage) or an `arcKey` string
+ * (server-component-safe — avoids passing Icon functions across the boundary).
  */
 
-import type { Archetype } from "./archetypes";
+import type { Archetype, ArchetypeKey } from "./archetypes";
+import { ARCHETYPES } from "./archetypes";
 
 export interface ArchetypeMarkProps {
-  arc: Archetype;
+  /** Full archetype object (client components). */
+  arc?: Archetype;
+  /** Archetype key — use from server components to avoid function boundary error. */
+  arcKey?: ArchetypeKey;
   size?: number;
   className?: string;
 }
 
-export function ArchetypeMark({ arc, size = 40, className }: ArchetypeMarkProps) {
+export function ArchetypeMark({ arc: arcProp, arcKey, size = 40, className }: ArchetypeMarkProps) {
+  const arc = arcProp ?? (arcKey ? ARCHETYPES[arcKey] : null);
+  if (!arc) return null;
   const radius = size >= 44 ? 12 : 8;
   const { Icon, color } = arc;
 

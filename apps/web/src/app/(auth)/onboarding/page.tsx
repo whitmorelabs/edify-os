@@ -172,7 +172,7 @@ export default function OnboardingPage() {
               placeholder="Hope Community Foundation"
               required
               disabled={submitting}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors disabled:opacity-50"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors disabled:opacity-50"
             />
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function OnboardingPage() {
               placeholder="sk-ant-api03-..."
               required
               disabled={submitting}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 font-mono text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors disabled:opacity-50"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 font-mono text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors disabled:opacity-50"
             />
           </div>
           <p className="mt-1.5 text-xs text-white/35">
@@ -200,7 +200,7 @@ export default function OnboardingPage() {
               href="https://console.anthropic.com"
               target="_blank"
               rel="noreferrer"
-              className="text-[#8B5CF6] hover:text-[#a78bfa] underline"
+              className="text-brand-500 hover:opacity-70 underline"
             >
               console.anthropic.com
             </a>
@@ -219,14 +219,14 @@ export default function OnboardingPage() {
               value={useOther ? "other" : timezone}
               onChange={(e) => handleTimezoneChange(e.target.value)}
               disabled={submitting}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors disabled:opacity-50 appearance-none"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 pl-10 text-sm text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors disabled:opacity-50 appearance-none"
             >
               {TIMEZONE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-[#1a2f38] text-white">
+                <option key={opt.value} value={opt.value} className="bg-bg-2 text-white">
                   {opt.label}
                 </option>
               ))}
-              <option value="other" className="bg-[#1a2f38] text-white">
+              <option value="other" className="bg-bg-2 text-white">
                 Other (enter manually)
               </option>
             </select>
@@ -238,7 +238,7 @@ export default function OnboardingPage() {
               onChange={(e) => setOtherTimezone(e.target.value)}
               placeholder="e.g. America/New_York"
               disabled={submitting}
-              className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20 transition-colors disabled:opacity-50"
+              className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors disabled:opacity-50"
             />
           )}
           <p className="mt-1.5 text-xs text-white/35">
@@ -249,7 +249,7 @@ export default function OnboardingPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#7C3AED] px-6 py-3 text-sm font-semibold text-white hover:bg-[#8B5CF6] active:bg-[#6D28D9] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 focus:ring-offset-2 focus:ring-offset-[#243b44] transition-all duration-200 disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-500 px-6 py-3 text-sm font-semibold text-[var(--fg-on-purple)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 disabled:opacity-50"
         >
           {submitting ? (
             <>

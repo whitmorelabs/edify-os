@@ -80,9 +80,9 @@ export default function HeartbeatsSettingsPage() {
   if (!settings) {
     return (
       <div className="max-w-3xl space-y-4 animate-fade-in">
-        <div className="h-8 w-64 bg-slate-100 rounded-lg animate-pulse" />
-        <div className="h-48 bg-slate-100 rounded-xl animate-pulse" />
-        <div className="h-32 bg-slate-100 rounded-xl animate-pulse" />
+        <div className="h-8 w-64 bg-bg-2 rounded-lg animate-pulse" />
+        <div className="h-48 bg-bg-2 rounded-xl animate-pulse" />
+        <div className="h-32 bg-bg-2 rounded-xl animate-pulse" />
       </div>
     );
   }
@@ -93,13 +93,13 @@ export default function HeartbeatsSettingsPage() {
       <div>
         <Link
           href="/dashboard/settings"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-fg-3 hover:text-fg-2 mb-3 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Settings
         </Link>
         <h1 className="heading-1">Your Team&apos;s Schedule</h1>
-        <p className="mt-1 text-slate-500">
+        <p className="mt-1 text-fg-3">
           Configure how often each team member checks in with you.
         </p>
       </div>

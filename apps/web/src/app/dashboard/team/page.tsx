@@ -8,10 +8,6 @@ import { useEffect, useState } from "react";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 
-/**
- * Format an ISO timestamp as a relative string like "2m ago", "3h ago", "1d ago".
- * Falls back to "No conversations yet" when timestamp is null.
- */
 function formatRelativeTime(isoTimestamp: string | null | undefined): string {
   if (!isoTimestamp) return "No conversations yet";
   const diffMs = Date.now() - new Date(isoTimestamp).getTime();
@@ -36,7 +32,6 @@ export default function TeamPage() {
   const [lastActiveTs, setLastActiveTs] = useState<Record<string, string | null>>({});
   const { names: archetypeNames } = useArchetypeNames();
 
-  // Load last message previews from localStorage (still client-side for title previews)
   useEffect(() => {
     const previews: Record<string, string> = {};
     for (const slug of ARCHETYPE_SLUGS) {
@@ -48,7 +43,6 @@ export default function TeamPage() {
     setLastMessages(previews);
   }, []);
 
-  // Load last-active timestamps from the server; fall back to localStorage if fetch fails
   useEffect(() => {
     async function fetchLastActive() {
       try {
@@ -61,7 +55,6 @@ export default function TeamPage() {
       } catch {
         // Network error — fall through to localStorage fallback
       }
-      // Fallback: read from localStorage
       const timestamps: Record<string, string | null> = {};
       for (const slug of ARCHETYPE_SLUGS) {
         const convos = getLocalConversations(slug);
@@ -75,8 +68,8 @@ export default function TeamPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="heading-1">Your AI Team</h1>
-        <p className="mt-1 text-gray-500">
+        <h1 className="heading-1">Your AI team</h1>
+        <p className="mt-1 text-fg-3">
           Meet the leaders powering your organization. Click any card to start a conversation.
         </p>
       </div>
@@ -93,7 +86,7 @@ export default function TeamPage() {
             <Link
               key={slug}
               href={`/dashboard/team/${slug}`}
-              className="card card-interactive overflow-hidden group"
+              className="bg-bg-2 shadow-elev-1 rounded-lg overflow-hidden hover:shadow-elev-2 transition-shadow group"
             >
               {/* Color accent top bar */}
               <div className={`h-1 w-full ${config.bg}`} />
@@ -107,7 +100,7 @@ export default function TeamPage() {
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                   {/* Online indicator */}
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 text-xs font-medium text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Active
                   </span>
@@ -117,19 +110,19 @@ export default function TeamPage() {
                 <div className="mt-4">
                   {customName ? (
                     <>
-                      <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                      <h3 className="text-sm font-semibold text-fg-1 leading-tight">
                         {customName}
                       </h3>
-                      <p className="mt-0.5 text-xs font-medium text-gray-500">
+                      <p className="mt-0.5 text-xs font-medium text-fg-3">
                         {config.label}
                       </p>
                     </>
                   ) : (
-                    <h3 className="text-sm font-bold text-gray-900 leading-tight">
+                    <h3 className="text-sm font-semibold text-fg-1 leading-tight">
                       {config.label}
                     </h3>
                   )}
-                  <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+                  <p className="mt-1 text-xs text-fg-3 leading-relaxed">
                     {config.description}
                   </p>
                 </div>
@@ -137,11 +130,11 @@ export default function TeamPage() {
                 {/* Last message or invite */}
                 <div className="mt-4 min-h-[2.5rem]">
                   {lastMsg ? (
-                    <p className="text-xs text-gray-400 italic truncate">
+                    <p className="text-xs text-fg-4 italic truncate">
                       &ldquo;{lastMsg}&rdquo;
                     </p>
                   ) : (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-fg-4">
                       Start a conversation
                     </p>
                   )}
@@ -149,7 +142,7 @@ export default function TeamPage() {
 
                 {/* Footer */}
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-xs text-gray-400">{lastActive}</span>
+                  <span className="text-xs text-fg-4">{lastActive}</span>
                   <span
                     className={`inline-flex items-center gap-1.5 text-xs font-medium ${config.text} group-hover:underline`}
                   >

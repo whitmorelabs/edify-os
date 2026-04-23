@@ -189,8 +189,8 @@ export default function MemoryPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="heading-1">Organization Memory</h1>
-          <p className="mt-1 text-slate-500">
+          <h1 className="heading-1">Organization memory</h1>
+          <p className="mt-1 text-fg-3">
             The knowledge base your AI team uses to stay context-aware.
           </p>
         </div>
@@ -210,7 +210,7 @@ export default function MemoryPage() {
             <h3 className="heading-3">{isEditing ? "Edit Memory Entry" : "New Memory Entry"}</h3>
             <button
               onClick={closeForm}
-              className="text-slate-400 hover:text-slate-600"
+              className="text-fg-4 hover:text-fg-2"
             >
               <X className="h-5 w-5" />
             </button>
@@ -279,9 +279,9 @@ export default function MemoryPage() {
 
       {/* Delete error banner */}
       {deleteError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600 flex items-center justify-between">
+        <div className="rounded-lg bg-red-950/40 border border-red-500/30 p-3 text-sm text-red-400 flex items-center justify-between">
           <span>{deleteError}</span>
-          <button onClick={() => setDeleteError(null)} className="ml-3 text-red-400 hover:text-red-600">
+          <button onClick={() => setDeleteError(null)} className="ml-3 text-red-400 hover:text-red-300">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -289,7 +289,7 @@ export default function MemoryPage() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-4" />
         <input
           type="text"
           placeholder="Search memory..."
@@ -306,7 +306,7 @@ export default function MemoryPage() {
           className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
             activeCategory === "all"
               ? "bg-brand-500 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              : "bg-bg-3 text-fg-2 hover:bg-bg-2"
           }`}
         >
           All
@@ -320,7 +320,7 @@ export default function MemoryPage() {
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                 activeCategory === key
                   ? "bg-brand-500 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  : "bg-bg-3 text-fg-2 hover:bg-bg-2"
               }`}
             >
               <config.icon className="h-3.5 w-3.5" />
@@ -330,7 +330,7 @@ export default function MemoryPage() {
                   className={`text-xs ${
                     activeCategory === key
                       ? "text-white/70"
-                      : "text-slate-400"
+                      : "text-fg-4"
                   }`}
                 >
                   {count}
@@ -345,9 +345,9 @@ export default function MemoryPage() {
       <div className="space-y-3">
         {loading ? (
           <>
-            <div className="h-24 rounded-xl bg-slate-100 animate-pulse" />
-            <div className="h-24 rounded-xl bg-slate-100 animate-pulse" />
-            <div className="h-24 rounded-xl bg-slate-100 animate-pulse" />
+            <div className="h-24 rounded-xl bg-bg-3 animate-pulse" />
+            <div className="h-24 rounded-xl bg-bg-3 animate-pulse" />
+            <div className="h-24 rounded-xl bg-bg-3 animate-pulse" />
           </>
         ) : error ? (
           <div className="card p-12 text-center">
@@ -355,9 +355,9 @@ export default function MemoryPage() {
           </div>
         ) : entries.length === 0 ? (
           <div className="card p-12 text-center">
-            <BookOpen className="mx-auto h-10 w-10 text-slate-300" />
-            <p className="mt-4 font-medium text-slate-700">No memory entries yet.</p>
-            <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
+            <BookOpen className="mx-auto h-10 w-10 text-fg-4" />
+            <p className="mt-4 font-medium text-fg-1">No memory entries yet.</p>
+            <p className="mt-1 text-sm text-fg-3 max-w-sm mx-auto">
               Your memory grows as you chat with your team, upload briefings, and customize their roles.
             </p>
             <Link
@@ -370,8 +370,8 @@ export default function MemoryPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="card p-12 text-center">
-            <Search className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-3 text-sm text-slate-500">No entries found.</p>
+            <Search className="mx-auto h-8 w-8 text-fg-4" />
+            <p className="mt-3 text-sm text-fg-3">No entries found.</p>
           </div>
         ) : (
           filtered.map((entry) => {
@@ -387,7 +387,7 @@ export default function MemoryPage() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-slate-900">
+                        <h3 className="font-semibold text-fg-1">
                           {entry.title}
                         </h3>
                         {isAutoGen && (
@@ -396,10 +396,10 @@ export default function MemoryPage() {
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+                      <p className="mt-1 text-sm text-fg-2 leading-relaxed">
                         {entry.content}
                       </p>
-                      <div className="mt-2 flex items-center gap-3 text-xs text-slate-400">
+                      <div className="mt-2 flex items-center gap-3 text-xs text-fg-4">
                         <span>{catConfig.label}</span>
                         {entry.source && (
                           <span>From: {entry.source}</span>
@@ -414,7 +414,7 @@ export default function MemoryPage() {
                         <span title="This entry is system-generated">
                           <button
                             disabled
-                            className="rounded-lg p-1.5 text-slate-300 cursor-not-allowed"
+                            className="rounded-lg p-1.5 text-fg-4 cursor-not-allowed"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -422,7 +422,7 @@ export default function MemoryPage() {
                         <span title="This entry is system-generated">
                           <button
                             disabled
-                            className="rounded-lg p-1.5 text-slate-300 cursor-not-allowed"
+                            className="rounded-lg p-1.5 text-fg-4 cursor-not-allowed"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -432,7 +432,7 @@ export default function MemoryPage() {
                       <>
                         <button
                           onClick={() => openEditForm(entry)}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          className="rounded-lg p-1.5 text-fg-4 hover:bg-bg-3 hover:text-fg-2"
                           title="Edit entry"
                         >
                           <Pencil className="h-4 w-4" />
@@ -444,7 +444,7 @@ export default function MemoryPage() {
                             }
                           }}
                           disabled={isBeingDeleted}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="rounded-lg p-1.5 text-fg-4 hover:bg-red-950/40 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete entry"
                         >
                           <Trash2 className="h-4 w-4" />

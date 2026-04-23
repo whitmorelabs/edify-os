@@ -54,7 +54,7 @@ export default function MembersPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="heading-1">Members</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-fg-3 mt-0.5">
             {loading ? "Loading..." : `${members.length} ${members.length === 1 ? "person" : "people"} in your organization`}
           </p>
         </div>
@@ -70,16 +70,16 @@ export default function MembersPage() {
       {/* Stats strip */}
       {!loading && (
         <div className="flex gap-4 flex-wrap">
-          <div className="flex items-center gap-2 rounded-full bg-purple-100 px-3 py-1.5 text-xs font-medium text-purple-700">
-            <span className="h-2 w-2 rounded-full bg-purple-500" />
+          <div className="flex items-center gap-2 rounded-full bg-brand-500/20 px-3 py-1.5 text-xs font-medium text-brand-200">
+            <span className="h-2 w-2 rounded-full bg-brand-500" />
             {members.filter((m) => m.role === "owner").length} Owner
           </div>
           <div className="flex items-center gap-2 rounded-full bg-sky-100 px-3 py-1.5 text-xs font-medium text-sky-700">
             <span className="h-2 w-2 rounded-full bg-sky-500" />
             {members.filter((m) => m.role === "admin").length} Admin
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-            <span className="h-2 w-2 rounded-full bg-slate-400" />
+          <div className="flex items-center gap-2 rounded-full bg-bg-3 px-3 py-1.5 text-xs font-medium text-fg-3">
+            <span className="h-2 w-2 rounded-full bg-fg-4" />
             {members.filter((m) => m.role === "member").length} Member
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function MembersPage() {
       {/* Table card */}
       <div className="card p-6">
         {loading ? (
-          <div className="py-12 text-center text-slate-500 text-sm">Loading members...</div>
+          <div className="py-12 text-center text-fg-3 text-sm">Loading members...</div>
         ) : (
           <MemberTable
             members={members}
@@ -113,12 +113,12 @@ export default function MembersPage() {
       {confirmRemove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmRemove(null)} />
-          <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-xl p-6">
+          <div className="relative w-full max-w-sm rounded-xl bg-bg-2 shadow-elev-4 p-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4 mx-auto">
               <AlertTriangle className="h-6 w-6 text-red-500" />
             </div>
-            <h3 className="heading-3 text-center mb-2">Remove Member?</h3>
-            <p className="text-sm text-slate-500 text-center mb-6">
+            <h3 className="heading-3 text-center mb-2">Remove member?</h3>
+            <p className="text-sm text-fg-3 text-center mb-6">
               <strong>{confirmRemove.name}</strong> will lose access to your organization. This can&apos;t be undone.
             </p>
             <div className="flex gap-3">
@@ -143,8 +143,8 @@ export default function MembersPage() {
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg text-sm font-medium ${
           toast.type === "success"
-            ? "bg-white border-emerald-200 text-emerald-800"
-            : "bg-white border-red-200 text-red-800"
+            ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
+            : "bg-red-950/40 border-red-500/30 text-red-400"
         }`}>
           {toast.type === "success" ? (
             <Check className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -152,7 +152,7 @@ export default function MembersPage() {
             <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
           )}
           {toast.message}
-          <button onClick={() => setToast(null)} className="ml-2 text-slate-400 hover:text-slate-600">
+          <button onClick={() => setToast(null)} className="ml-2 text-fg-4 hover:text-fg-2">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>

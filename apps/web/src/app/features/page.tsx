@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Landmark, Megaphone, CalendarCheck, BookOpen, Heart, PartyPopper } from "lucide-react";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
-import SectionLabel from "@/components/section-label";
+import { Button } from "@/components/ui";
 
 export const metadata = {
   title: "Features | Edify OS",
@@ -14,9 +14,6 @@ const directors = [
     icon: Landmark,
     name: "Development Director",
     slug: "development-director",
-    accent: "text-emerald-600",
-    bgAccent: "bg-emerald-50",
-    borderAccent: "border-emerald-200",
     personality: "Warm but data-driven. Ranks everything by ROI, probability, and deadline. Never presents raw data without a recommendation.",
     capabilities: [
       "Grant research, eligibility analysis, and opportunity ranking by mission fit and deadline",
@@ -41,9 +38,6 @@ const directors = [
     icon: Megaphone,
     name: "Marketing & Communications Director",
     slug: "marketing-director",
-    accent: "text-amber-600",
-    bgAccent: "bg-amber-50",
-    borderAccent: "border-amber-200",
     personality: "Creative-first, data-informed. Leads with the angle, then backs it with audience data. Thinks in stories, hooks, and emotional resonance.",
     capabilities: [
       "Brand messaging, voice development, and style guide management",
@@ -68,9 +62,6 @@ const directors = [
     icon: CalendarCheck,
     name: "Executive Assistant",
     slug: "executive-assistant",
-    accent: "text-sky-600",
-    bgAccent: "bg-sky-50",
-    borderAccent: "border-sky-200",
     personality: "Chief-of-staff energy. Leads with the action item. Zero fluff. Always ends with a clear list of what you need to do.",
     capabilities: [
       "Email triage, prioritization, and response drafting",
@@ -95,9 +86,6 @@ const directors = [
     icon: BookOpen,
     name: "Programs Director",
     slug: "programs-director",
-    accent: "text-violet-600",
-    bgAccent: "bg-violet-50",
-    borderAccent: "border-violet-200",
     personality: "Evidence-based with a human-centered lens. Thinks in logic models, outcome data, and participant journeys. Always brings it back to the people served.",
     capabilities: [
       "Program design -- logic models, theories of change, eligibility criteria",
@@ -122,9 +110,6 @@ const directors = [
     icon: Heart,
     name: "HR & Volunteer Coordinator",
     slug: "hr-volunteer-coordinator",
-    accent: "text-pink-600",
-    bgAccent: "bg-pink-50",
-    borderAccent: "border-pink-200",
     personality: "Warmest voice on the team. Leads with people, not processes. Makes compliance feel approachable. References best practice frequently.",
     capabilities: [
       "Volunteer recruitment, role design, onboarding, and retention strategies",
@@ -149,9 +134,6 @@ const directors = [
     icon: PartyPopper,
     name: "Events Director",
     slug: "events-director",
-    accent: "text-orange-600",
-    bgAccent: "bg-orange-50",
-    borderAccent: "border-orange-200",
     personality: "High-energy and deadline-obsessed. Thinks backwards from the event date. Always in 'weeks out' mode. Equally focused on logistics and the experience.",
     capabilities: [
       "Reverse-engineered planning timelines from event date to today",
@@ -176,24 +158,24 @@ const directors = [
 
 export default function FeaturesPage() {
   return (
-    <div className="spial-page">
+    <div className="bg-bg-0 min-h-screen">
       <SpialNavbar />
 
       {/* Hero */}
-      <section className="bg-[#1a2b32] py-20">
+      <section className="bg-bg-plum-1 py-20">
         <div className="spial-container mx-auto text-center">
-          <SectionLabel text="Features" />
-          <h1 className="text-white text-[36px] md:text-[52px] font-semibold leading-[1.2] mb-5">
+          <div className="eyebrow mb-4">Features</div>
+          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
             Six directors. Every operational role covered.
           </h1>
-          <p className="text-white/80 text-lg leading-[1.7] max-w-[700px] mx-auto">
+          <p className="text-fg-2 text-lg leading-[1.7] max-w-[700px] mx-auto">
             Each one has deep expertise, a distinct personality, and a team of specialized subagents. This is not a generic AI assistant. This is your leadership team.
           </p>
         </div>
       </section>
 
       {/* Feature highlights */}
-      <section className="py-16 bg-[#392e3b] text-white">
+      <section className="py-16 bg-bg-0">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -202,17 +184,17 @@ export default function FeaturesPage() {
                 desc: "Type in any scenario and get 6 expert perspectives in seconds. Marketing rates the messaging, Programs checks mission fit, and your EA synthesizes the consensus.",
               },
               {
-                title: "Proactive Heartbeats",
+                title: "Proactive heartbeats",
                 desc: "Your team checks in every few hours. Grant deadlines, donor engagement gaps, budget variances -- surfaced before they become problems.",
               },
               {
-                title: "Subagent Delegation",
+                title: "Subagent delegation",
                 desc: "Each director delegates to specialized subagents for deep work. The Development Director has 5. The Marketing Director has 5. Real work, not just advice.",
               },
             ].map((f, i) => (
-              <div key={i} className="bg-white/10 rounded-xl p-7 border border-white/10">
-                <h3 className="text-lg font-semibold text-[#8B5CF6] mb-3">{f.title}</h3>
-                <p className="text-white/70 text-sm leading-[1.7]">{f.desc}</p>
+              <div key={i} className="bg-bg-2 shadow-elev-1 rounded-xl p-7">
+                <h3 className="text-lg font-semibold text-brand-500 mb-3">{f.title}</h3>
+                <p className="text-fg-3 text-sm leading-[1.7]">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -220,47 +202,47 @@ export default function FeaturesPage() {
       </section>
 
       {/* Per-director sections */}
-      <section className="py-20 bg-[#f7f6f5]">
+      <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="space-y-16">
-            {directors.map((d, i) => (
-              <div key={d.slug} className={`bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.05)] overflow-hidden border ${d.borderAccent}`}>
-                <div className={`${d.bgAccent} px-8 py-6 border-b ${d.borderAccent}`}>
+            {directors.map((d) => (
+              <div key={d.slug} className="bg-bg-2 shadow-elev-1 rounded-2xl overflow-hidden">
+                <div className="bg-bg-3 px-8 py-6 border-b border-bg-0/50">
                   <div className="flex items-center gap-4">
-                    <d.icon className={`w-8 h-8 ${d.accent}`} />
+                    <d.icon className="w-8 h-8 text-brand-500" />
                     <div>
-                      <h2 className={`text-2xl font-semibold ${d.accent}`}>{d.name}</h2>
-                      <p className="text-[#555] text-sm mt-1">{d.personality}</p>
+                      <h2 className="text-2xl font-semibold text-fg-1">{d.name}</h2>
+                      <p className="text-fg-3 text-sm mt-1">{d.personality}</p>
                     </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
                   {/* Capabilities */}
-                  <div className="p-8 border-r border-[#f0f0f0]">
-                    <h3 className="text-lg font-semibold text-black mb-4">Capabilities</h3>
+                  <div className="p-8 border-r border-bg-3">
+                    <h3 className="text-lg font-semibold text-fg-1 mb-4">Capabilities</h3>
                     <ul className="list-none space-y-3">
                       {d.capabilities.map((c, j) => (
-                        <li key={j} className="flex gap-3 text-sm text-[#555] leading-[1.6]">
-                          <span className="text-[#8B5CF6] font-bold shrink-0 mt-0.5">&#10003;</span>
+                        <li key={j} className="flex gap-3 text-sm text-fg-2 leading-[1.6]">
+                          <span className="text-brand-500 font-bold shrink-0 mt-0.5">&#10003;</span>
                           {c}
                         </li>
                       ))}
                     </ul>
                   </div>
                   {/* Workflow */}
-                  <div className="p-8 bg-[#fafafa]">
-                    <h3 className="text-lg font-semibold text-black mb-4">{d.workflow.title}</h3>
+                  <div className="p-8 bg-bg-1">
+                    <h3 className="text-lg font-semibold text-fg-1 mb-4">{d.workflow.title}</h3>
                     <ol className="list-none space-y-3">
                       {d.workflow.steps.map((step, j) => (
-                        <li key={j} className="flex gap-3 text-sm text-[#555] leading-[1.6]">
-                          <span className="text-[#8B5CF6] font-bold shrink-0 min-w-[20px]">{j + 1}.</span>
+                        <li key={j} className="flex gap-3 text-sm text-fg-2 leading-[1.6]">
+                          <span className="text-brand-500 font-bold shrink-0 min-w-[20px]">{j + 1}.</span>
                           {step}
                         </li>
                       ))}
                     </ol>
                     <Link
                       href={`/agents/${d.slug}`}
-                      className={`inline-flex items-center gap-2 mt-6 text-sm font-medium no-underline ${d.accent} hover:opacity-70 transition-opacity`}
+                      className="inline-flex items-center gap-2 mt-6 text-sm font-semibold no-underline text-brand-500 hover:opacity-70 transition-opacity"
                     >
                       Meet the {d.name}
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -274,24 +256,24 @@ export default function FeaturesPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-[#f7f6f5]">
+      <section className="py-20 bg-bg-0">
         <div className="spial-container mx-auto text-center">
-          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-4">
+          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-4">
             Ready to see them in action?
           </h2>
-          <p className="text-[#666] leading-[1.7] max-w-[500px] mx-auto mb-8">
+          <p className="text-fg-3 leading-[1.7] max-w-[500px] mx-auto mb-8">
             Walk through a real demo or get started and brief your team today.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/signup" className="spial-btn no-underline">
-              Get Started
-              <ArrowRight className="w-4 h-4" />
+            <Link href="/signup" className="no-underline">
+              <Button variant="primary" size="lg" trailingIcon={<ArrowRight className="w-4 h-4" />}>
+                Get started
+              </Button>
             </Link>
-            <Link
-              href="/demo"
-              className="px-6 py-3 rounded-full border border-[#333] text-[#333] text-sm font-medium no-underline transition-colors duration-300 hover:bg-[#333] hover:text-white"
-            >
-              See the Demo
+            <Link href="/demo" className="no-underline">
+              <Button variant="secondary" size="lg">
+                See the demo
+              </Button>
             </Link>
           </div>
         </div>

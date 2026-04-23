@@ -2,8 +2,8 @@ import Link from "next/link";
 import { ArrowRight, type LucideIcon } from "lucide-react";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
-import SectionLabel from "@/components/section-label";
 import Placeholder from "@/components/placeholder";
+import { Button } from "@/components/ui";
 
 /* ── Data shape ─────────────────────────────────────────────── */
 export interface ArchetypeData {
@@ -30,37 +30,38 @@ export default function ArchetypePage({
     archetype.subagents.length >= 5 ? "md:grid-cols-3" : "md:grid-cols-2";
 
   return (
-    <div className="spial-page">
+    <div className="bg-bg-0 min-h-screen">
       <SpialNavbar />
 
       {/* Hero */}
-      <section className="bg-[#1a2b32] py-20 md:py-24 relative overflow-hidden">
+      <section className="bg-bg-plum-1 py-20 md:py-24 relative overflow-hidden">
         <div className="spial-container relative z-[1]">
           <div className="flex flex-col items-center text-center">
-            <HeroIcon className="w-16 h-16 text-[#8B5CF6] mb-6" />
-            <h1 className="text-white text-[36px] md:text-[52px] font-semibold leading-[1.2] mb-5">
+            <HeroIcon className="w-16 h-16 text-brand-500 mb-6" />
+            <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
               {archetype.name}
             </h1>
-            <p className="text-white/80 text-lg mb-4 max-w-[600px] leading-[1.7]">
+            <p className="text-fg-2 text-lg mb-4 max-w-[600px] leading-[1.7]">
               {archetype.role}
             </p>
-            <p className="text-white/60 text-base italic max-w-[500px] mb-8">
+            <p className="text-fg-3 text-base italic max-w-[500px] mb-8">
               &ldquo;{archetype.personality}&rdquo;
             </p>
-            <button className="spial-btn">
-              Get Started
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <Link href="/signup" className="no-underline">
+              <Button variant="primary" size="lg" trailingIcon={<ArrowRight className="w-4 h-4" />}>
+                Get started
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Responsibilities */}
-      <section className="py-20 bg-[#f7f6f5]">
+      <section className="py-20 bg-bg-1">
         <div className="spial-container">
-          <SectionLabel text="Responsibilities" align="left" />
-          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
-            What {archetype.name} Does
+          <div className="eyebrow mb-4">Responsibilities</div>
+          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-5">
+            What {archetype.name} does
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center mt-10">
             <div>
@@ -68,7 +69,7 @@ export default function ArchetypePage({
                 {archetype.responsibilities.map((r, i) => (
                   <li
                     key={i}
-                    className="flex gap-4 mb-4 text-base before:content-['\2713'] before:text-[#8B5CF6] before:font-bold before:text-lg before:shrink-0"
+                    className="flex gap-4 mb-4 text-fg-2 text-base before:content-['\2713'] before:text-brand-500 before:font-bold before:text-lg before:shrink-0"
                   >
                     {r}
                   </li>
@@ -76,9 +77,9 @@ export default function ArchetypePage({
               </ul>
               <Link
                 href="#"
-                className="text-[#8B5CF6] no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300 hover:text-[#7C3AED]"
+                className="text-brand-500 no-underline font-semibold inline-flex items-center gap-2 mt-5 transition-colors duration-300 hover:opacity-70"
               >
-                Explore More
+                Explore more
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -88,20 +89,20 @@ export default function ArchetypePage({
       </section>
 
       {/* Subagents */}
-      <section className="py-20 bg-[#f7f6f5]">
+      <section className="py-20 bg-bg-1">
         <div className="spial-container">
-          <SectionLabel text="Subagents" align="left" />
-          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-10">
-            The Team Behind the {archetype.name}
+          <div className="eyebrow mb-4">Subagents</div>
+          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-10">
+            The team behind the {archetype.name}
           </h2>
           <div className={`grid grid-cols-1 ${subagentCols} gap-[30px]`}>
             {archetype.subagents.map((s, i) => (
               <div
                 key={i}
-                className="bg-white rounded-xl p-[30px] shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+                className="bg-bg-2 shadow-elev-1 rounded-xl p-[30px]"
               >
-                <h3 className="text-xl font-semibold text-black mb-3">{s.name}</h3>
-                <p className="text-[15px] text-[#666] leading-[1.6]">{s.description}</p>
+                <h3 className="text-xl font-semibold text-fg-1 mb-3">{s.name}</h3>
+                <p className="text-[15px] text-fg-3 leading-[1.6]">{s.description}</p>
               </div>
             ))}
           </div>
@@ -109,24 +110,24 @@ export default function ArchetypePage({
       </section>
 
       {/* Tools */}
-      <section className="py-20 bg-[#392e3b] text-white">
+      <section className="py-20 bg-bg-0">
         <div className="spial-container">
-          <h2 className="text-[28px] md:text-[34px] font-medium text-white mb-10 text-center">
-            Specialized Tools
+          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-10 text-center">
+            Specialized tools
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[30px]">
             {archetype.tools.map((t, i) => (
               <div
                 key={i}
-                className="bg-white/10 backdrop-blur-[10px] rounded-xl p-[30px] border border-white/10"
+                className="bg-bg-2 shadow-elev-1 rounded-xl p-[30px]"
               >
-                <h3 className="text-lg font-semibold text-[#8B5CF6] mb-2 font-mono">
+                <h3 className="text-lg font-semibold text-brand-500 mb-2 font-mono">
                   {t.name}
                 </h3>
-                <p className="text-white/60 text-sm mb-3 font-mono">
+                <p className="text-fg-4 text-sm mb-3 font-mono">
                   ({t.params})
                 </p>
-                <p className="text-white/80 text-[15px] leading-[1.6]">{t.description}</p>
+                <p className="text-fg-2 text-[15px] leading-[1.6]">{t.description}</p>
               </div>
             ))}
           </div>
@@ -134,25 +135,25 @@ export default function ArchetypePage({
       </section>
 
       {/* Use Cases */}
-      <section className="py-20 bg-[#f7f6f5]">
+      <section className="py-20 bg-bg-1">
         <div className="spial-container">
-          <SectionLabel text="Use Cases" align="left" />
-          <h2 className="text-[28px] md:text-[34px] font-medium text-black mb-5">
-            See {archetype.name} in Action
+          <div className="eyebrow mb-4">Use cases</div>
+          <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-5">
+            See {archetype.name} in action
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[30px] mt-[50px]">
             {archetype.scenarios.map((s, i) => (
               <div
                 key={i}
-                className="bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)]"
+                className="bg-bg-2 shadow-elev-1 rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-elev-2"
               >
-                <div className="w-full h-[180px] bg-[#e5e5e5]" />
+                <div className="w-full h-[180px] bg-bg-3" />
                 <div className="p-[25px]">
-                  <div className="text-xs text-[#8B5CF6] font-semibold uppercase mb-2.5">
+                  <div className="eyebrow mb-2.5">
                     Scenario {i + 1}
                   </div>
-                  <h3 className="text-lg font-semibold text-black mb-2.5">{s.title}</h3>
-                  <p className="text-[14px] text-[#666] leading-[1.6]">{s.description}</p>
+                  <h3 className="text-lg font-semibold text-fg-1 mb-2.5">{s.title}</h3>
+                  <p className="text-[14px] text-fg-3 leading-[1.6]">{s.description}</p>
                 </div>
               </div>
             ))}
@@ -161,15 +162,16 @@ export default function ArchetypePage({
       </section>
 
       {/* CTA */}
-      <section className="text-center py-[60px] bg-[#f7f6f5]">
-        <div className="spial-container">
-          <h2 className="text-[28px] md:text-[42px] font-medium text-black max-w-[600px] mx-auto mb-10 leading-[1.3]">
+      <section className="text-center py-[60px] bg-bg-0">
+        <div className="spial-container flex flex-col items-center">
+          <h2 className="text-[28px] md:text-[42px] font-semibold tracking-[-0.02em] text-fg-1 max-w-[600px] mx-auto mb-10 leading-[1.3]">
             Ready to hire your {archetype.name}?
           </h2>
-          <button className="spial-btn">
-            Get Started
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <Link href="/signup" className="no-underline">
+            <Button variant="primary" size="lg" trailingIcon={<ArrowRight className="w-4 h-4" />}>
+              Get started
+            </Button>
+          </Link>
         </div>
       </section>
 
