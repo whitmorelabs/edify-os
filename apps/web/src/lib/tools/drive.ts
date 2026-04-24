@@ -19,6 +19,7 @@ import {
   DriveError,
   type DriveFileFormat,
 } from "@/lib/google-drive";
+import { ensureArchetypeFolder } from "@/lib/tools/drive-folders";
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum for archetypes that have Drive tools active.
@@ -178,11 +179,18 @@ export async function executeDriveTool({
   name,
   input,
   accessToken,
+  archetypeSlug,
 }: {
   name: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input: Record<string, unknown>;
   accessToken: string;
+  /**
+   * Optional archetype slug. When provided and the tool call is drive_create_file
+   * without an explicit parents array, the file will be created under
+   * "Edify OS / {Archetype Label}" in Drive. Does not affect other drive tools.
+   */
+  archetypeSlug?: string;
 }): Promise<{ content: string; is_error?: boolean }> {
   try {
     switch (name) {
@@ -234,11 +242,25 @@ export async function executeDriveTool({
           typeof input.format === "string" && validFormats.includes(input.format as DriveFileFormat)
             ? (input.format as DriveFileFormat)
             : undefined;
+
+        // Resolve parents: honour the model's explicit choice; fall back to the
+        // archetype folder when no parents are specified and an archetypeSlug is known.
+        let parents = input.parents as string[] | undefined;
+        if ((!parents || parents.length === 0) && archetypeSlug) {
+          try {
+            const folderId = await ensureArchetypeFolder(accessToken, archetypeSlug);
+            parents = [folderId];
+          } catch (folderErr) {
+            // Non-fatal: log and continue — file goes to Drive root if folder can't be resolved.
+            console.warn("[drive-tool] ensureArchetypeFolder failed, falling back to root:", folderErr);
+          }
+        }
+
         const result = await createFile({
           accessToken,
           name: input.name,
           content: input.content,
-          parents: input.parents as string[] | undefined,
+          parents,
           format,
         });
         return { content: JSON.stringify(result) };

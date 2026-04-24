@@ -13,6 +13,7 @@ import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/too
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { driveTools, executeDriveTool, DRIVE_TOOLS_ADDENDUM } from "@/lib/tools/drive";
+import { memoryTools, executeMemoryTool, MEMORY_TOOLS_ADDENDUM } from "@/lib/tools/memory";
 import { unsplashTools, executeUnsplashTool, UNSPLASH_TOOLS_ADDENDUM } from "@/lib/tools/unsplash";
 import {
   renderTools,
@@ -33,6 +34,7 @@ export {
   CRM_TOOLS_ADDENDUM,
   GMAIL_TOOLS_ADDENDUM,
   DRIVE_TOOLS_ADDENDUM,
+  MEMORY_TOOLS_ADDENDUM,
   UNSPLASH_TOOLS_ADDENDUM,
   RENDER_TOOLS_ADDENDUM,
   SOCIAL_TOOLS_ADDENDUM,
@@ -45,7 +47,9 @@ export type { RenderToolGeneratedFile };
 const UNSPLASH_TOOL_NAMES = new Set(unsplashTools.map((t) => t.name));
 const RENDER_TOOL_NAMES = new Set(renderTools.map((t) => t.name));
 const SOCIAL_TOOL_NAMES = new Set(socialTools.map((t) => t.name));
-const WEBSEARCH_TOOL_NAMES = new Set(webSearchTools.map((t) => t.name));
+// webSearchTools is never[] (server tool — no client definitions). Cast to avoid TS error.
+const WEBSEARCH_TOOL_NAMES = new Set((webSearchTools as Anthropic.Tool[]).map((t) => t.name));
+const MEMORY_TOOL_NAMES = new Set(memoryTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -77,6 +81,10 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("websearch");
       continue;
     }
+    if (MEMORY_TOOL_NAMES.has(t.name)) {
+      families.add("memory");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -99,6 +107,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("render")) parts.push(RENDER_TOOLS_ADDENDUM);
   if (families.has("social")) parts.push(SOCIAL_TOOLS_ADDENDUM);
   if (families.has("websearch")) parts.push(WEBSEARCH_TOOLS_ADDENDUM);
+  if (families.has("memory")) parts.push(MEMORY_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -108,12 +117,12 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 // ---------------------------------------------------------------------------
 
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
-  executive_assistant: [...calendarTools, ...gmailTools, ...driveTools],
-  events_director: [...calendarTools, ...driveTools, ...unsplashTools],
-  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools],
-  marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools],
-  programs_director: [...grantsTools, ...driveTools],
-  hr_volunteer_coordinator: [],
+  executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools],
+  events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools],
+  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools],
+  marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools, ...memoryTools],
+  programs_director: [...grantsTools, ...driveTools, ...memoryTools],
+  hr_volunteer_coordinator: [...driveTools, ...memoryTools],
 };
 
 /** All directors get Claude's native web_search server tool */
@@ -171,6 +180,7 @@ export async function executeTool({
   serviceClient,
   preFetchedTokens,
   anthropic,
+  archetypeSlug,
 }: {
   name: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -183,6 +193,12 @@ export async function executeTool({
   /** Optional Anthropic client — required only for tools that upload files
    *  (currently render_design_to_image). Safe to omit for other tools. */
   anthropic?: Anthropic;
+  /**
+   * Optional archetype slug — passed through to drive_create_file so it can
+   * auto-place new files under the per-archetype folder in Drive.
+   * Safe to omit: falls back to Drive root.
+   */
+  archetypeSlug?: string;
 }): Promise<{ content: string; is_error?: boolean; generatedFile?: RenderToolGeneratedFile }> {
   if (name.startsWith("calendar_")) {
     const token = await resolveGoogleToken("google_calendar", preFetchedTokens, serviceClient, orgId);
@@ -207,7 +223,7 @@ export async function executeTool({
   if (name.startsWith("drive_")) {
     const token = await resolveGoogleToken("google_drive", preFetchedTokens, serviceClient, orgId);
     if (typeof token !== "string") return token;
-    return executeDriveTool({ name, input, accessToken: token });
+    return executeDriveTool({ name, input, accessToken: token, archetypeSlug });
   }
 
   if (UNSPLASH_TOOL_NAMES.has(name)) {
@@ -229,7 +245,13 @@ export async function executeTool({
   }
 
   if (WEBSEARCH_TOOL_NAMES.has(name)) {
-    return executeWebSearchTool({ name, input });
+    // Web search is a server tool — executed by Anthropic, never dispatched locally.
+    // This branch is unreachable at runtime; the guard is kept for exhaustiveness.
+    executeWebSearchTool();
+  }
+
+  if (MEMORY_TOOL_NAMES.has(name)) {
+    return executeMemoryTool({ name, input, orgId, memberId, serviceClient });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };
