@@ -33,14 +33,30 @@ export default function TeamPage() {
   const { names: archetypeNames } = useArchetypeNames();
 
   useEffect(() => {
-    const previews: Record<string, string> = {};
-    for (const slug of ARCHETYPE_SLUGS) {
-      const convos = getLocalConversations(slug);
-      if (convos.length > 0) {
-        previews[slug] = convos[0].title;
+    async function loadPreviews() {
+      const previews: Record<string, string> = {};
+      // Try localStorage first (instant)
+      for (const slug of ARCHETYPE_SLUGS) {
+        const convos = getLocalConversations(slug);
+        if (convos.length > 0) previews[slug] = convos[0].title;
       }
+      setLastMessages({ ...previews });
+      // Then fetch from server for any missing
+      for (const slug of ARCHETYPE_SLUGS) {
+        if (previews[slug]) continue;
+        try {
+          const res = await fetch(`/api/team/${slug}/conversations`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.length > 0) {
+              previews[slug] = data[0].title ?? "Conversation";
+            }
+          }
+        } catch {}
+      }
+      setLastMessages({ ...previews });
     }
-    setLastMessages(previews);
+    loadPreviews();
   }, []);
 
   useEffect(() => {
