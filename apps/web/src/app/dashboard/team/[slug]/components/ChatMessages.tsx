@@ -289,8 +289,12 @@ export function ChatMessages({ messages, isTyping, streamingId, slug }: ChatMess
                 {msg.content ? (
                   <AssistantMarkdown content={msg.content} />
                 ) : (
-                  // Waiting for first chunk — show a subtle pulse
-                  <span className="inline-block h-4 w-4 rounded-sm bg-current opacity-30 animate-pulse" />
+                  // Waiting for first chunk — show typing dots
+                  <span className="inline-flex items-center gap-1 text-sm opacity-50">
+                    <span className="inline-block h-2 w-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="inline-block h-2 w-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="inline-block h-2 w-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </span>
                 )}
                 {isStreaming && msg.content && (
                   <span
