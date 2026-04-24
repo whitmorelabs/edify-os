@@ -14,6 +14,8 @@ import type { Archetype, ArchetypeKey } from "@/components/ui";
 interface ChatMessagesProps {
   messages: Message[];
   isTyping: boolean;
+  /** ID of the assistant message currently being streamed — shows a blinking cursor. */
+  streamingId?: string | null;
   slug: ArchetypeSlug;
 }
 
@@ -225,7 +227,7 @@ function FileChips({ files, messageTimestamp, isNew }: FileChipsProps) {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
+export function ChatMessages({ messages, isTyping, streamingId, slug }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Resolve the UI archetype object for ChatBubble + TypingIndicator
@@ -267,6 +269,7 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
 
         // Assistant message — use ChatBubble primitive with archetype arc
         const fileIsNew = msg.id === justArrivedId;
+        const isStreaming = msg.id === streamingId;
         return (
           <div key={msg.id} className="flex flex-col gap-0.5 animate-slide-up">
             {arc ? (
@@ -283,7 +286,18 @@ export function ChatMessages({ messages, isTyping, slug }: ChatMessagesProps) {
                   ) : undefined
                 }
               >
-                <AssistantMarkdown content={msg.content} />
+                {msg.content ? (
+                  <AssistantMarkdown content={msg.content} />
+                ) : (
+                  // Waiting for first chunk — show a subtle pulse
+                  <span className="inline-block h-4 w-4 rounded-sm bg-current opacity-30 animate-pulse" />
+                )}
+                {isStreaming && msg.content && (
+                  <span
+                    aria-hidden="true"
+                    className="inline-block w-0.5 h-4 bg-current opacity-60 ml-0.5 align-text-bottom animate-[blink_1s_step-end_infinite]"
+                  />
+                )}
               </ChatBubble>
             ) : (
               // Fallback if arc resolution fails

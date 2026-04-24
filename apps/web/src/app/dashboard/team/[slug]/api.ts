@@ -44,15 +44,24 @@ export interface AssistantMessage {
 // ---------------------------------------------------------------------------
 
 /**
- * Send a message to a team member and get their response.
+ * Send a message to a team member and stream their response.
  * POSTs to the server-side /api/team/[slug]/chat route which uses the
  * encrypted API key from Supabase (set during onboarding) and runs the
  * full Phase 2b/2c tool-use loop (Calendar, Gmail, Grants, CRM).
+ *
+ * The server returns an SSE stream with three event types:
+ *   { type: "meta", id, conversationId, timestamp, files? }
+ *   { type: "delta", text }
+ *   { type: "done" }
+ *
+ * onDelta is called for each text chunk so the UI can render progressively.
+ * Returns the fully assembled AssistantMessage when the stream closes.
  */
 export async function sendMessage(
   slug: string,
   message: string,
-  conversationId?: string
+  conversationId?: string,
+  onDelta?: (chunk: string) => void
 ): Promise<AssistantMessage> {
   const res = await fetch(`/api/team/${slug}/chat`, {
     method: "POST",
@@ -69,14 +78,82 @@ export async function sendMessage(
     throw new Error(`${res.status}: ${serverMsg}`);
   }
 
-  const data = await res.json();
+  // Check if the server returned an SSE stream or a plain JSON response.
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/event-stream")) {
+    // Fallback: plain JSON (should not happen in normal operation).
+    const data = await res.json();
+    return {
+      id: data.id,
+      role: "assistant",
+      content: data.content,
+      timestamp: data.timestamp,
+      conversationId: data.conversationId,
+      ...(data.files && data.files.length > 0 ? { files: data.files as GeneratedFile[] } : {}),
+    };
+  }
+
+  // Parse the SSE stream.
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let meta: { id: string; conversationId: string; timestamp: string; files?: GeneratedFile[] } | null = null;
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? ""; // Keep incomplete last line in buffer
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const raw = line.slice(6).trim();
+      if (!raw) continue;
+
+      try {
+        const event = JSON.parse(raw) as {
+          type: string;
+          id?: string;
+          conversationId?: string;
+          timestamp?: string;
+          files?: GeneratedFile[];
+          text?: string;
+        };
+
+        if (event.type === "meta") {
+          meta = {
+            id: event.id!,
+            conversationId: event.conversationId!,
+            timestamp: event.timestamp!,
+            files: event.files,
+          };
+        } else if (event.type === "delta" && event.text) {
+          fullText += event.text;
+          onDelta?.(event.text);
+        }
+        // "done" event — loop will end naturally when the stream closes
+      } catch {
+        // Ignore malformed SSE lines
+      }
+    }
+  }
+
+  if (!meta) {
+    throw new Error("Stream ended without meta event");
+  }
+
   return {
-    id: data.id,
+    id: meta.id,
     role: "assistant",
-    content: data.content,
-    timestamp: data.timestamp,
-    conversationId: data.conversationId,
-    ...(data.files && data.files.length > 0 ? { files: data.files as GeneratedFile[] } : {}),
+    content: fullText,
+    timestamp: meta.timestamp,
+    conversationId: meta.conversationId,
+    ...(meta.files && meta.files.length > 0 ? { files: meta.files } : {}),
   };
 }
 

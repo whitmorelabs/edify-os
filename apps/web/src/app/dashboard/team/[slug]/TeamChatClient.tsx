@@ -145,18 +145,28 @@ export default function TeamChatClient({
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  // streamingId: ID of the assistant message currently being streamed in.
+  // The UI uses this to find-and-update the partial message in place.
+  const [streamingId, setStreamingId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Load conversations on mount
+  // Load conversations on mount — auto-select the most recent one
   // ---------------------------------------------------------------------------
   useEffect(() => {
     // Load local conversations first (instant)
     const local = getLocalConversations(slug);
     setConversations(local);
+
+    // Auto-select most recent local conversation immediately (instant UX)
+    if (local.length > 0 && !activeConversation) {
+      const mostRecent = local[0]; // getLocalConversations returns newest first
+      setActiveConversation(mostRecent);
+      setMessages(getMessages(mostRecent.id));
+    }
 
     // Then fetch from API
     getConversations(slug)
@@ -168,10 +178,18 @@ export default function TeamChatClient({
           ...remote,
         ];
         setConversations(merged);
+
+        // If no local conversations existed, auto-select most recent from remote
+        if (local.length === 0 && merged.length > 0 && !activeConversation) {
+          const mostRecent = merged[0];
+          setActiveConversation(mostRecent);
+          setMessages(getMessages(mostRecent.id));
+        }
       })
       .catch(() => {
         // Keep local if API fails
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   // ---------------------------------------------------------------------------
@@ -187,7 +205,7 @@ export default function TeamChatClient({
   }, [activeConversation]);
 
   // ---------------------------------------------------------------------------
-  // Handle sending a message
+  // Handle sending a message — streams the assistant response chunk by chunk
   // ---------------------------------------------------------------------------
   const handleSend = useCallback(
     async (content: string) => {
@@ -204,12 +222,38 @@ export default function TeamChatClient({
       };
       setMessages((prev) => [...prev, userMsg]);
 
+      // Pre-create a placeholder assistant message so we can stream into it.
+      const placeholderId = `streaming-${crypto.randomUUID()}`;
+      const placeholderMsg: Message = {
+        id: placeholderId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date().toISOString(),
+        conversationId: tempConvId,
+      };
+
       try {
+        // Insert placeholder only after the user message is shown
+        setMessages((prev) => [...prev, placeholderMsg]);
+        setStreamingId(placeholderId);
+
         const response = await apiSendMessage(
           slug,
           content,
-          activeConversation?.id
+          activeConversation?.id,
+          // onDelta: append each chunk to the placeholder message in real time
+          (chunk: string) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === placeholderId
+                  ? { ...m, content: m.content + chunk }
+                  : m
+              )
+            );
+          }
         );
+
+        setStreamingId(null);
 
         const serverConvId = response.conversationId;
         const isNew = !activeConversation;
@@ -229,6 +273,7 @@ export default function TeamChatClient({
           saveConversationMeta(slug, conv);
           setActiveConversation(conv);
           setConversations((prev) => [conv, ...prev]);
+          // Backfill tempConvId → serverConvId in messages
           setMessages((prev) =>
             prev.map((m) =>
               m.conversationId === tempConvId
@@ -244,6 +289,7 @@ export default function TeamChatClient({
           );
         }
 
+        // Replace placeholder with final message (has the real ID + any files)
         const assistantMsg: Message = {
           id: response.id,
           role: "assistant",
@@ -252,9 +298,12 @@ export default function TeamChatClient({
           conversationId: serverConvId,
           ...(response.files && response.files.length > 0 ? { files: response.files } : {}),
         };
-        setMessages((prev) => [...prev, assistantMsg]);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === placeholderId ? assistantMsg : m))
+        );
         saveMessage(serverConvId, assistantMsg);
       } catch (err) {
+        setStreamingId(null);
         const rawMessage =
           err instanceof Error ? err.message : String(err);
         const friendlyContent = rawMessage.toLowerCase().includes("network") ||
@@ -268,7 +317,10 @@ export default function TeamChatClient({
           timestamp: new Date().toISOString(),
           conversationId: tempConvId,
         };
-        setMessages((prev) => [...prev, errorMsg]);
+        // Replace placeholder with error message
+        setMessages((prev) =>
+          prev.map((m) => (m.id === placeholderId ? errorMsg : m))
+        );
       } finally {
         setIsTyping(false);
       }
@@ -304,7 +356,11 @@ export default function TeamChatClient({
     setMessages(stored);
   }
 
-  const showEmptyState = messages.length === 0 && !isTyping;
+  // isTyping: true while we're waiting for the first meta/delta event from server
+  // streamingId non-null: we have a placeholder message being filled in live
+  const showEmptyState = messages.length === 0 && !isTyping && !streamingId;
+  // Show the typing indicator only before any streaming has started
+  const showTypingIndicator = isTyping && !streamingId;
 
   return (
     <div className="flex overflow-hidden -m-6 lg:-m-8" style={{ height: "calc(100vh)" }}>
@@ -362,7 +418,8 @@ export default function TeamChatClient({
         ) : (
           <ChatMessages
             messages={messages}
-            isTyping={isTyping}
+            isTyping={showTypingIndicator}
+            streamingId={streamingId}
             slug={archetypeSlug}
           />
         )}

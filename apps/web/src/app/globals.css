@@ -435,6 +435,11 @@ body {
   100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.06); }
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 0; }
+}
+
 /* =========================================================================
    LEGACY COMPONENT CLASSES (kept for existing pages still migrating)
    New work should use the Claude Design tokens + primitives in
@@ -658,3 +663,68 @@ body {
 }
 
 .spial-page ul { margin: 0; padding: 0; }
+
+/* =========================================================================
+   DASHBOARD LIGHT SURFACE OVERRIDES
+   The dashboard main area uses bg-gray-50. Override dark card defaults so
+   dashboard cards use glass/frosted white surfaces.
+   ========================================================================= */
+
+/* Glass card — white with blur, for dashboard on light bg */
+.card-glass {
+  @apply rounded-xl;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+}
+
+/* Within the dashboard gray-50 main, override card + card-interactive defaults */
+main.bg-gray-50 .card,
+main.bg-gray-50 .card-elevated {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+}
+
+main.bg-gray-50 .card-interactive {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+}
+
+main.bg-gray-50 .card-interactive:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(159, 78, 243, 0.3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+}
+
+/* Heading classes on light bg — use dark text */
+main.bg-gray-50 .heading-1 {
+  color: #111827;
+}
+main.bg-gray-50 .heading-2 {
+  color: #1f2937;
+}
+main.bg-gray-50 .heading-3 {
+  color: #374151;
+}
+
+/* bg-bg-2 cards within light dashboard — flip to white glass */
+main.bg-gray-50 .bg-bg-2 {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(229, 231, 235, 0.5) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05) !important;
+}
+
+/* bg-bg-3 inner panels in dashboard — light gray */
+main.bg-gray-50 .bg-bg-3 {
+  background: #f9fafb !important;
+}

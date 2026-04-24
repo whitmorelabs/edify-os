@@ -21,6 +21,7 @@ import {
   type RenderToolGeneratedFile,
 } from "@/lib/tools/render";
 import { socialTools, executeSocialTool, SOCIAL_TOOLS_ADDENDUM } from "@/lib/tools/social";
+import { webSearchTools, executeWebSearchTool, WEBSEARCH_TOOLS_ADDENDUM } from "@/lib/tools/websearch";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
@@ -35,6 +36,7 @@ export {
   UNSPLASH_TOOLS_ADDENDUM,
   RENDER_TOOLS_ADDENDUM,
   SOCIAL_TOOLS_ADDENDUM,
+  WEBSEARCH_TOOLS_ADDENDUM,
 };
 export type { RenderToolGeneratedFile };
 
@@ -43,6 +45,7 @@ export type { RenderToolGeneratedFile };
 const UNSPLASH_TOOL_NAMES = new Set(unsplashTools.map((t) => t.name));
 const RENDER_TOOL_NAMES = new Set(renderTools.map((t) => t.name));
 const SOCIAL_TOOL_NAMES = new Set(socialTools.map((t) => t.name));
+const WEBSEARCH_TOOL_NAMES = new Set(webSearchTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -70,6 +73,10 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("social");
       continue;
     }
+    if (WEBSEARCH_TOOL_NAMES.has(t.name)) {
+      families.add("websearch");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -91,6 +98,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("unsplash")) parts.push(UNSPLASH_TOOLS_ADDENDUM);
   if (families.has("render")) parts.push(RENDER_TOOLS_ADDENDUM);
   if (families.has("social")) parts.push(SOCIAL_TOOLS_ADDENDUM);
+  if (families.has("websearch")) parts.push(WEBSEARCH_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -102,9 +110,9 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools],
-  development_director: [...grantsTools, ...crmTools, ...gmailTools, ...driveTools],
+  development_director: [...grantsTools, ...webSearchTools, ...crmTools, ...gmailTools, ...driveTools],
   marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools],
-  programs_director: [...grantsTools, ...driveTools],
+  programs_director: [...grantsTools, ...webSearchTools, ...driveTools],
   hr_volunteer_coordinator: [],
 };
 
@@ -206,6 +214,10 @@ export async function executeTool({
 
   if (SOCIAL_TOOL_NAMES.has(name)) {
     return executeSocialTool({ name, input, orgId, serviceClient });
+  }
+
+  if (WEBSEARCH_TOOL_NAMES.has(name)) {
+    return executeWebSearchTool({ name, input });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };

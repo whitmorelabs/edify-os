@@ -110,8 +110,8 @@ function AmbientBG() {
           width: "60%",
           height: "80%",
           background:
-            "radial-gradient(circle at 30% 30%, rgba(159,78,243,0.16) 0%, transparent 60%)",
-          filter: "blur(40px)",
+            "radial-gradient(circle at 30% 30%, rgba(159,78,243,0.08) 0%, transparent 60%)",
+          filter: "blur(60px)",
           animation: "blob-a 22s ease-in-out infinite",
         }}
       />
@@ -123,8 +123,8 @@ function AmbientBG() {
           width: "55%",
           height: "70%",
           background:
-            "radial-gradient(circle at 60% 60%, rgba(124,58,237,0.12) 0%, transparent 60%)",
-          filter: "blur(50px)",
+            "radial-gradient(circle at 60% 60%, rgba(124,58,237,0.06) 0%, transparent 60%)",
+          filter: "blur(70px)",
           animation: "blob-b 28s ease-in-out infinite",
         }}
       />
@@ -345,8 +345,11 @@ function TeamCard({ arc, index, name }: { arc: Archetype; index: number; name?: 
         transition={{ duration: DURATION.slow, ease: EASE.entrance, delay }}
         className="relative overflow-hidden rounded-[14px] cursor-pointer group transition-transform hover:-translate-y-[2px]"
         style={{
-          background: "var(--bg-2)",
-          boxShadow: "0 0 0 1px var(--line-2)",
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)",
+          border: "1px solid rgba(229,231,235,0.6)",
           minHeight: 130,
           padding: 18,
         }}
@@ -448,7 +451,7 @@ export default function DashboardHome() {
   return (
     <div
       className="relative isolate min-h-full"
-      style={{ background: "var(--hero-gradient-dashboard)" }}
+      style={{ background: "transparent" }}
     >
       <AmbientBG />
       <div
@@ -484,13 +487,13 @@ export default function DashboardHome() {
           </span>
         </div>
 
-        <h1 className="display" style={{ margin: "8px 0 16px", maxWidth: 980 }}>
+        <h1 className="display" style={{ margin: "8px 0 16px", maxWidth: 980, color: "#111827" }}>
           {greeting}.<br />
-          <span style={{ color: "var(--fg-3)" }}>Your team moved </span>
-          <span style={{ color: "var(--brand-tint)" }}>
+          <span style={{ color: "#6b7280" }}>Your team moved </span>
+          <span style={{ color: "var(--brand-purple)" }}>
             {loading ? "—" : tasksCompleted.toLocaleString("en-US")}
           </span>
-          <span style={{ color: "var(--fg-3)" }}> things forward.</span>
+          <span style={{ color: "#6b7280" }}> things forward.</span>
         </h1>
 
         {/* ————— HERO + ASYMMETRIC STATS ————— */}
@@ -507,9 +510,11 @@ export default function DashboardHome() {
             transition={{ duration: DURATION.slow, ease: EASE.entrance }}
             className="relative overflow-hidden rounded-[20px] p-8 flex flex-col"
             style={{
-              background:
-                "linear-gradient(135deg, var(--bg-plum-1) 0%, var(--bg-2) 60%)",
-              boxShadow: "var(--elev-2)",
+              background: "rgba(255,255,255,0.9)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)",
+              border: "1px solid rgba(229,231,235,0.7)",
               minHeight: 360,
             }}
           >
@@ -544,18 +549,18 @@ export default function DashboardHome() {
                       href={`/dashboard/team/${KEY_TO_SLUG[arc.key]}`}
                       className="flex items-center gap-3 rounded-[12px] p-3 transition-colors"
                       style={{
-                        background: "var(--bg-3)",
-                        boxShadow: "0 0 0 1px var(--line-1)",
+                        background: "#f9fafb",
+                        boxShadow: "0 0 0 1px #e5e7eb",
                       }}
                     >
                       <ArchetypeMark arc={arc} size={28} />
                       <div className="min-w-0 flex-1">
                         <div
                           className="text-[13px] font-medium truncate"
-                          style={{ color: "var(--fg-1)" }}
+                          style={{ color: "#111827" }}
                         >
                           {name ?? (
-                            <span style={{ color: "var(--fg-4)", fontStyle: "italic" }}>
+                            <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
                               {arc.role}
                             </span>
                           )}
@@ -682,11 +687,11 @@ export default function DashboardHome() {
           <div className="flex items-baseline gap-4">
             <h2
               className="font-medium tracking-[-0.015em] m-0"
-              style={{ fontSize: 28 }}
+              style={{ fontSize: 28, color: "#111827" }}
             >
               Your team
             </h2>
-            <span className="font-mono text-[12px]" style={{ color: "var(--fg-3)" }}>
+            <span className="font-mono text-[12px]" style={{ color: "#6b7280" }}>
               {otherDirectors.length} directors · idle but ready
             </span>
           </div>
@@ -714,7 +719,7 @@ export default function DashboardHome() {
             <div className="flex items-baseline justify-between mb-4">
               <h2
                 className="font-medium tracking-[-0.015em] m-0"
-                style={{ fontSize: 28 }}
+                style={{ fontSize: 28, color: "#111827" }}
               >
                 Since you were gone
               </h2>

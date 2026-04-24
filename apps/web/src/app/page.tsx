@@ -82,9 +82,9 @@ function Hero() {
                 margin: "20px 0 24px",
               }}
             >
-              Your nonprofit,
+              Six AI directors.
               <br />
-              <span style={{ color: "var(--fg-3)" }}>run by a team</span>
+              <span style={{ color: "var(--fg-3)" }}>One mission.</span>
               <br />
               <span
                 style={{
@@ -95,7 +95,7 @@ function Hero() {
                   color: "transparent",
                 }}
               >
-                you name.
+                Your nonprofit.
               </span>
             </h1>
             <p
@@ -205,12 +205,12 @@ function HowItWorks() {
       className="relative"
       style={{
         padding: "128px 0",
-        background: "var(--bg-1)",
-        borderTop: "1px solid var(--line-1)",
+        background: "#ffffff",
+        borderTop: "1px solid #e5e7eb",
       }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
-        <span className="eyebrow">HOW IT WORKS</span>
+        <span className="eyebrow" style={{ color: "var(--brand-purple)" }}>HOW IT WORKS</span>
         <h2
           style={{
             fontSize: "clamp(36px, 5vw, 56px)",
@@ -218,16 +218,16 @@ function HowItWorks() {
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
             margin: "16px 0 24px",
-            color: "var(--fg-1)",
+            color: "#111827",
           }}
         >
           You approve.
           <br />
-          <span style={{ color: "var(--fg-3)" }}>They do the work.</span>
+          <span style={{ color: "#6b7280" }}>They do the work.</span>
         </h2>
         <p
           style={{
-            color: "var(--fg-2)",
+            color: "#4b5563",
             fontSize: 18,
             maxWidth: 620,
             lineHeight: 1.6,
@@ -251,8 +251,9 @@ function HowItWorks() {
               style={{
                 padding: 28,
                 borderRadius: 16,
-                background: "var(--bg-2)",
-                boxShadow: "var(--elev-1)",
+                background: "white",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)",
+                border: "1px solid #f3f4f6",
               }}
             >
               {i === 2 && (
@@ -265,7 +266,7 @@ function HowItWorks() {
                     width: 120,
                     height: 120,
                     background:
-                      "radial-gradient(circle, var(--purple-a32), transparent 60%)",
+                      "radial-gradient(circle, rgba(159,78,243,0.12), transparent 60%)",
                     animation: "amber-shift 5s ease-in-out infinite",
                   }}
                 />
@@ -287,14 +288,14 @@ function HowItWorks() {
                     fontSize: 20,
                     fontWeight: 500,
                     margin: "12px 0 8px",
-                    color: "var(--fg-1)",
+                    color: "#111827",
                   }}
                 >
                   {s.title}
                 </h3>
                 <p
                   style={{
-                    color: "var(--fg-3)",
+                    color: "#6b7280",
                     fontSize: 14,
                     lineHeight: 1.6,
                   }}
@@ -317,7 +318,7 @@ function MeetYourTeam() {
       id="team"
       style={{
         padding: "128px 0",
-        background: "var(--bg-2)",
+        background: "var(--bg-1)",
         borderTop: "1px solid var(--line-1)",
       }}
     >
@@ -500,12 +501,12 @@ function FeaturesDeepDive() {
     <section
       style={{
         padding: "128px 0",
-        background: "var(--bg-1)",
-        borderTop: "1px solid var(--line-1)",
+        background: "#f9fafb",
+        borderTop: "1px solid #e5e7eb",
       }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
-        <span className="eyebrow">FEATURES</span>
+        <span className="eyebrow" style={{ color: "var(--brand-purple)" }}>FEATURES</span>
         <h2
           style={{
             fontSize: "clamp(36px, 5vw, 56px)",
@@ -513,12 +514,12 @@ function FeaturesDeepDive() {
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
             margin: "16px 0 48px",
-            color: "var(--fg-1)",
+            color: "#111827",
           }}
         >
           One platform.
           <br />
-          <span style={{ color: "var(--fg-3)" }}>Six roles. Everything covered.</span>
+          <span style={{ color: "#6b7280" }}>Six roles. Everything covered.</span>
         </h2>
 
         <div className="flex gap-2.5 mb-10 flex-wrap">
@@ -535,15 +536,15 @@ function FeaturesDeepDive() {
                 background:
                   activeTab === i
                     ? "var(--brand-purple)"
-                    : "transparent",
+                    : "white",
                 color:
                   activeTab === i
-                    ? "var(--fg-on-purple)"
-                    : "var(--fg-2)",
+                    ? "white"
+                    : "#374151",
                 boxShadow:
                   activeTab === i
                     ? "0 0 0 1px rgba(159,78,243,0.48), 0 8px 24px rgba(159,78,243,0.32)"
-                    : "inset 0 0 0 1px var(--line-2)",
+                    : "0 0 0 1px #e5e7eb",
                 transitionDuration: "var(--dur-fast)",
                 transitionTimingFunction: "var(--ease-standard)",
               }}
@@ -562,7 +563,7 @@ function FeaturesDeepDive() {
               style={{
                 fontSize: 26,
                 fontWeight: 500,
-                color: "var(--fg-1)",
+                color: "#111827",
                 marginBottom: 20,
                 letterSpacing: "-0.015em",
               }}
@@ -574,7 +575,7 @@ function FeaturesDeepDive() {
                 <li
                   key={i}
                   className="flex gap-2.5 mb-4"
-                  style={{ color: "var(--fg-2)", lineHeight: 1.6 }}
+                  style={{ color: "#4b5563", lineHeight: 1.6 }}
                 >
                   <span
                     className="shrink-0"
@@ -592,7 +593,7 @@ function FeaturesDeepDive() {
             <Link
               href="/features"
               className="no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300"
-              style={{ color: "var(--brand-tint)" }}
+              style={{ color: "var(--brand-purple)" }}
             >
               See all features
               <ArrowRight className="w-3.5 h-3.5" />
@@ -602,9 +603,10 @@ function FeaturesDeepDive() {
             className="relative rounded-[20px] overflow-hidden"
             style={{
               background:
-                "linear-gradient(135deg, var(--bg-plum-1), var(--bg-2))",
+                "linear-gradient(135deg, rgba(159,78,243,0.08), rgba(124,58,237,0.04))",
               aspectRatio: "4 / 3",
-              boxShadow: "var(--elev-2)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)",
+              border: "1px solid #e5e7eb",
             }}
           >
             <div
@@ -612,7 +614,7 @@ function FeaturesDeepDive() {
               className="absolute inset-0 flex items-center justify-center font-mono"
               style={{
                 fontSize: 14,
-                color: "var(--fg-4)",
+                color: "#9ca3af",
                 letterSpacing: "0.1em",
               }}
             >
@@ -659,12 +661,12 @@ function BlogSection() {
       id="blogs"
       style={{
         padding: "128px 0",
-        background: "var(--bg-0)",
-        borderTop: "1px solid var(--line-1)",
+        background: "#ffffff",
+        borderTop: "1px solid #e5e7eb",
       }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
-        <span className="eyebrow">FROM THE BLOG</span>
+        <span className="eyebrow" style={{ color: "var(--brand-purple)" }}>FROM THE BLOG</span>
         <h2
           style={{
             fontSize: "clamp(36px, 5vw, 56px)",
@@ -672,12 +674,12 @@ function BlogSection() {
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
             margin: "16px 0 56px",
-            color: "var(--fg-1)",
+            color: "#111827",
           }}
         >
           For the people
           <br />
-          <span style={{ color: "var(--fg-3)" }}>doing the work.</span>
+          <span style={{ color: "#6b7280" }}>doing the work.</span>
         </h2>
         <div
           className="grid gap-8"
@@ -691,10 +693,11 @@ function BlogSection() {
               href={b.href}
               className="no-underline block transition-transform"
               style={{
-                background: "var(--bg-2)",
+                background: "white",
                 borderRadius: 16,
                 overflow: "hidden",
-                boxShadow: "var(--elev-1)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)",
+                border: "1px solid #f3f4f6",
               }}
             >
               {/* Article cover — real photo */}
@@ -709,7 +712,7 @@ function BlogSection() {
                   className="font-mono mb-2.5"
                   style={{
                     fontSize: 11,
-                    color: "var(--brand-tint)",
+                    color: "var(--brand-purple)",
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                   }}
@@ -720,7 +723,7 @@ function BlogSection() {
                   className="font-medium"
                   style={{
                     fontSize: 18,
-                    color: "var(--fg-1)",
+                    color: "#111827",
                     marginBottom: 10,
                     letterSpacing: "-0.01em",
                     lineHeight: 1.3,
@@ -730,7 +733,7 @@ function BlogSection() {
                 </h3>
                 <div
                   className="font-mono"
-                  style={{ fontSize: 12, color: "var(--fg-3)" }}
+                  style={{ fontSize: 12, color: "#9ca3af" }}
                 >
                   {b.date}
                 </div>
@@ -742,7 +745,7 @@ function BlogSection() {
           <Link
             href="/blog"
             className="no-underline font-medium inline-flex items-center gap-2 transition-colors duration-300"
-            style={{ color: "var(--brand-tint)" }}
+            style={{ color: "var(--brand-purple)" }}
           >
             Read all articles
             <ArrowRight className="w-3.5 h-3.5" />

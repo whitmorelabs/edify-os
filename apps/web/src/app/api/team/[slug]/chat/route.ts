@@ -5,6 +5,9 @@ import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import type { ArchetypeNamesMap } from "@/app/api/members/archetype-names/route";
 import { runArchetypeTurn } from "@/lib/chat/run-archetype-turn";
 
+// Tell Next.js this route streams — disable static buffering.
+export const dynamic = "force-dynamic";
+
 export async function POST(
   request: Request,
   { params }: { params: { slug: string } }
@@ -177,13 +180,46 @@ export async function POST(
     memberId: memberId ?? null,
   });
 
-  return NextResponse.json({
-    id: crypto.randomUUID(),
-    role: "assistant",
-    content: text,
-    timestamp: new Date().toISOString(),
-    conversationId: activeConversationId,
-    ...(generatedFiles.length > 0 ? { files: generatedFiles } : {}),
+  // Stream the response so the frontend can display text progressively.
+  // We've already completed the tool-use loop above — what we stream here is
+  // the final assembled text, word-by-word (chunk size ~4 chars) so the UI
+  // sees a typewriter effect without changing the server-side architecture.
+  const msgId = crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    start(controller) {
+      // First event: metadata (conversationId, files, msgId)
+      const meta = JSON.stringify({
+        type: "meta",
+        id: msgId,
+        conversationId: activeConversationId,
+        timestamp,
+        ...(generatedFiles.length > 0 ? { files: generatedFiles } : {}),
+      });
+      controller.enqueue(encoder.encode(`data: ${meta}\n\n`));
+
+      // Stream text in small chunks for a typewriter feel (~4 chars each).
+      const CHUNK = 4;
+      for (let i = 0; i < text.length; i += CHUNK) {
+        const chunk = JSON.stringify({ type: "delta", text: text.slice(i, i + CHUNK) });
+        controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+      }
+
+      // Done event
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
   });
 }
 
@@ -220,6 +256,11 @@ async function recordChatArtifact({
     if (!hasGeneratedFiles && trimmed.length < 80) return;
 
     const kind = classifyArtifact(userMessage, assistantText, hasGeneratedFiles);
+
+    // Only persist actual deliverables to the Tasks page — not conversational replies,
+    // explanations, or status updates. chat_reply means Claude answered a question;
+    // that's not a task artifact the user needs to track.
+    if (kind === "chat_reply") return;
 
     // Title = first non-empty line (strip markdown headers), max 80 chars.
     const firstLine =
@@ -263,11 +304,36 @@ function classifyArtifact(
   hasGeneratedFiles: boolean,
 ): string {
   if (hasGeneratedFiles) return "document";
+
   const msg = userMessage.toLowerCase();
   const text = assistantText.toLowerCase();
-  if (/\b(email|draft.*email|reply to|send.*email)\b/.test(msg)) return "email_draft";
-  if (/\b(social|tweet|post|instagram|linkedin|facebook)\b/.test(msg)) return "social_post";
-  if (/\b(grant|proposal|application)\b/.test(msg)) return "grant_note";
-  if (/^subject:/i.test(assistantText) || /\nsubject:/i.test(text)) return "email_draft";
+
+  // Email drafts — strong intent signals in both the request and the response.
+  const emailRequestSignal = /\b(draft|write|compose|send)\b.*\b(email|message|reply|letter)\b/.test(msg)
+    || /\b(email|reply to|respond to)\b/.test(msg);
+  const emailResponseSignal = /^subject:/i.test(assistantText) || /\nsubject:/i.test(text)
+    || /\bdear\b.*\n/i.test(text) || /\bsincerely\b|\bbest regards\b|\bwarm regards\b/i.test(text);
+  if (emailRequestSignal && emailResponseSignal) return "email_draft";
+  if (emailResponseSignal) return "email_draft"; // Response looks like email even if request was vague
+
+  // Social media posts — request must explicitly ask for a post/caption/tweet.
+  const socialRequest = /\b(write|create|draft|compose)\b.*\b(post|tweet|caption|instagram|linkedin|facebook|social)\b/.test(msg)
+    || /\b(social media|content calendar|post series)\b/.test(msg);
+  if (socialRequest) return "social_post";
+
+  // Grant documents — LOI, proposal, or calendar event creation.
+  const grantRequest = /\b(draft|write|prepare)\b.*\b(loi|letter of intent|proposal|application|grant)\b/.test(msg)
+    || /\b(grant proposal|loi|letter of intent)\b/.test(msg);
+  if (grantRequest) return "grant_note";
+
+  // Calendar events created — response mentions event created/scheduled with a date.
+  const calendarCreated = /\b(event|meeting|appointment)\b.*\b(created|scheduled|added|set)\b/i.test(text)
+    || /\b(i('ve| have) (created|scheduled|added))\b/i.test(text);
+  if (calendarCreated && /\b(calendar)\b/i.test(msg + text)) return "calendar_event";
+
+  // Document creation requests (non-file).
+  const docRequest = /\b(write|create|draft|build|make)\b.*\b(report|document|policy|handbook|checklist|template|plan|budget|timeline|agenda|newsletter|blog|press release|announcement)\b/.test(msg);
+  if (docRequest) return "document";
+
   return "chat_reply";
 }

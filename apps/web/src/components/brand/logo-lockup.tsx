@@ -1,12 +1,9 @@
 ﻿/**
  * LogoLockup — shared brand component for navbar, footer, and sidebar.
  *
- * Renders: [E-mark] [DIFY text] [OS chip] [PRIVATE BETA pill]
- * - The E-mark SVG (edify-mark.svg) is rendered via <Image>.
- * - "DIFY" is rendered as real HTML text (Instrument Sans, 700, --fg-1).
- *   This replaces the previous single combined edify-wordmark.svg approach,
- *   which relied on an external CSS class (.wm) that Next.js <Image> cannot
- *   resolve — causing the DIFY text to be invisible on the live site.
+ * Renders: [Edify logo PNG] [OS chip] [PRIVATE BETA pill]
+ * - The full Edify logo PNG (edify-logo.png) is rendered via Next.js <Image>.
+ *   The PNG shows white text on transparent background, suited for dark navbars.
  * - "OS" uses monospace font, same color as wordmark, no border (Option A).
  * - "PRIVATE BETA" pill is env-gated via NEXT_PUBLIC_SHOW_BETA_BADGE.
  *   Defaults to visible if unset. Set to "false" to hide.
@@ -29,11 +26,11 @@ export interface LogoLockupProps {
 
 const sizeMap: Record<
   LogoSize,
-  { markHeight: number; difySize: string; osSize: string; betaSize: string }
+  { logoHeight: number; logoWidth: number; osSize: string; betaSize: string }
 > = {
-  sm: { markHeight: 20, difySize: "text-[15px]", osSize: "text-[10px]", betaSize: "text-[8px]" },
-  md: { markHeight: 28, difySize: "text-[21px]", osSize: "text-[13px]", betaSize: "text-[10px]" },
-  lg: { markHeight: 36, difySize: "text-[27px]", osSize: "text-[16px]", betaSize: "text-[11px]" },
+  sm: { logoHeight: 22, logoWidth: 66, osSize: "text-[10px]", betaSize: "text-[8px]" },
+  md: { logoHeight: 28, logoWidth: 84, osSize: "text-[13px]", betaSize: "text-[10px]" },
+  lg: { logoHeight: 36, logoWidth: 108, osSize: "text-[16px]", betaSize: "text-[11px]" },
 };
 
 export function LogoLockup({
@@ -47,31 +44,19 @@ export function LogoLockup({
   const envFlag = process.env.NEXT_PUBLIC_SHOW_BETA_BADGE;
   const isBetaVisible = showBeta !== undefined ? showBeta : envFlag !== "false";
 
-  const { markHeight, difySize, osSize, betaSize } = sizeMap[size];
+  const { logoHeight, logoWidth, osSize, betaSize } = sizeMap[size];
 
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
-      {/* Wordmark: E-mark SVG + "DIFY" as real HTML text */}
-      <span className="inline-flex items-center gap-1.5">
-        {/* 3-bar purple E-mark */}
-        <Image
-          src="/brand/edify-mark.svg"
-          alt=""
-          aria-hidden
-          height={markHeight}
-          width={markHeight}
-          style={{ height: markHeight, width: markHeight }}
-          priority
-        />
-        {/* "DIFY" — real text so it renders in every context, including Next.js Image */}
-        <span
-          className={`font-sans font-bold leading-none tracking-[-0.02em] ${difySize}`}
-          style={{ color: "var(--fg-1)" }}
-          aria-label="EDIFY"
-        >
-          DIFY
-        </span>
-      </span>
+      {/* Edify wordmark PNG — white text on transparent, designed for dark navbars */}
+      <Image
+        src="/edify-logo.png"
+        alt="Edify"
+        height={logoHeight}
+        width={logoWidth}
+        style={{ height: logoHeight, width: "auto" }}
+        priority
+      />
 
       {/* "OS" monospace chip — Option A: text only, no border, ~8px gap */}
       {showOS && (
