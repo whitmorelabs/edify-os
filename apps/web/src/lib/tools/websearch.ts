@@ -25,7 +25,7 @@ export const webSearchServerTool = {
 
 // No custom tools or executor needed — Claude handles web search natively.
 // These empty exports maintain compatibility with the registry imports.
-export const webSearchTools: never[] = [];
-export function executeWebSearchTool(): never {
+export const webSearchTools: { name: string }[] = [];
+export function executeWebSearchTool(_args?: { name: string; input: unknown }): never {
   throw new Error("Web search is a server tool — executed by Anthropic, not locally");
 }
