@@ -6,7 +6,7 @@ import { Button } from "@/components/ui";
 
 export const metadata = {
   title: "Features | Edify OS",
-  description: "Seven AI directors with deep domain expertise, distinct personalities, and specialized subagents. See every feature, every capability, every workflow.",
+  description: "Six AI directors with deep domain expertise, distinct personalities, and specialized subagents. See every feature, every capability, every workflow.",
 };
 
 const directors = [

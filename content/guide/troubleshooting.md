@@ -53,7 +53,7 @@ You can also ask for revisions. Tell your team member exactly what to change: "S
 
 **What's happening:** A budget, projection, or financial calculation doesn't add up or doesn't match your expectations.
 
-**Important:** Your Finance Director builds financial structures and frameworks -- they work from the numbers you provide. If the numbers are wrong, it's often because:
+**Important:** Your Development Director builds financial structures and frameworks (such as budget narratives and grant budgets) -- they work from the numbers you provide. If the numbers are wrong, it's often because:
 
 - The input data was incomplete or approximate
 - A calculation assumption wasn't stated (e.g., fringe rate, overhead percentage)
@@ -61,7 +61,7 @@ You can also ask for revisions. Tell your team member exactly what to change: "S
 
 **What to do:**
 1. Double-check your input data first.
-2. Ask your Finance Director to show their work: "Walk me through how you calculated this."
+2. Ask your Development Director to show their work: "Walk me through how you calculated this."
 3. Correct any wrong inputs and ask for a revised version.
 4. **Always cross-reference financial outputs with your accountant before using them in official documents.**
 

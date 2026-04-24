@@ -3,10 +3,10 @@
 ## About Edify OS
 
 **What exactly is Edify OS?**
-Edify OS is a platform that gives nonprofit leaders access to a team of seven AI specialists. Instead of hiring for roles you can't afford, you work with AI-powered team members who handle fundraising, marketing, programs, finance, HR, executive support, and events -- all through a chat interface.
+Edify OS is a platform that gives nonprofit leaders access to a team of six AI specialists. Instead of hiring for roles you can't afford, you work with AI-powered team members who handle fundraising, marketing, programs, HR, executive support, and events -- all through a chat interface.
 
 **Is this just another chatbot?**
-No. A generic chatbot gives generic answers. Your Edify OS team knows your organization, remembers your history, and specializes in their domain. Your Development Director thinks like a fundraiser. Your Finance Director thinks like a CFO. That specificity makes the output actually useful.
+No. A generic chatbot gives generic answers. Your Edify OS team knows your organization, remembers your history, and specializes in their domain. Your Development Director thinks like a fundraiser. Your Programs Director thinks like a program manager. That specificity makes the output actually useful.
 
 **Do I need to be tech-savvy to use this?**
 Not at all. If you can write an email, you can use Edify OS. You type what you need in plain language and your team handles the rest.
@@ -38,7 +38,7 @@ Your team produces high-quality first drafts and well-reasoned recommendations. 
 Tell them. "This is wrong -- [correct information]" is all you need. They'll revise. You can also update your Memory with the correct information so future conversations stay accurate.
 
 **Can my team give legal or accounting advice?**
-No. Your Finance Director can draft budget documents and flag financial issues, but they're not a CPA. Your HR Coordinator can draft policies, but they're not an employment attorney. Always involve qualified professionals for legal, accounting, and compliance decisions.
+No. Your Development Director can draft budget narratives and flag financial issues in grant proposals, but they're not a CPA. Your HR Coordinator can draft policies, but they're not an employment attorney. Always involve qualified professionals for legal, accounting, and compliance decisions.
 
 **Do they make things up?**
 Occasionally, AI tools can produce information that sounds plausible but isn't accurate -- especially for specific facts like grant amounts, organization names, or statistics. Your team is trained to flag when they're uncertain, but always verify specific facts before relying on them.

@@ -100,7 +100,7 @@ export default function ArticleAITeam() {
               <div className="bg-bg-2 shadow-elev-1 rounded-xl p-8 mt-10">
                 <h3 className="text-lg font-semibold text-brand-500 mb-3">Ready to meet your team?</h3>
                 <p className="text-fg-3 text-sm leading-[1.7] mb-5">
-                  Seven AI directors built specifically for nonprofits. Brief them on your mission and see what happens when every department has coverage.
+                  Six AI directors built specifically for nonprofits. Brief them on your mission and see what happens when every department has coverage.
                 </p>
                 <Link href="/signup" className="no-underline inline-flex">
                   <Button variant="primary" size="md" trailingIcon={<ArrowRight className="w-4 h-4" />}>

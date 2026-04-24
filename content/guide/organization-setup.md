@@ -53,7 +53,7 @@ To connect, go to **Settings > Integrations**.
 
 ## Step 4: Choose Which Team Members to Activate
 
-You can activate all seven specialists or start with just a few. Go to **Settings > Team** to toggle team members on or off.
+You can activate all six specialists or start with just a few. Go to **Settings > Team** to toggle team members on or off.
 
 If you're just starting out, we recommend activating:
 - **Executive Assistant** (for day-to-day tasks)

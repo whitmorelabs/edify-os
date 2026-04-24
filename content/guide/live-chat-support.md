@@ -18,7 +18,7 @@ The support assistant is available immediately, any time. They can help you with
 
 - **How-to questions** -- "How do I upload a document to Memory?"
 - **Navigation** -- "Where do I find the organization profile settings?"
-- **Feature questions** -- "Can my Finance Director export to a spreadsheet?"
+- **Feature questions** -- "Can my Development Director export a grant budget to a spreadsheet?"
 - **Billing basics** -- "When does my billing cycle renew?"
 - **Troubleshooting common issues** -- Connection problems, formatting questions, slow responses
 - **Getting started** -- If you're new and not sure where to begin

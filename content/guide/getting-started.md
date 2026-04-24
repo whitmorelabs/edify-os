@@ -2,7 +2,7 @@
 
 Welcome. You just hired a team.
 
-Not software. Not a chatbot. A real team of seven AI specialists -- each one trained to handle a specific part of running a nonprofit. They know fundraising, communications, finance, programs, HR, events, and operations. And they're ready to go right now.
+Not software. Not a chatbot. A real team of six AI specialists -- each one trained to handle a specific part of running a nonprofit. They know fundraising, communications, programs, HR, events, and operations. And they're ready to go right now.
 
 Here's how to get started.
 
@@ -18,15 +18,14 @@ Think of it like having a fully-staffed back office -- without the payroll.
 
 ## Meet Your Team
 
-You have seven specialists on staff from day one:
+You have six specialists on staff from day one:
 
+- **Executive Assistant** -- Scheduling, email triage, meeting prep, task tracking
+- **Events Director** -- Event planning, run-of-show, sponsorships, post-event review
 - **Development Director** -- Grants, donor relationships, fundraising strategy
 - **Marketing Director** -- Social media, email campaigns, brand voice, press
-- **Executive Assistant** -- Scheduling, email triage, meeting prep, task tracking
 - **Programs Director** -- Program design, outcomes, compliance, evaluation
-- **Finance Director** -- Budgets, cash flow, audit prep, financial reports
 - **HR & Volunteer Coordinator** -- Hiring, volunteers, policies, staff training
-- **Events Director** -- Event planning, run-of-show, sponsorships, post-event review
 
 Each specialist has their own expertise. When you need help with fundraising, you go to your Development Director. When you need a social post, you go to Marketing. Simple as that.
 
@@ -63,7 +62,7 @@ Your team produces solid first drafts -- but you're the expert on your org. Read
 
 **Day 3-4:** Upload a few documents -- a past grant proposal, a program summary, your current budget. Your team will use these to give you better, more specific help.
 
-**Day 5-7:** Start routing real work to your team. Have your Marketing Director draft your next newsletter. Ask Finance to build a simple budget template. Let your Executive Assistant organize your inbox.
+**Day 5-7:** Start routing real work to your team. Have your Marketing Director draft your next newsletter. Ask your Programs Director for help with an outcome report. Let your Executive Assistant organize your inbox.
 
 By the end of the week, you'll know which team members you rely on most -- and you'll have a system that actually saves you time.
 
