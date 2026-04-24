@@ -152,6 +152,7 @@ export default function TeamChatClient({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
+  const [conversationsLoading, setConversationsLoading] = useState(true);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
@@ -165,28 +166,22 @@ export default function TeamChatClient({
     // Fetch conversations from the server (authoritative source)
     getConversations(slug)
       .then(async (remote) => {
-        // Merge: remote is authoritative, but keep any local-only entries
         const remoteIds = new Set(remote.map((c) => c.id));
         const merged = [
           ...remote,
           ...local.filter((c) => !remoteIds.has(c.id)),
         ];
         setConversations(merged);
-
-        // Auto-select the most recent conversation
         if (merged.length > 0) {
-          setActiveConversation((prev) => {
-            if (prev) return prev; // Already selected — don't override
-            return merged[0]; // Select most recent
-          });
+          setActiveConversation((prev) => prev ?? merged[0]);
         }
       })
       .catch(() => {
-        // Server unavailable — fall back to local only
         if (local.length > 0) {
           setActiveConversation((prev) => prev ?? local[0]);
         }
-      });
+      })
+      .finally(() => setConversationsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
@@ -377,7 +372,7 @@ export default function TeamChatClient({
 
   // isTyping: true while we're waiting for the first meta/delta event from server
   // streamingId non-null: we have a placeholder message being filled in live
-  const showEmptyState = messages.length === 0 && !isTyping && !streamingId;
+  const showEmptyState = messages.length === 0 && !isTyping && !streamingId && !conversationsLoading;
   // Show the typing indicator only before any streaming has started
   const showTypingIndicator = isTyping && !streamingId;
 
