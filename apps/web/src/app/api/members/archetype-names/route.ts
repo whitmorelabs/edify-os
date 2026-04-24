@@ -80,6 +80,10 @@ export async function PATCH(req: NextRequest) {
   // Build updated map — delete key if name is null or empty string
   const updated: ArchetypeNamesMap = { ...current };
   const trimmedName = typeof name === "string" ? name.trim() : null;
+  // Reject email addresses as names — prevent accidental email-as-name from OAuth flows
+  if (trimmedName && trimmedName.includes("@")) {
+    return NextResponse.json({ error: "Name cannot be an email address" }, { status: 400 });
+  }
   if (trimmedName) {
     updated[slug] = trimmedName;
   } else {
