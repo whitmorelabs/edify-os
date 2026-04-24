@@ -35,14 +35,19 @@ export async function POST() {
 
   for (const msg of messages ?? []) {
     const meta = (msg.metadata ?? {}) as Record<string, unknown>;
-    if (meta.token_usage) {
+    const existing = meta.token_usage as Record<string, number> | undefined;
+    // Skip messages with real API-captured usage (input > 5000 indicates real data)
+    if (existing && (existing.input_tokens ?? 0) > 5000) {
       skipped++;
       continue;
     }
 
     const content = (msg.content ?? "") as string;
     const outputTokens = Math.ceil(content.length / 4);
-    const inputTokens = Math.ceil(outputTokens * 1.5);
+    // Each API call sends: system prompt (~2K) + tool definitions (~2K) +
+    // conversation history (grows ~500 tokens per exchange) + user message.
+    // Average ~9K input tokens per call based on real Anthropic billing data.
+    const inputTokens = Math.max(Math.ceil(outputTokens * 1.5), 9000);
 
     const updatedMeta = {
       ...meta,
