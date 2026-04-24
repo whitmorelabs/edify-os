@@ -176,7 +176,7 @@ export default function SettingsPage() {
       {/* Organization Briefing */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
             <FileText className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -198,7 +198,7 @@ export default function SettingsPage() {
       {/* Team Schedule (Heartbeats) */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
             <Clock className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -220,7 +220,7 @@ export default function SettingsPage() {
       {/* Rename Your Team */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100">
             <Pencil className="h-5 w-5 text-violet-600" />
           </div>
           <div>
@@ -284,7 +284,7 @@ export default function SettingsPage() {
       {/* Billing & Subscription */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
             <CreditCard className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
@@ -306,7 +306,7 @@ export default function SettingsPage() {
       {/* Organization Profile */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
             <Building className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -380,7 +380,7 @@ export default function SettingsPage() {
       {/* Anthropic Key (BYOK) */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
             <Key className="h-5 w-5 text-amber-600" />
           </div>
           <div>
@@ -391,12 +391,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="mb-4 rounded-lg bg-amber-950/40 border border-amber-500/30 p-4">
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-4">
           <div className="flex gap-3">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400 mt-0.5" />
-            <div className="text-sm text-amber-300">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            <div className="text-sm text-amber-800">
               <p className="font-medium">Why bring your own key?</p>
-              <p className="mt-1 text-amber-400">
+              <p className="mt-1 text-amber-700">
                 Your access key is encrypted at rest and never shared. You control
                 your AI usage and costs directly through your Anthropic account.
               </p>
@@ -405,21 +405,21 @@ export default function SettingsPage() {
         </div>
 
         {apiKeySet ? (
-          <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-950/40 p-4">
+          <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex items-center gap-3">
-              <Check className="h-5 w-5 text-emerald-500" />
+              <Check className="h-5 w-5 text-emerald-600" />
               <div>
-                <p className="text-sm font-medium text-emerald-400">
+                <p className="text-sm font-medium text-emerald-700">
                   Access key saved
                 </p>
-                <p className="text-xs text-emerald-500">
+                <p className="text-xs text-emerald-600">
                   sk-ant-...{orgData?.anthropic_api_key_hint ?? (apiKey.slice(-4) || "xxxx")}
                 </p>
               </div>
             </div>
             <Link
               href="/dashboard/admin/ai-config"
-              className="text-sm font-medium text-brand-200 hover:text-brand-500"
+              className="text-sm font-medium text-brand-600 hover:text-brand-700"
             >
               Manage Key
             </Link>
@@ -461,7 +461,7 @@ export default function SettingsPage() {
       {/* Autonomy Level */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
             <Shield className="h-5 w-5 text-brand-500" />
           </div>
           <div>
@@ -508,7 +508,7 @@ export default function SettingsPage() {
       {/* Team Management */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/15">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100">
             <Users className="h-5 w-5 text-sky-600" />
           </div>
           <div>
@@ -538,14 +538,14 @@ export default function SettingsPage() {
                   className="flex items-center justify-between rounded-lg border border-bg-3 p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/20 text-sm font-bold text-brand-200">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/20 text-sm font-bold text-brand-700">
                       {member.avatarInitials}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-fg-1 flex items-center gap-1.5">
                         {member.name}
                         {isYou && (
-                          <span className="rounded-full bg-brand-500/20 px-1.5 py-0.5 text-xs font-medium text-brand-200">
+                          <span className="rounded-full bg-brand-500/20 px-1.5 py-0.5 text-xs font-medium text-brand-700">
                             You
                           </span>
                         )}
@@ -557,9 +557,9 @@ export default function SettingsPage() {
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         member.role === "owner"
-                          ? "bg-brand-500/20 text-brand-200"
+                          ? "bg-brand-500/20 text-brand-700"
                           : member.role === "admin"
-                          ? "bg-sky-900/40 text-sky-400"
+                          ? "bg-sky-100 text-sky-700"
                           : "bg-bg-3 text-fg-3"
                       }`}
                     >

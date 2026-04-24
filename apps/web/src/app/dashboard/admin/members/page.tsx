@@ -70,7 +70,7 @@ export default function MembersPage() {
       {/* Stats strip */}
       {!loading && (
         <div className="flex gap-4 flex-wrap">
-          <div className="flex items-center gap-2 rounded-full bg-brand-500/20 px-3 py-1.5 text-xs font-medium text-brand-200">
+          <div className="flex items-center gap-2 rounded-full bg-brand-500/20 px-3 py-1.5 text-xs font-medium text-brand-700">
             <span className="h-2 w-2 rounded-full bg-brand-500" />
             {members.filter((m) => m.role === "owner").length} Owner
           </div>
@@ -143,8 +143,8 @@ export default function MembersPage() {
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg text-sm font-medium ${
           toast.type === "success"
-            ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
-            : "bg-red-950/40 border-red-500/30 text-red-400"
+            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+            : "bg-red-50 border-red-200 text-red-700"
         }`}>
           {toast.type === "success" ? (
             <Check className="h-4 w-4 text-emerald-500 shrink-0" />

@@ -182,8 +182,8 @@ export function OAuthModal({
           {state === 'success' && (
             <div className="py-8 text-center">
               <div className="flex justify-center mb-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15">
-                  <CheckCircle className="h-8 w-8 text-emerald-400" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                  <CheckCircle className="h-8 w-8 text-emerald-600" />
                 </div>
               </div>
               <p className="font-semibold text-[var(--fg-1)]">{serviceName} connected!</p>
@@ -195,12 +195,12 @@ export function OAuthModal({
 
           {state === 'error' && (
             <>
-              <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4 mb-4">
+              <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-4">
                 <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 shrink-0 text-red-400 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-red-300">Connection failed</p>
-                    <p className="mt-0.5 text-sm text-red-400">{errorMessage}</p>
+                    <p className="text-sm font-medium text-red-700">Connection failed</p>
+                    <p className="mt-0.5 text-sm text-red-600">{errorMessage}</p>
                   </div>
                 </div>
               </div>

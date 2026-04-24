@@ -158,11 +158,49 @@ export async function sendMessage(
 }
 
 /**
- * Fetch conversation list for a team member.
- * Returns locally-stored conversations (no server needed).
+ * Fetch conversation list for a team member from the server.
+ * Falls back to local conversations if the server request fails.
  */
 export async function getConversations(slug: string): Promise<Conversation[]> {
-  return getLocalConversations(slug);
+  try {
+    const res = await fetch(`/api/team/${slug}/conversations`);
+    if (!res.ok) return getLocalConversations(slug);
+    const data = (await res.json()) as Array<{
+      id: string;
+      title: string;
+      created_at: string;
+      updated_at: string;
+    }>;
+    return data.map((c) => ({
+      id: c.id,
+      slug,
+      title: c.title ?? "Untitled conversation",
+      createdAt: c.created_at,
+      updatedAt: c.updated_at,
+      messageCount: 0,
+    }));
+  } catch {
+    return getLocalConversations(slug);
+  }
+}
+
+/**
+ * Load messages for a conversation from the server.
+ * Returns an empty array if the server request fails (caller falls back to localStorage).
+ */
+export async function getMessagesFromServer(
+  slug: string,
+  conversationId: string
+): Promise<Message[]> {
+  try {
+    const res = await fetch(
+      `/api/team/${slug}/messages?conversationId=${encodeURIComponent(conversationId)}`
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Message[];
+  } catch {
+    return [];
+  }
 }
 
 /**

@@ -136,7 +136,7 @@ export default function DecisionLabPage() {
 
           {/* Error */}
           {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-400">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -175,7 +175,7 @@ export default function DecisionLabPage() {
                     key={scenario}
                     type="button"
                     onClick={() => handleRun(scenario)}
-                    className="card-interactive p-4 text-left text-sm text-fg-2 hover:text-brand-200 leading-snug"
+                    className="card-interactive p-4 text-left text-sm text-fg-2 hover:text-brand-600 leading-snug"
                   >
                     &ldquo;{scenario}&rdquo;
                   </button>

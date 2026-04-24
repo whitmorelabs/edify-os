@@ -13,6 +13,7 @@ import {
   sendMessage as apiSendMessage,
   getConversations,
   getMessages,
+  getMessagesFromServer,
   saveMessage,
   saveConversationMeta,
   getLocalConversations,
@@ -157,52 +158,71 @@ export default function TeamChatClient({
   // Load conversations on mount — auto-select the most recent one
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    // Load local conversations first (instant)
+    // Load local conversations first (instant, while server fetch is in flight)
     const local = getLocalConversations(slug);
     setConversations(local);
 
-    // Auto-select most recent local conversation immediately (instant UX)
-    if (local.length > 0 && !activeConversation) {
-      const mostRecent = local[0]; // getLocalConversations returns newest first
-      setActiveConversation(mostRecent);
-      setMessages(getMessages(mostRecent.id));
-    }
-
-    // Then fetch from API
+    // Fetch conversations from the server (authoritative source)
     getConversations(slug)
-      .then((remote) => {
-        // Merge: local first (most recent activity), then remote
+      .then(async (remote) => {
+        // Merge: remote is authoritative, but keep any local-only entries
         const remoteIds = new Set(remote.map((c) => c.id));
         const merged = [
-          ...local.filter((c) => !remoteIds.has(c.id)),
           ...remote,
+          ...local.filter((c) => !remoteIds.has(c.id)),
         ];
         setConversations(merged);
 
-        // If no local conversations existed, auto-select most recent from remote
-        if (local.length === 0 && merged.length > 0 && !activeConversation) {
-          const mostRecent = merged[0];
-          setActiveConversation(mostRecent);
-          setMessages(getMessages(mostRecent.id));
+        // Auto-select the most recent conversation
+        if (merged.length > 0) {
+          setActiveConversation((prev) => {
+            if (prev) return prev; // Already selected — don't override
+            return merged[0]; // Select most recent
+          });
         }
       })
       .catch(() => {
-        // Keep local if API fails
+        // Server unavailable — fall back to local only
+        if (local.length > 0) {
+          setActiveConversation((prev) => prev ?? local[0]);
+        }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   // ---------------------------------------------------------------------------
-  // Load messages for active conversation
+  // Load messages for active conversation — check localStorage first,
+  // then fall back to the server if the local cache is empty.
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (activeConversation) {
-      const stored = getMessages(activeConversation.id);
+    if (!activeConversation) {
+      setMessages([]);
+      return;
+    }
+
+    const stored = getMessages(activeConversation.id);
+    if (stored.length > 0) {
+      // Local cache hit — render immediately
       setMessages(stored);
     } else {
-      setMessages([]);
+      // No local messages — fetch from server (e.g. new device or cleared cache)
+      setMessages([]); // Clear first to avoid stale messages from previous conv
+      getMessagesFromServer(slug, activeConversation.id)
+        .then((serverMessages) => {
+          if (serverMessages.length > 0) {
+            setMessages(serverMessages);
+            // Backfill localStorage so subsequent loads are instant
+            for (const msg of serverMessages) {
+              saveMessage(activeConversation.id, msg);
+            }
+          }
+        })
+        .catch(() => {
+          // Server unavailable — show empty state
+        });
     }
-  }, [activeConversation]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversation?.id]);
 
   // ---------------------------------------------------------------------------
   // Handle sending a message — streams the assistant response chunk by chunk
@@ -349,11 +369,10 @@ export default function TeamChatClient({
 
   // ---------------------------------------------------------------------------
   // Select existing conversation
+  // Messages are loaded by the activeConversation useEffect above.
   // ---------------------------------------------------------------------------
   function handleSelectConversation(conv: Conversation) {
     setActiveConversation(conv);
-    const stored = getMessages(conv.id);
-    setMessages(stored);
   }
 
   // isTyping: true while we're waiting for the first meta/delta event from server
@@ -404,7 +423,7 @@ export default function TeamChatClient({
           </div>
 
           {/* Active indicator */}
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 text-xs font-medium text-emerald-400 shrink-0">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700 shrink-0">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Active
           </span>

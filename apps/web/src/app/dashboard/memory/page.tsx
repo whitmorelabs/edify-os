@@ -279,9 +279,9 @@ export default function MemoryPage() {
 
       {/* Delete error banner */}
       {deleteError && (
-        <div className="rounded-lg bg-red-950/40 border border-red-500/30 p-3 text-sm text-red-400 flex items-center justify-between">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 flex items-center justify-between">
           <span>{deleteError}</span>
-          <button onClick={() => setDeleteError(null)} className="ml-3 text-red-400 hover:text-red-300">
+          <button onClick={() => setDeleteError(null)} className="ml-3 text-red-500 hover:text-red-700">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -444,7 +444,7 @@ export default function MemoryPage() {
                             }
                           }}
                           disabled={isBeingDeleted}
-                          className="rounded-lg p-1.5 text-fg-4 hover:bg-red-950/40 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="rounded-lg p-1.5 text-fg-4 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete entry"
                         >
                           <Trash2 className="h-4 w-4" />

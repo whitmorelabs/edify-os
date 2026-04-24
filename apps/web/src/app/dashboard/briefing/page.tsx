@@ -175,7 +175,7 @@ export default function BriefingPage() {
                   i < step
                     ? 'border-brand-500 bg-brand-500 text-white'
                     : i === step
-                    ? 'border-brand-500 bg-brand-500/10 text-brand-200'
+                    ? 'border-brand-500 bg-brand-500/10 text-brand-700'
                     : 'border-bg-3 bg-bg-2 text-fg-4'
                 }`}
               >
@@ -187,14 +187,14 @@ export default function BriefingPage() {
               </div>
               <span
                 className={`hidden sm:block text-xs font-medium transition-colors ${
-                  i <= step ? 'text-brand-200' : 'text-fg-4'
+                  i <= step ? 'text-brand-700' : 'text-fg-4'
                 }`}
               >
                 {s.label}
               </span>
               <span
                 className={`sm:hidden text-xs font-medium transition-colors ${
-                  i <= step ? 'text-brand-200' : 'text-fg-4'
+                  i <= step ? 'text-brand-700' : 'text-fg-4'
                 }`}
               >
                 {s.short}

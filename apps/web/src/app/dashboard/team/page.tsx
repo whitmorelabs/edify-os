@@ -100,7 +100,7 @@ export default function TeamPage() {
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                   {/* Online indicator */}
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-medium text-emerald-700">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Active
                   </span>

@@ -63,25 +63,75 @@ export async function GET(req: NextRequest) {
       .gte("created_at", since),
   ]);
 
-  // Per-archetype breakdown via conversations join to agent_configs
+  // Pre-load agent_config rows so we can map config_id → role_slug.
+  // Many conversations were created before agent_config_id was wired (the column
+  // defaulted to null). We count those conversations using two passes:
+  //   1. Conversations with a non-null agent_config_id  → join to agent_configs
+  //   2. Conversations with null agent_config_id        → count via tasks.agent_role
+  //      (tasks.agent_role is set reliably for every chat response)
+  const { data: agentConfigRows } = await serviceClient
+    .from("agent_configs")
+    .select("id, role_slug")
+    .eq("org_id", orgId);
+
+  const configIdToSlug: Record<string, string> = {};
+  for (const row of agentConfigRows ?? []) {
+    if (row.id && row.role_slug) {
+      configIdToSlug[row.id as string] = row.role_slug as string;
+    }
+  }
+
+  // Pass 1: conversations that have agent_config_id set
   const { data: convByAgent } = await serviceClient
     .from("conversations")
-    .select("agent_config_id, agent_configs(role_slug)")
+    .select("agent_config_id")
     .eq("org_id", orgId)
+    .not("agent_config_id", "is", null)
     .gte("created_at", since);
 
   const slugCounts: Record<string, number> = {};
   for (const conv of convByAgent ?? []) {
-    const slug = (conv.agent_configs as { role_slug?: string } | null)?.role_slug ?? "unknown";
-    slugCounts[slug] = (slugCounts[slug] ?? 0) + 1;
+    const slug = configIdToSlug[conv.agent_config_id as string] ?? "unknown";
+    if (slug !== "unknown") {
+      slugCounts[slug] = (slugCounts[slug] ?? 0) + 1;
+    }
   }
+
+  // Pass 2: for conversations missing agent_config_id, use tasks.agent_role as a proxy.
+  // Count distinct conversations via tasks (one task per conversation response).
+  // We de-duplicate by counting unique tasks grouped by agent_role — not a perfect
+  // conversation count, but much better than all zeros.
+  const { data: tasksByRole } = await serviceClient
+    .from("tasks")
+    .select("agent_role")
+    .eq("org_id", orgId)
+    .gte("created_at", since)
+    .not("agent_role", "is", null);
+
+  // Only use tasks to fill in slugs that have NO wired conversations
+  const taskSlugCounts: Record<string, number> = {};
+  for (const task of tasksByRole ?? []) {
+    const slug = task.agent_role as string;
+    taskSlugCounts[slug] = (taskSlugCounts[slug] ?? 0) + 1;
+  }
+
+  // Merge: prefer wired conversation counts; supplement with task counts for
+  // archetypes that still show 0 (likely old conversations with null config_id).
+  for (const slug of ARCHETYPE_SLUGS) {
+    if ((slugCounts[slug] ?? 0) === 0 && (taskSlugCounts[slug] ?? 0) > 0) {
+      slugCounts[slug] = taskSlugCounts[slug];
+    }
+  }
+
+  // Per-archetype task counts (direct, reliable)
+  const taskCountBySlug: Record<string, number> = { ...taskSlugCounts };
 
   const byArchetype = ARCHETYPE_SLUGS.map((slug) => ({
     slug,
     label: ARCHETYPE_LABELS[slug],
     conversations: slugCounts[slug] ?? 0,
-    messages: 0, // message-per-archetype requires a join — deferred
-    tasks: 0,
+    messages: 0, // message-per-archetype requires a heavier join — deferred
+    tasks: taskCountBySlug[slug] ?? 0,
     color: ARCHETYPE_COLORS[slug],
   }));
 

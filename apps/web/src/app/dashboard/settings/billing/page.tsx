@@ -259,7 +259,7 @@ export default function BillingPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-brand-500/20 px-3 py-0.5 text-xs font-semibold text-brand-200">
+              <span className="inline-flex items-center rounded-full bg-brand-500/20 px-3 py-0.5 text-xs font-semibold text-brand-700">
                 Current Plan
               </span>
             </div>
@@ -346,7 +346,7 @@ export default function BillingPage() {
                       plan.dark
                         ? "bg-white/10 text-fg-1"
                         : plan.popular
-                        ? "bg-brand-500/20 text-brand-200"
+                        ? "bg-brand-500/20 text-brand-700"
                         : "bg-bg-3 text-fg-2"
                     }`}
                   >
@@ -648,8 +648,8 @@ export default function BillingPage() {
 
             {/* Downgrade warning */}
             {getPlanIndex(selectedPlan) < getPlanIndex(currentPlan) && (
-              <div className="mb-5 rounded-lg border border-amber-500/30 bg-amber-950/40 p-3">
-                <p className="text-sm text-amber-300">
+              <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-sm text-amber-800">
                   Downgrading will take effect at the end of your current
                   billing cycle. Some features and data exceeding the new
                   plan&apos;s limits may become inaccessible.

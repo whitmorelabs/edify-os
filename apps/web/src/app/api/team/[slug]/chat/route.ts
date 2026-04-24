@@ -84,6 +84,15 @@ export async function POST(
   }
 
   if (!activeConversationId) {
+    // Look up the agent_config_id for this archetype so the conversation is
+    // properly attributed. Null is acceptable if no config row exists yet.
+    const { data: agentConfigForConv } = await serviceClient
+      .from("agent_configs")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("role_slug", slug)
+      .maybeSingle();
+
     // Create a new conversation
     const { data: newConv, error: convError } = await serviceClient
       .from("conversations")
@@ -91,7 +100,7 @@ export async function POST(
         org_id: orgId,
         member_id: memberId,
         title: message.slice(0, 80), // Use first 80 chars of message as title
-        agent_config_id: null, // Will wire to agent_configs in a follow-up
+        agent_config_id: agentConfigForConv?.id ?? null,
       })
       .select("id")
       .single();
@@ -129,9 +138,10 @@ export async function POST(
   // block, skills/beta path, Google token prefetch, parallel tool execution, 8-round loop).
   let text: string;
   let generatedFiles: Array<{ name: string; mimeType: string; downloadUrl: string }>;
+  let tokenUsage: import("@/lib/chat/run-archetype-turn").TokenUsage | undefined;
 
   try {
-    ({ text, generatedFiles } = await runArchetypeTurn({
+    ({ text, generatedFiles, tokenUsage } = await runArchetypeTurn({
       serviceClient,
       orgId,
       memberId: memberId ?? null,
@@ -151,11 +161,24 @@ export async function POST(
   }
 
   // Persist ONLY the final assistant text (user message was already saved above).
+  // Token usage is stored in the metadata column for the Usage dashboard.
   await Promise.all([
     serviceClient.from("messages").insert({
       conversation_id: activeConversationId,
       role: "assistant",
       content: text,
+      ...(tokenUsage
+        ? {
+            metadata: {
+              token_usage: {
+                input_tokens: tokenUsage.inputTokens,
+                output_tokens: tokenUsage.outputTokens,
+                cache_read_tokens: tokenUsage.cacheReadTokens,
+                cache_creation_tokens: tokenUsage.cacheCreationTokens,
+              },
+            },
+          }
+        : {}),
     }),
     serviceClient
       .from("conversations")
@@ -178,6 +201,16 @@ export async function POST(
     assistantText: text,
     hasGeneratedFiles: generatedFiles.length > 0,
     memberId: memberId ?? null,
+  });
+
+  // Auto-save org knowledge from user messages.
+  // When users share info about programs, contacts, donors, grants, or processes,
+  // we create a memory_entries row so the AI team retains this across conversations.
+  void autoSaveMemory({
+    serviceClient,
+    orgId,
+    memberId: memberId ?? null,
+    userMessage: message,
   });
 
   // Stream the response so the frontend can display text progressively.
@@ -336,4 +369,120 @@ function classifyArtifact(
   if (docRequest) return "document";
 
   return "chat_reply";
+}
+
+// ---------------------------------------------------------------------------
+// Helper: auto-detect and save org knowledge shared in user messages.
+//
+// Fire-and-forget: doesn't block the response. If this fails, it's non-fatal.
+// We only save a memory entry when the message clearly introduces NEW org info
+// (contacts, programs, processes, donors, grants). Generic chat messages are ignored.
+// ---------------------------------------------------------------------------
+
+type MemoryCategory =
+  | "contacts"
+  | "programs"
+  | "processes"
+  | "donors"
+  | "grants"
+  | "general";
+
+interface MemoryCandidate {
+  category: MemoryCategory;
+  title: string;
+}
+
+function detectMemoryCandidate(userMessage: string): MemoryCandidate | null {
+  const msg = userMessage.trim();
+  if (msg.length < 30) return null; // Too short to be meaningful org info
+
+  const lower = msg.toLowerCase();
+
+  // Contact / person introduction
+  if (
+    /\b(our|the)\s+(executive director|ceo|director|coordinator|manager|board|chair|president|staff|team member|volunteer coordinator|volunteer)\b/i.test(msg) ||
+    /\b(introduce|meet|fyi|for your info)\b.*\b(name is|called|known as)\b/i.test(lower) ||
+    /\bmy name is\b|\bour contact\b|\bour main contact\b/i.test(lower)
+  ) {
+    const title = `Contact: ${msg.slice(0, 60).replace(/\n.*/s, "")}`;
+    return { category: "contacts", title };
+  }
+
+  // Program introduction
+  if (
+    /\b(we (run|have|offer|provide|launched|started)|our (program|initiative|project|service|workshop|class))\b/i.test(msg) ||
+    /\b(program|initiative)\s+called\b/i.test(lower)
+  ) {
+    const title = `Program: ${msg.slice(0, 60).replace(/\n.*/s, "")}`;
+    return { category: "programs", title };
+  }
+
+  // Process / workflow introduction
+  if (
+    /\b(our process is|how we (do|handle|manage|run)|our workflow|our procedure|our protocol)\b/i.test(lower) ||
+    /\b(we always|we typically|we usually|our standard)\b.*\b(do|send|use|follow|require)\b/i.test(lower)
+  ) {
+    const title = `Process: ${msg.slice(0, 60).replace(/\n.*/s, "")}`;
+    return { category: "processes", title };
+  }
+
+  // Donor introduction
+  if (
+    /\b(our (donor|supporter|funder|sponsor|major donor|lead donor))\b/i.test(lower) ||
+    /\b(donated|pledged|committed|gave us)\b.*\b(\$|dollars|grant|gift)\b/i.test(lower)
+  ) {
+    const title = `Donor: ${msg.slice(0, 60).replace(/\n.*/s, "")}`;
+    return { category: "donors", title };
+  }
+
+  // Grant information
+  if (
+    /\b(we (received|won|applied for|submitted|are applying|got)\b.*\b(grant|award|funding))\b/i.test(lower) ||
+    /\b(grant (from|by|through)|foundation grant|federal grant|community foundation)\b/i.test(lower)
+  ) {
+    const title = `Grant: ${msg.slice(0, 60).replace(/\n.*/s, "")}`;
+    return { category: "grants", title };
+  }
+
+  return null;
+}
+
+async function autoSaveMemory({
+  serviceClient,
+  orgId,
+  memberId,
+  userMessage,
+}: {
+  serviceClient: NonNullable<ServiceClient>;
+  orgId: string;
+  memberId: string | null;
+  userMessage: string;
+}): Promise<void> {
+  try {
+    const candidate = detectMemoryCandidate(userMessage);
+    if (!candidate) return;
+
+    // Check for near-duplicates: skip if a similar title already exists
+    const { data: existing } = await serviceClient
+      .from("memory_entries")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("category", candidate.category)
+      .ilike("title", `${candidate.title.slice(0, 30)}%`)
+      .maybeSingle();
+
+    if (existing) return; // Already saved — don't duplicate
+
+    await serviceClient.from("memory_entries").insert({
+      org_id: orgId,
+      category: candidate.category,
+      title: candidate.title.slice(0, 120),
+      content: userMessage.slice(0, 2000),
+      source: "chat",
+      created_by: memberId ?? undefined,
+      auto_generated: true,
+    });
+  } catch (err) {
+    console.error("[team/chat] autoSaveMemory failed:", err);
+  }
 }

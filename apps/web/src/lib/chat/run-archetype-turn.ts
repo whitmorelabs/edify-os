@@ -83,9 +83,20 @@ export interface RunArchetypeTurnOptions {
   model?: "sonnet" | "haiku";
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  /** Tokens read from the Anthropic prompt cache (reduces billing). */
+  cacheReadTokens: number;
+  /** Tokens written to the Anthropic prompt cache. */
+  cacheCreationTokens: number;
+}
+
 export interface RunArchetypeTurnResult {
   text: string;
   generatedFiles: GeneratedFile[];
+  /** Aggregate token usage across all loop iterations for this turn. */
+  tokenUsage: TokenUsage;
 }
 
 /**
@@ -184,6 +195,13 @@ export async function runArchetypeTurn({
   // Track whether at least one tool was successfully called this turn.
   // If no tools were called, we insert a baseline chat:turn_no_tools event.
   let anyToolCalled = false;
+  // Accumulate token usage across all loop iterations.
+  const tokenUsage: TokenUsage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+  };
 
   for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
     // A+B+C: use cached system blocks, haiku/sonnet model, and attach skills only on demand.
@@ -208,6 +226,17 @@ export async function runArchetypeTurn({
           messages: loopMessages,
           ...(cachedTools.length > 0 ? { tools: cachedTools as Parameters<typeof anthropic.messages.create>[0]["tools"] } : {}),
         });
+
+    // Accumulate token usage from this API response
+    if (response.usage) {
+      tokenUsage.inputTokens += response.usage.input_tokens ?? 0;
+      tokenUsage.outputTokens += response.usage.output_tokens ?? 0;
+      // Cache token fields are present on BetaUsage (skills path) but not base Usage.
+      // Cast through unknown to avoid TS overlap error.
+      const usageAny = response.usage as unknown as Record<string, number>;
+      tokenUsage.cacheReadTokens += usageAny.cache_read_input_tokens ?? 0;
+      tokenUsage.cacheCreationTokens += usageAny.cache_creation_input_tokens ?? 0;
+    }
 
     // Collect any skill-generated file outputs (two block-type variants from the beta API)
     if (attachSkills) {
@@ -387,7 +416,7 @@ export async function runArchetypeTurn({
     });
   }
 
-  return { text: finalAssistantText, generatedFiles };
+  return { text: finalAssistantText, generatedFiles, tokenUsage };
 }
 
 // ---------------------------------------------------------------------------

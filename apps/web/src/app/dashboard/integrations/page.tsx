@@ -57,19 +57,19 @@ const CATEGORIES: Record<
   string,
   { label: string; badgeBg: string; badgeText: string }
 > = {
-  email:               { label: 'Email',         badgeBg: 'bg-blue-500/15',    badgeText: 'text-blue-300' },
-  calendar:            { label: 'Calendar',      badgeBg: 'bg-purple-500/15',  badgeText: 'text-purple-300' },
-  crm:                 { label: 'CRM & Donors',  badgeBg: 'bg-emerald-500/15', badgeText: 'text-emerald-400' },
-  marketing:           { label: 'Marketing',     badgeBg: 'bg-pink-500/15',    badgeText: 'text-pink-300' },
-  social_media:        { label: 'Social Media',  badgeBg: 'bg-indigo-500/15',  badgeText: 'text-indigo-300' },
-  documents:           { label: 'Documents',     badgeBg: 'bg-amber-500/15',   badgeText: 'text-amber-300' },
-  grants:              { label: 'Grants',        badgeBg: 'bg-teal-500/15',    badgeText: 'text-teal-300' },
-  project_management:  { label: 'Project Mgmt',  badgeBg: 'bg-orange-500/15',  badgeText: 'text-orange-300' },
-  finance:             { label: 'Finance',       badgeBg: 'bg-lime-500/15',    badgeText: 'text-lime-300' },
-  website:             { label: 'Website',       badgeBg: 'bg-cyan-500/15',    badgeText: 'text-cyan-300' },
-  communication:       { label: 'Communication', badgeBg: 'bg-violet-500/15',  badgeText: 'text-violet-300' },
-  events:              { label: 'Events',        badgeBg: 'bg-rose-500/15',    badgeText: 'text-rose-300' },
-  payments:            { label: 'Payments',      badgeBg: 'bg-sky-500/15',     badgeText: 'text-sky-300' },
+  email:               { label: 'Email',         badgeBg: 'bg-blue-100',    badgeText: 'text-blue-700' },
+  calendar:            { label: 'Calendar',      badgeBg: 'bg-purple-100',  badgeText: 'text-purple-700' },
+  crm:                 { label: 'CRM & Donors',  badgeBg: 'bg-emerald-100', badgeText: 'text-emerald-700' },
+  marketing:           { label: 'Marketing',     badgeBg: 'bg-pink-100',    badgeText: 'text-pink-700' },
+  social_media:        { label: 'Social Media',  badgeBg: 'bg-indigo-100',  badgeText: 'text-indigo-700' },
+  documents:           { label: 'Documents',     badgeBg: 'bg-amber-100',   badgeText: 'text-amber-700' },
+  grants:              { label: 'Grants',        badgeBg: 'bg-teal-100',    badgeText: 'text-teal-700' },
+  project_management:  { label: 'Project Mgmt',  badgeBg: 'bg-orange-100',  badgeText: 'text-orange-700' },
+  finance:             { label: 'Finance',       badgeBg: 'bg-lime-100',    badgeText: 'text-lime-700' },
+  website:             { label: 'Website',       badgeBg: 'bg-cyan-100',    badgeText: 'text-cyan-700' },
+  communication:       { label: 'Communication', badgeBg: 'bg-violet-100',  badgeText: 'text-violet-700' },
+  events:              { label: 'Events',        badgeBg: 'bg-rose-100',    badgeText: 'text-rose-700' },
+  payments:            { label: 'Payments',      badgeBg: 'bg-sky-100',     badgeText: 'text-sky-700' },
 };
 
 /* ------------------------------------------------------------------ */

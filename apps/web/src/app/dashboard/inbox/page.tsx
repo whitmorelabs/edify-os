@@ -38,9 +38,9 @@ type InboxSection = "approvals" | "team-updates";
 
 const urgencyColors = {
   low: "bg-bg-3 text-fg-3",
-  normal: "bg-bg-3 text-sky-400",
-  high: "bg-bg-3 text-amber-400",
-  critical: "bg-bg-3 text-red-400",
+  normal: "bg-bg-3 text-sky-700",
+  high: "bg-bg-3 text-amber-700",
+  critical: "bg-bg-3 text-red-600",
 };
 
 function formatCreatedAt(iso: string): string {
@@ -299,7 +299,7 @@ export default function InboxPage() {
               </>
             ) : error ? (
               <div className="card p-12 text-center">
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             ) : items.length === 0 ? (
               <div className="card p-12 text-center">
@@ -309,7 +309,7 @@ export default function InboxPage() {
                 </p>
                 <p className="mt-1 text-sm text-fg-3 max-w-sm mx-auto">
                   Your team is working — see the{" "}
-                  <Link href="/dashboard/tasks" className="text-brand-200 hover:underline">
+                  <Link href="/dashboard/tasks" className="text-brand-600 hover:underline">
                     Tasks page
                   </Link>{" "}
                   for completed work.
@@ -451,7 +451,7 @@ export default function InboxPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => updateStatus(item.id, "rejected")}
-                            className="text-red-400 hover:text-red-300"
+                            className="text-red-600 hover:text-red-700"
                           >
                             <XCircle className="h-4 w-4" />
                             Reject
@@ -482,8 +482,8 @@ export default function InboxPage() {
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
                               item.status === "approved"
-                                ? "bg-emerald-950/60 border border-emerald-500/30 text-emerald-400"
-                                : "bg-red-950/60 border border-red-500/30 text-red-400"
+                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                                : "bg-red-50 border border-red-200 text-red-700"
                             }`}
                           >
                             {item.status === "approved" ? (
@@ -620,7 +620,7 @@ export default function InboxPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => { updateStatus(expandedItem.id, "rejected"); closeExpand(); }}
-                    className="text-red-400 hover:text-red-300"
+                    className="text-red-600 hover:text-red-700"
                   >
                     <XCircle className="h-4 w-4" />
                     Reject

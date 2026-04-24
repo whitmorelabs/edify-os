@@ -22,16 +22,28 @@ export async function GET(
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
-  // Fetch conversations for this org and archetype slug
-  // We match by the slug stored in agent_configs, but conversations may not always
-  // have an agent_config_id set. For now, return all conversations for this org
-  // and filter by a slug tag stored in metadata.
-  const { data: conversations, error } = await serviceClient
+  // Look up the agent_config_id for this slug so we can filter by it.
+  const { data: agentConfig } = await serviceClient
+    .from("agent_configs")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("role_slug", slug)
+    .maybeSingle();
+
+  // Fetch conversations for this org filtered by the agent_config for this slug.
+  // If no agent_config row exists yet, fall back to all org conversations (degenerate case).
+  let query = serviceClient
     .from("conversations")
     .select("id, title, created_at, updated_at")
     .eq("org_id", orgId)
     .order("updated_at", { ascending: false })
     .limit(50);
+
+  if (agentConfig?.id) {
+    query = query.eq("agent_config_id", agentConfig.id);
+  }
+
+  const { data: conversations, error } = await query;
 
   if (error) {
     console.error("[team/conversations] DB error:", error);

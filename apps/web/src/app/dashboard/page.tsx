@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Info } from "lucide-react";
 import type { DashboardSummary } from "@/app/api/dashboard/summary/route";
 import type { HoursSavedResponse } from "@/app/api/stats/hours-saved/route";
+import type { TodayEventsResponse } from "@/app/api/integrations/google/today-events/route";
 import type { AgentRoleSlug } from "@/lib/agent-colors";
 import {
   ARCHETYPES,
@@ -124,29 +125,6 @@ function NameSlot({ big = false, name }: { big?: boolean; name?: string }) {
       — unnamed —
     </span>
   );
-}
-
-function MicroStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <div
-        className="font-mono font-medium leading-none tracking-[-0.02em]"
-        style={{ fontSize: 22, color: "var(--fg-1)" }}
-      >
-        {value}
-      </div>
-      <div
-        className="text-[11px] uppercase tracking-[0.08em] mt-1"
-        style={{ color: "var(--fg-3)" }}
-      >
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function MicroDivider() {
-  return <div className="w-px self-stretch" style={{ background: "var(--line-2)" }} />;
 }
 
 function MiniBar({
@@ -381,6 +359,8 @@ export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const [hoursSaved, setHoursSaved] = useState<HoursSavedResponse | null>(null);
   const [hoursSavedLoading, setHoursSavedLoading] = useState(true);
+  const [todayEvents, setTodayEvents] = useState<TodayEventsResponse | null>(null);
+  const [todayLoading, setTodayLoading] = useState(true);
   const { names: archetypeNames } = useArchetypeNames();
 
   useEffect(() => {
@@ -397,6 +377,14 @@ export default function DashboardHome() {
       .then((data: HoursSavedResponse | null) => setHoursSaved(data))
       .catch(() => setHoursSaved(null))
       .finally(() => setHoursSavedLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/integrations/google/today-events")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: TodayEventsResponse | null) => setTodayEvents(data))
+      .catch(() => setTodayEvents(null))
+      .finally(() => setTodayLoading(false));
   }, []);
 
   const now = useMemo(() => new Date(), []);
@@ -467,194 +455,83 @@ export default function DashboardHome() {
           <span style={{ color: "#6b7280" }}> things forward.</span>
         </h1>
 
-        {/* ————— HERO + ASYMMETRIC STATS ————— */}
+        {/* ————— HERO STATS ————— */}
         <div
-          className="grid gap-8 mt-14 mb-20"
-          style={{
-            gridTemplateColumns: "minmax(0, 1.45fr) minmax(0, 1fr)",
-          }}
+          className="grid gap-5 mt-14 mb-20"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
         >
-          {/* Team Status */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: DURATION.slow, ease: EASE.entrance }}
-            className="relative overflow-hidden rounded-[20px] p-8 flex flex-col"
-            style={{
-              background: "rgba(255,255,255,0.9)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)",
-              border: "1px solid rgba(229,231,235,0.7)",
-              minHeight: 360,
-            }}
-          >
-            <div
-              aria-hidden
-              className="absolute pointer-events-none"
+          <Link href="/dashboard/inbox">
+            <Card
+              elevation={1}
+              className="relative overflow-hidden p-6 cursor-pointer group transition-transform hover:-translate-y-[1px]"
               style={{
-                top: -60,
-                right: -40,
-                width: 340,
-                height: 340,
-                background: "radial-gradient(circle, rgba(159,78,243,0.2) 0%, transparent 60%)",
-                filter: "blur(20px)",
-                animation: "hero-breathe 7s ease-in-out infinite",
+                background: "#ffffff",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(245,181,68,0.4)",
+                border: "1px solid #e5e7eb",
               }}
-            />
-            <div className="relative flex-1">
-              <div className="flex items-center gap-2.5 mb-6">
-                <span
-                  className="font-mono text-[11px] tracking-[0.14em]"
-                  style={{ color: "var(--brand-tint)" }}
-                >
-                  TEAM STATUS
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {ARCHETYPE_LIST.map((arc) => {
-                  const name = archetypeNames[KEY_TO_SLUG[arc.key]];
-                  return (
-                    <Link
-                      key={arc.key}
-                      href={`/dashboard/team/${KEY_TO_SLUG[arc.key]}`}
-                      className="flex items-center gap-3 rounded-[12px] p-3 transition-colors"
-                      style={{
-                        background: "#f9fafb",
-                        boxShadow: "0 0 0 1px #e5e7eb",
-                      }}
-                    >
-                      <ArchetypeMark arc={arc} size={28} />
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className="text-[13px] font-medium truncate"
-                          style={{ color: "#111827" }}
-                        >
-                          {name ?? (
-                            <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
-                              {arc.role}
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          className="text-[11px] font-mono uppercase tracking-[0.08em]"
-                          style={{ color: arc.color }}
-                        >
-                          {arc.short}
-                        </div>
-                      </div>
-                      <span
-                        className="inline-block rounded-full flex-shrink-0"
-                        style={{
-                          width: 6,
-                          height: 6,
-                          background: arc.color,
-                          boxShadow: `0 0 6px ${arc.color}`,
-                        }}
-                      />
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="relative flex gap-5 mt-7 flex-wrap items-center">
-              <MicroStat
-                value={String(ARCHETYPE_LIST.filter((a) => archetypeNames[KEY_TO_SLUG[a.key]]).length)}
-                label="named"
-              />
-              <MicroDivider />
-              <MicroStat value={String(ARCHETYPE_LIST.length)} label="directors" />
-              <MicroDivider />
-              <MicroStat value={loading ? "—" : String(pendingApprovals)} label="pending" />
-              <Link
-                href="/dashboard/team"
-                className="ml-auto inline-flex items-center gap-1.5 font-medium text-[13px]"
-                style={{ color: "var(--brand-tint)" }}
-              >
-                View team
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="m13 5 7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </motion.div>
-
-          {/* Right column — approvals + week summary + hours saved */}
-          <div className="flex flex-col gap-5">
-            <Link href="/dashboard/inbox">
-              <Card
-                elevation={1}
-                className="relative overflow-hidden p-6 cursor-pointer group transition-transform hover:-translate-y-[1px]"
+            >
+              <div
+                aria-hidden
+                className="absolute pointer-events-none"
                 style={{
-                  background: "#ffffff",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(245,181,68,0.4)",
-                  border: "1px solid #e5e7eb",
+                  top: 0,
+                  right: 0,
+                  width: 160,
+                  height: "100%",
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(245,181,68,0.08))",
+                  animation: "amber-shift 4s ease-in-out infinite",
+                  opacity: 0.6,
                 }}
-              >
-                <div
-                  aria-hidden
-                  className="absolute pointer-events-none"
-                  style={{
-                    top: 0,
-                    right: 0,
-                    width: 160,
-                    height: "100%",
-                    background:
-                      "linear-gradient(90deg, transparent, rgba(245,181,68,0.08))",
-                    animation: "amber-shift 4s ease-in-out infinite",
-                    opacity: 0.6,
-                  }}
-                />
-                <div className="relative">
-                  <span className="eyebrow" style={{ color: "var(--warn)" }}>
-                    NEEDS YOU
-                  </span>
-                  <div className="flex items-baseline gap-3.5 mt-1.5">
-                    <span
-                      className="font-mono font-medium leading-[0.9] tracking-[-0.03em]"
-                      style={{ fontSize: 72, color: "#111827" }}
-                    >
-                      {loading ? "—" : pendingApprovals}
-                    </span>
-                    <span style={{ color: "#6b7280", fontSize: 18 }}>
-                      approvals pending
-                    </span>
-                  </div>
-                  <div
-                    className="mt-2.5 text-[13px]"
-                    style={{ color: "#9ca3af" }}
+              />
+              <div className="relative">
+                <span className="eyebrow" style={{ color: "var(--warn)" }}>
+                  NEEDS YOU
+                </span>
+                <div className="flex items-baseline gap-3.5 mt-1.5">
+                  <span
+                    className="font-mono font-medium leading-[0.9] tracking-[-0.03em]"
+                    style={{ fontSize: 72, color: "#111827" }}
                   >
-                    <span style={{ color: "var(--warn)" }}>Review now →</span>
-                  </div>
+                    {loading ? "—" : pendingApprovals}
+                  </span>
+                  <span style={{ color: "#6b7280", fontSize: 18 }}>
+                    approvals pending
+                  </span>
                 </div>
-              </Card>
-            </Link>
-
-            <Card elevation={0} className="p-5" style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <span className="eyebrow">THIS WEEK</span>
-              <div className="mt-3.5 flex flex-col gap-2.5">
-                {loading ? (
-                  <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
-                    Loading…
-                  </div>
-                ) : tasksCompleted === 0 ? (
-                  <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
-                    No activity yet — start a conversation to kick things off.
-                  </div>
-                ) : (
-                  <MiniBar
-                    label="Tasks done"
-                    value={tasksCompleted}
-                    max={tasksCompleted || 1}
-                    color="var(--brand-purple)"
-                  />
-                )}
+                <div
+                  className="mt-2.5 text-[13px]"
+                  style={{ color: "#9ca3af" }}
+                >
+                  <span style={{ color: "var(--warn)" }}>Review now →</span>
+                </div>
               </div>
             </Card>
+          </Link>
 
-            <HoursSavedCard data={hoursSaved} loading={hoursSavedLoading} />
-          </div>
+          <Card elevation={0} className="p-5" style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <span className="eyebrow">THIS WEEK</span>
+            <div className="mt-3.5 flex flex-col gap-2.5">
+              {loading ? (
+                <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
+                  Loading…
+                </div>
+              ) : tasksCompleted === 0 ? (
+                <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
+                  No activity yet — start a conversation to kick things off.
+                </div>
+              ) : (
+                <MiniBar
+                  label="Tasks done"
+                  value={tasksCompleted}
+                  max={tasksCompleted || 1}
+                  color="var(--brand-purple)"
+                />
+              )}
+            </div>
+          </Card>
+
+          <HoursSavedCard data={hoursSaved} loading={hoursSavedLoading} />
         </div>
 
         {/* ————— REST OF TEAM ————— */}
@@ -757,18 +634,66 @@ export default function DashboardHome() {
           <aside className="sticky top-24 self-start">
             <span className="eyebrow">TODAY</span>
             <div className="mt-3.5 flex flex-col gap-1">
-              <div
-                className="py-4 text-[13px]"
-                style={{ color: "var(--fg-3)" }}
-              >
-                No events today.{" "}
-                <Link
-                  href="/dashboard/integrations"
-                  style={{ color: "var(--brand-tint)" }}
-                >
-                  Connect your calendar →
-                </Link>
-              </div>
+              {todayLoading ? (
+                <div className="py-4 text-[13px]" style={{ color: "var(--fg-3)" }}>
+                  Loading…
+                </div>
+              ) : !todayEvents || (!todayEvents.connected && !todayEvents.authError) ? (
+                <div className="py-4 text-[13px]" style={{ color: "var(--fg-3)" }}>
+                  No events today.{" "}
+                  <Link
+                    href="/dashboard/integrations"
+                    style={{ color: "var(--brand-tint)" }}
+                  >
+                    Connect your calendar →
+                  </Link>
+                </div>
+              ) : todayEvents.authError ? (
+                <div className="py-4 text-[13px]" style={{ color: "var(--fg-3)" }}>
+                  Calendar needs to be reconnected.{" "}
+                  <Link
+                    href="/dashboard/integrations"
+                    style={{ color: "var(--brand-tint)" }}
+                  >
+                    Reconnect →
+                  </Link>
+                </div>
+              ) : todayEvents.events.length === 0 ? (
+                <div className="py-4 text-[13px]" style={{ color: "var(--fg-3)" }}>
+                  Nothing on the calendar today.
+                </div>
+              ) : (
+                todayEvents.events.map((event) => {
+                  const timeLabel = event.allDay
+                    ? "All day"
+                    : event.startTime
+                    ? new Date(event.startTime).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                    : null;
+                  return (
+                    <div
+                      key={event.id}
+                      className="flex gap-3 py-2.5 border-b last:border-b-0"
+                      style={{ borderColor: "var(--line-1)" }}
+                    >
+                      {timeLabel && (
+                        <span
+                          className="font-mono text-[11px] pt-0.5 flex-shrink-0"
+                          style={{ color: "var(--fg-4)", minWidth: 52 }}
+                        >
+                          {timeLabel}
+                        </span>
+                      )}
+                      <span className="text-[13px]" style={{ color: "var(--fg-2)" }}>
+                        {event.summary}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             <div className="mt-8">

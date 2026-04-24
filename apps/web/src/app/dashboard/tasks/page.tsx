@@ -23,19 +23,19 @@ const statusConfig: Record<
   { label: string; bg: string; text: string }
 > = {
   pending: { label: "Pending", bg: "bg-bg-3", text: "text-fg-3" },
-  planning: { label: "Planning", bg: "bg-bg-3", text: "text-brand-200" },
-  executing: { label: "Executing", bg: "bg-bg-3", text: "text-amber-400" },
+  planning: { label: "Planning", bg: "bg-bg-3", text: "text-brand-700" },
+  executing: { label: "Executing", bg: "bg-bg-3", text: "text-amber-700" },
   awaiting_approval: {
     label: "Awaiting approval",
     bg: "bg-bg-3",
-    text: "text-sky-400",
+    text: "text-sky-700",
   },
   completed: {
     label: "Completed",
     bg: "bg-bg-3",
-    text: "text-emerald-400",
+    text: "text-emerald-700",
   },
-  failed: { label: "Failed", bg: "bg-bg-3", text: "text-red-400" },
+  failed: { label: "Failed", bg: "bg-bg-3", text: "text-red-600" },
 };
 
 const kindConfig: Record<
@@ -43,10 +43,10 @@ const kindConfig: Record<
   { label: string; icon: typeof FileText; bg: string; text: string }
 > = {
   chat_reply: { label: "Chat reply", icon: MessageSquare, bg: "bg-bg-3", text: "text-fg-3" },
-  email_draft: { label: "Email draft", icon: Mail, bg: "bg-bg-3", text: "text-sky-400" },
-  social_post: { label: "Social post", icon: Share2, bg: "bg-bg-3", text: "text-amber-400" },
-  grant_note: { label: "Grant note", icon: Landmark, bg: "bg-bg-3", text: "text-emerald-400" },
-  document: { label: "Document", icon: FileText, bg: "bg-bg-3", text: "text-brand-200" },
+  email_draft: { label: "Email draft", icon: Mail, bg: "bg-bg-3", text: "text-sky-700" },
+  social_post: { label: "Social post", icon: Share2, bg: "bg-bg-3", text: "text-amber-700" },
+  grant_note: { label: "Grant note", icon: Landmark, bg: "bg-bg-3", text: "text-emerald-700" },
+  document: { label: "Document", icon: FileText, bg: "bg-bg-3", text: "text-brand-700" },
 };
 
 function formatCreatedAt(iso: string): string {
@@ -152,7 +152,7 @@ export default function TasksPage() {
         </div>
       ) : error ? (
         <div className="card p-12 text-center">
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-red-600">{error}</p>
         </div>
       ) : tasks.length === 0 ? (
         <div className="card p-12 text-center">
@@ -289,7 +289,7 @@ export default function TasksPage() {
                   deleteTask(openTask.id);
                   setOpenTaskId(null);
                 }}
-                className="text-red-400 hover:text-red-300"
+                className="text-red-600 hover:text-red-700"
               >
                 <Trash2 className="h-4 w-4" />
                 Delete
