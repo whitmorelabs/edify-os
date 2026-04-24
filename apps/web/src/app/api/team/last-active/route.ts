@@ -43,9 +43,25 @@ export async function GET() {
     const slug = (row.agent_configs as { role_slug?: string } | null)?.role_slug;
     if (!slug) continue;
     if (!(ARCHETYPE_SLUGS as readonly string[]).includes(slug)) continue;
-    // Since rows are ordered DESC, the first match for each slug is the latest
     if (result[slug] === null) {
       result[slug] = row.updated_at as string;
+    }
+  }
+
+  // Fallback: for slugs still null, check tasks table (covers old unlinked conversations)
+  const nullSlugs = ARCHETYPE_SLUGS.filter((s) => result[s] === null);
+  if (nullSlugs.length > 0) {
+    const { data: taskData } = await serviceClient
+      .from("tasks")
+      .select("agent_role, created_at")
+      .in("agent_role", nullSlugs)
+      .order("created_at", { ascending: false });
+
+    for (const task of taskData ?? []) {
+      const slug = task.agent_role as string;
+      if (result[slug] === null) {
+        result[slug] = task.created_at as string;
+      }
     }
   }
 
