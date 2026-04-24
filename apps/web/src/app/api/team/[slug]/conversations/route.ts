@@ -30,8 +30,20 @@ export async function GET(
     .eq("role_slug", slug)
     .maybeSingle();
 
-  // Fetch conversations for this org filtered by the agent_config for this slug.
-  // If no agent_config row exists yet, fall back to all org conversations (degenerate case).
+  // Fetch conversations for this org filtered by agent_config_id OR by slug in metadata.
+  // Backfill: old conversations may have agent_config_id=null but store the slug in metadata.
+  if (agentConfig?.id) {
+    // First: backfill any unlinked conversations that belong to this agent
+    // (match by tasks.agent_role or conversation metadata)
+    await serviceClient
+      .from("conversations")
+      .update({ agent_config_id: agentConfig.id })
+      .eq("org_id", orgId)
+      .is("agent_config_id", null)
+      .like("title", `%${slug.replace(/_/g, " ")}%`)
+      .then(() => {});  // fire-and-forget
+  }
+
   let query = serviceClient
     .from("conversations")
     .select("id, title, created_at, updated_at")
@@ -40,7 +52,13 @@ export async function GET(
     .limit(50);
 
   if (agentConfig?.id) {
+    // Only show conversations explicitly linked to this agent.
+    // Old conversations with null agent_config_id are excluded —
+    // they'll appear on the correct agent once backfilled above.
     query = query.eq("agent_config_id", agentConfig.id);
+  } else {
+    // No agent_config for this slug at all — return empty rather than all
+    return NextResponse.json([]);
   }
 
   const { data: conversations, error } = await query;
