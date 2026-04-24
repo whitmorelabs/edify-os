@@ -21,7 +21,7 @@ import {
   type RenderToolGeneratedFile,
 } from "@/lib/tools/render";
 import { socialTools, executeSocialTool, SOCIAL_TOOLS_ADDENDUM } from "@/lib/tools/social";
-import { webSearchTools, executeWebSearchTool, WEBSEARCH_TOOLS_ADDENDUM } from "@/lib/tools/websearch";
+import { webSearchTools, executeWebSearchTool, WEBSEARCH_TOOLS_ADDENDUM, webSearchServerTool } from "@/lib/tools/websearch";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
@@ -110,11 +110,20 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools],
-  development_director: [...grantsTools, ...webSearchTools, ...crmTools, ...gmailTools, ...driveTools],
+  development_director: [...grantsTools, ...crmTools, ...gmailTools, ...driveTools],
   marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools],
-  programs_director: [...grantsTools, ...webSearchTools, ...driveTools],
+  programs_director: [...grantsTools, ...driveTools],
   hr_volunteer_coordinator: [],
 };
+
+/** Archetypes that get Claude's native web_search server tool */
+export const ARCHETYPE_SERVER_TOOLS: Partial<Record<ArchetypeSlug, unknown[]>> = {
+  development_director: [webSearchServerTool],
+  programs_director: [webSearchServerTool],
+  marketing_director: [webSearchServerTool],
+};
+
+export { webSearchServerTool };
 
 // Exhaust-check: ensures ARCHETYPE_TOOLS stays in sync with ARCHETYPE_SLUGS at compile time.
 // If a slug is added to archetypes.ts, TypeScript will error here until registry is updated.
