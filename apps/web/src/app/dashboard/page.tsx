@@ -7,6 +7,7 @@ import { Info } from "lucide-react";
 import type { DashboardSummary } from "@/app/api/dashboard/summary/route";
 import type { HoursSavedResponse } from "@/app/api/stats/hours-saved/route";
 import type { TodayEventsResponse } from "@/app/api/integrations/google/today-events/route";
+import type { TokenUsageSummary } from "@/app/api/admin/usage/tokens/route";
 import type { AgentRoleSlug } from "@/lib/agent-colors";
 import {
   ARCHETYPES,
@@ -361,6 +362,8 @@ export default function DashboardHome() {
   const [hoursSavedLoading, setHoursSavedLoading] = useState(true);
   const [todayEvents, setTodayEvents] = useState<TodayEventsResponse | null>(null);
   const [todayLoading, setTodayLoading] = useState(true);
+  const [tokenUsage, setTokenUsage] = useState<TokenUsageSummary | null>(null);
+  const [tokenUsageLoading, setTokenUsageLoading] = useState(true);
   const { names: archetypeNames } = useArchetypeNames();
 
   useEffect(() => {
@@ -385,6 +388,14 @@ export default function DashboardHome() {
       .then((data: TodayEventsResponse | null) => setTodayEvents(data))
       .catch(() => setTodayEvents(null))
       .finally(() => setTodayLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/usage/tokens?days=30")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: TokenUsageSummary | null) => setTokenUsage(data))
+      .catch(() => setTokenUsage(null))
+      .finally(() => setTokenUsageLoading(false));
   }, []);
 
   const now = useMemo(() => new Date(), []);
@@ -458,80 +469,146 @@ export default function DashboardHome() {
         {/* ————— HERO STATS ————— */}
         <div
           className="grid gap-5 mt-14 mb-20"
-          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
+          style={{ gridTemplateColumns: "3fr 2fr" }}
         >
-          <Link href="/dashboard/inbox">
-            <Card
-              elevation={1}
-              className="relative overflow-hidden p-6 cursor-pointer group transition-transform hover:-translate-y-[1px]"
-              style={{
-                background: "#ffffff",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(245,181,68,0.4)",
-                border: "1px solid #e5e7eb",
-              }}
-            >
-              <div
-                aria-hidden
-                className="absolute pointer-events-none"
-                style={{
-                  top: 0,
-                  right: 0,
-                  width: 160,
-                  height: "100%",
-                  background:
-                    "linear-gradient(90deg, transparent, rgba(245,181,68,0.08))",
-                  animation: "amber-shift 4s ease-in-out infinite",
-                  opacity: 0.6,
-                }}
-              />
-              <div className="relative">
-                <span className="eyebrow" style={{ color: "var(--warn)" }}>
-                  NEEDS YOU
-                </span>
-                <div className="flex items-baseline gap-3.5 mt-1.5">
-                  <span
-                    className="font-mono font-medium leading-[0.9] tracking-[-0.03em]"
-                    style={{ fontSize: 72, color: "#111827" }}
-                  >
-                    {loading ? "—" : pendingApprovals}
-                  </span>
-                  <span style={{ color: "#6b7280", fontSize: 18 }}>
-                    approvals pending
-                  </span>
+          {/* Left: API Usage card */}
+          <Card
+            elevation={0}
+            className="p-6"
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            }}
+          >
+            <span className="eyebrow">API USAGE</span>
+            {tokenUsageLoading ? (
+              <div className="text-[13px] py-2 mt-2" style={{ color: "#6b7280" }}>
+                Loading…
+              </div>
+            ) : !tokenUsage ? (
+              <div className="text-[13px] py-2 mt-2" style={{ color: "#6b7280" }}>
+                No usage data available.
+              </div>
+            ) : (
+              <div>
+                <div
+                  className="font-mono font-medium leading-none tracking-[-0.03em] mt-2"
+                  style={{ fontSize: 56, color: "var(--brand-purple)" }}
+                >
+                  ${tokenUsage.estimatedCostUsd.toFixed(2)}
                 </div>
                 <div
-                  className="mt-2.5 text-[13px]"
-                  style={{ color: "#9ca3af" }}
+                  className="text-[13px] mt-1"
+                  style={{ color: "#6b7280" }}
                 >
-                  <span style={{ color: "var(--warn)" }}>Review now →</span>
+                  estimated cost this month
+                </div>
+                <div
+                  className="mt-5 pt-5 flex flex-col gap-2"
+                  style={{ borderTop: "1px solid #e5e7eb" }}
+                >
+                  <div className="flex justify-between text-[13px]">
+                    <span style={{ color: "#6b7280" }}>Input tokens</span>
+                    <span className="font-mono" style={{ color: "#111827" }}>
+                      {tokenUsage.totalInputTokens.toLocaleString("en-US")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[13px]">
+                    <span style={{ color: "#6b7280" }}>Output tokens</span>
+                    <span className="font-mono" style={{ color: "#111827" }}>
+                      {tokenUsage.totalOutputTokens.toLocaleString("en-US")}
+                    </span>
+                  </div>
+                  <div
+                    className="flex justify-between text-[13px] pt-2"
+                    style={{ borderTop: "1px solid #f3f4f6" }}
+                  >
+                    <span style={{ color: "#374151", fontWeight: 500 }}>Total tokens</span>
+                    <span className="font-mono font-medium" style={{ color: "#111827" }}>
+                      {tokenUsage.grandTotal.toLocaleString("en-US")}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </Card>
-          </Link>
-
-          <Card elevation={0} className="p-5" style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-            <span className="eyebrow">THIS WEEK</span>
-            <div className="mt-3.5 flex flex-col gap-2.5">
-              {loading ? (
-                <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
-                  Loading…
-                </div>
-              ) : tasksCompleted === 0 ? (
-                <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
-                  No activity yet — start a conversation to kick things off.
-                </div>
-              ) : (
-                <MiniBar
-                  label="Tasks done"
-                  value={tasksCompleted}
-                  max={tasksCompleted || 1}
-                  color="var(--brand-purple)"
-                />
-              )}
-            </div>
+            )}
           </Card>
 
-          <HoursSavedCard data={hoursSaved} loading={hoursSavedLoading} />
+          {/* Right: 3 smaller cards stacked */}
+          <div className="flex flex-col gap-5">
+            <Link href="/dashboard/inbox" className="block no-underline flex-1">
+              <Card
+                elevation={1}
+                className="relative overflow-hidden p-6 cursor-pointer group transition-transform hover:-translate-y-[1px] h-full"
+                style={{
+                  background: "#ffffff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(245,181,68,0.4)",
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                <div
+                  aria-hidden
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: 0,
+                    right: 0,
+                    width: 160,
+                    height: "100%",
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(245,181,68,0.08))",
+                    animation: "amber-shift 4s ease-in-out infinite",
+                    opacity: 0.6,
+                  }}
+                />
+                <div className="relative">
+                  <span className="eyebrow" style={{ color: "var(--warn)" }}>
+                    NEEDS YOU
+                  </span>
+                  <div className="flex items-baseline gap-3 mt-1.5">
+                    <span
+                      className="font-mono font-medium leading-[0.9] tracking-[-0.03em]"
+                      style={{ fontSize: 52, color: "#111827" }}
+                    >
+                      {loading ? "—" : pendingApprovals}
+                    </span>
+                    <span style={{ color: "#6b7280", fontSize: 15 }}>
+                      approvals pending
+                    </span>
+                  </div>
+                  <div
+                    className="mt-2.5 text-[13px]"
+                    style={{ color: "#9ca3af" }}
+                  >
+                    <span style={{ color: "var(--warn)" }}>Review now →</span>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            <Card elevation={0} className="p-5 flex-1" style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <span className="eyebrow">THIS WEEK</span>
+              <div className="mt-3.5 flex flex-col gap-2.5">
+                {loading ? (
+                  <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
+                    Loading…
+                  </div>
+                ) : tasksCompleted === 0 ? (
+                  <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
+                    No activity yet — start a conversation to kick things off.
+                  </div>
+                ) : (
+                  <MiniBar
+                    label="Tasks done"
+                    value={tasksCompleted}
+                    max={tasksCompleted || 1}
+                    color="var(--brand-purple)"
+                  />
+                )}
+              </div>
+            </Card>
+
+            <HoursSavedCard data={hoursSaved} loading={hoursSavedLoading} />
+          </div>
         </div>
 
         {/* ————— REST OF TEAM ————— */}
