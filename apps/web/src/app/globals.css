@@ -680,28 +680,30 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
 }
 
-/* Within the dashboard gray-50 main, override card + card-interactive defaults */
+/* Within the dashboard gray-50 main, override card + card-interactive defaults.
+   Also covers bg-bg-2 Tailwind utility (overridden via --color-bg-2 above,
+   but explicit selector ensures border/shadow also flip correctly). */
 main.bg-gray-50 .card,
-main.bg-gray-50 .card-elevated {
-  background: rgba(255, 255, 255, 0.8);
+main.bg-gray-50 .card-elevated,
+main.bg-gray-50 .card-interactive,
+main.bg-gray-50 .bg-bg-2 {
+  background: rgba(255, 255, 255, 0.85) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(229, 231, 235, 0.5);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
-}
-
-main.bg-gray-50 .card-interactive {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(229, 231, 235, 0.5);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0, 0, 0, 0.07) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04) !important;
 }
 
 main.bg-gray-50 .card-interactive:hover {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(159, 78, 243, 0.3);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(159, 78, 243, 0.25) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(159,78,243,0.15) !important;
+}
+
+/* bg-bg-3 inner panels / icon wells in dashboard — light gray */
+main.bg-gray-50 .bg-bg-3 {
+  background: #f3f4f6 !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
 }
 
 /* Heading classes on light bg — use dark text */
@@ -715,29 +717,78 @@ main.bg-gray-50 .heading-3 {
   color: #374151;
 }
 
-/* bg-bg-2 cards within light dashboard — flip to white glass */
-main.bg-gray-50 .bg-bg-2 {
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(229, 231, 235, 0.5) !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05) !important;
-}
-
-/* bg-bg-3 inner panels in dashboard — light gray */
-main.bg-gray-50 .bg-bg-3 {
-  background: #f9fafb !important;
+/* Eyebrow label in dashboard — use brand purple on light bg */
+main.bg-gray-50 .eyebrow {
+  color: var(--brand-purple);
 }
 
 /* Override CSS tokens inside the light dashboard so components using
-   var(--bg-3) (ArchetypeMark), var(--fg-*) (ActivityRow text), and
-   var(--line-1) (row dividers) render correctly on white/gray-50. */
+   var(--bg-*) and var(--fg-*) render correctly on white/gray-50.
+   Also override --color-* so Tailwind v4 utility classes (bg-bg-2,
+   text-fg-3, etc.) pick up light values inside this scope. */
 main.bg-gray-50 {
+  /* Surface tokens — :root var() consumers (inline styles, component CSS) */
+  --bg-0: #f9fafb;
+  --bg-1: #ffffff;
+  --bg-2: rgba(255, 255, 255, 0.85);
   --bg-3: #f3f4f6;
-  --line-1: rgba(0, 0, 0, 0.08);
-  --line-2: rgba(0, 0, 0, 0.10);
+  --bg-4: #e5e7eb;
+  --bg-5: #d1d5db;
+  --bg-plum-1: rgba(159, 78, 243, 0.06);
+  --bg-plum-2: rgba(159, 78, 243, 0.10);
+
+  /* Text tokens */
   --fg-1: #111827;
   --fg-2: #374151;
   --fg-3: #6b7280;
   --fg-4: #9ca3af;
+  --fg-on-purple: #ffffff;
+
+  /* Border tokens */
+  --line-1: rgba(0, 0, 0, 0.06);
+  --line-2: rgba(0, 0, 0, 0.10);
+  --line-3: rgba(0, 0, 0, 0.15);
+
+  /* Elevation — light-mode friendly shadows */
+  --elev-0: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --elev-1: 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --elev-3: 0 8px 24px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --elev-4: 0 16px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+
+  /* Tailwind v4 @theme color tokens — override so bg-bg-*, text-fg-* utilities
+     resolve to light values when inside main.bg-gray-50 */
+  --color-bg-0: #f9fafb;
+  --color-bg-1: #ffffff;
+  --color-bg-2: #ffffff;
+  --color-bg-3: #f3f4f6;
+  --color-bg-4: #e5e7eb;
+  --color-bg-5: #d1d5db;
+  --color-bg-plum-1: rgba(159, 78, 243, 0.06);
+  --color-bg-plum-2: rgba(159, 78, 243, 0.10);
+  --color-fg-1: #111827;
+  --color-fg-2: #374151;
+  --color-fg-3: #6b7280;
+  --color-fg-4: #9ca3af;
+  --color-fg-on-purple: #ffffff;
+}
+
+/* Tailwind shadow utilities use --shadow-elev-* from @theme, which are
+   defined at :root and not inheritable via cascade. Override them explicitly
+   with direct property declarations on elements inside the dashboard. */
+main.bg-gray-50 .shadow-elev-1,
+main.bg-gray-50 [class*="shadow-elev-1"] {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+}
+main.bg-gray-50 .shadow-elev-2,
+main.bg-gray-50 [class*="shadow-elev-2"] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+}
+main.bg-gray-50 .shadow-elev-3,
+main.bg-gray-50 [class*="shadow-elev-3"] {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+}
+main.bg-gray-50 .shadow-elev-4,
+main.bg-gray-50 [class*="shadow-elev-4"] {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
 }
