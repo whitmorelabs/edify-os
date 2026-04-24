@@ -66,7 +66,6 @@ export function ApprovalCard({
       }
       className="relative overflow-hidden rounded-[16px] bg-[var(--bg-2)] p-6"
       style={{
-        /* P2 — inset top-edge highlight added to existing shadow stack */
         boxShadow:
           leaving === "approve"
             ? "inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px var(--line-purple), 0 0 32px var(--purple-a48)"

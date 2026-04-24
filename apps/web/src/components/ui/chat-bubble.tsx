@@ -62,7 +62,6 @@ export function ChatBubble({ role, children, arc, trailing }: ChatBubbleProps) {
           className="rounded-[4px_14px_14px_14px] px-4 py-3 text-[14px] leading-[1.55] text-[var(--fg-1)]"
           style={{
             background: "var(--bg-3)",
-            /* P2 — inset top-edge highlight added to existing hairline border */
             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px var(--line-2)",
             borderLeft: `2px solid ${arc.color}`,
           }}

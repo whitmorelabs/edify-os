@@ -15,13 +15,10 @@ export default function AboutPage() {
     <div className="bg-bg-0 min-h-screen">
       <SpialNavbar />
 
-      {/* Hero — P1 radial gradient */}
+      {/* Hero */}
       <section
         className="relative overflow-hidden py-28"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(159, 78, 243, 0.22), transparent), var(--bg-plum-1)",
-        }}
+        style={{ background: "var(--hero-gradient-marketing), var(--bg-plum-1)" }}
       >
         <div className="spial-container mx-auto text-center relative z-10">
           <div className="eyebrow mb-4">Our story</div>

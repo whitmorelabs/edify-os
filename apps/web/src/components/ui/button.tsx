@@ -30,11 +30,11 @@ const sizes: Record<ButtonSize, string> = {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    // P5 — two-layer accent glow, expands on hover
+    // two-layer accent glow that expands on hover (see --shadow-cta-* tokens)
     "bg-[var(--brand-purple)] text-[var(--fg-on-purple)] " +
-    "shadow-[0_0_15px_0_rgba(159,78,243,0.35),0_0_5px_0_rgba(159,78,243,0.35),0_0_0_1px_rgba(159,78,243,0.48)] " +
+    "shadow-cta-base " +
     "hover:bg-[var(--brand-purple-hover)] hover:-translate-y-[1px] " +
-    "hover:shadow-[0_0_25px_5px_rgba(159,78,243,0.4),0_0_10px_0_rgba(159,78,243,0.4),0_0_0_1px_rgba(159,78,243,0.6)] " +
+    "hover:shadow-cta-hover " +
     "active:bg-[var(--brand-purple-press)] active:translate-y-0 " +
     "active:scale-[0.98] active:shadow-[0_0_8px_0_rgba(159,78,243,0.3),0_0_0_1px_rgba(159,78,243,0.32)]",
   secondary:

@@ -511,10 +511,7 @@ export default function DashboardHome() {
   return (
     <div
       className="relative isolate min-h-full"
-      style={{
-        background:
-          "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(159, 78, 243, 0.12), transparent)",
-      }}
+      style={{ background: "var(--hero-gradient-dashboard)" }}
     >
       <AmbientBG />
       <div

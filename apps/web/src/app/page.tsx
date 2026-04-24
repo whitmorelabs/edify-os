@@ -15,11 +15,10 @@ function Hero() {
       className="relative overflow-hidden"
       style={{
         padding: "96px 0 128px",
-        background:
-          "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(159, 78, 243, 0.22), transparent), var(--bg-1)",
+        background: "var(--hero-gradient-marketing), var(--bg-1)",
       }}
     >
-      {/* P8 — subtle noise texture overlay (home hero only) */}
+      {/* noise texture overlay — home hero only */}
       <div
         aria-hidden
         style={{
@@ -112,10 +111,9 @@ function Hero() {
               They draft, schedule, and report while you approve.
             </p>
             <div className="flex gap-3 flex-wrap">
-              {/* P5 — two-layer accent glow CTA */}
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 no-underline transition-shadow duration-200"
+                className="inline-flex items-center gap-2 no-underline"
                 style={{
                   background: "var(--brand-purple)",
                   color: "var(--fg-on-purple)",
@@ -123,17 +121,14 @@ function Hero() {
                   borderRadius: 10,
                   fontSize: 15,
                   fontWeight: 600,
-                  boxShadow:
-                    "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)",
+                  boxShadow: "var(--glow-cta-base)",
                   transition: "box-shadow 200ms ease",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                    "0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6)";
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-hover)";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                    "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)";
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-base)";
                 }}
               >
                 Request early access
@@ -923,7 +918,6 @@ function CTASection() {
               We&apos;re onboarding 20 small nonprofits this quarter. Come tell
               us what&apos;s breaking.
             </p>
-            {/* P5 — two-layer accent glow CTA */}
             <Link
               href="/signup"
               className="inline-flex items-center gap-2.5 no-underline"
@@ -934,17 +928,14 @@ function CTASection() {
                 borderRadius: 12,
                 fontSize: 16,
                 fontWeight: 600,
-                boxShadow:
-                  "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)",
+                boxShadow: "var(--glow-cta-base)",
                 transition: "box-shadow 200ms ease",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                  "0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6)";
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-hover)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                  "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)";
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-base)";
               }}
             >
               Request early access
