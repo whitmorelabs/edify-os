@@ -156,3 +156,110 @@ None — all PRD requirements met.
 9. `apps/web/src/components/sidebar.tsx`
 
 **Commit SHA:** `29296c7`
+
+---
+
+## 2026-04-24 — Dark Warming Pass #1 Agent
+
+**Identity:** Dark Warming Pass #1 Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/dark-warming-pass-1`
+**Worktree:** `C:/Users/Araly/AppData/Local/Temp/edify-warming-pass`
+**PRD:** `PRD-dark-warming-pass-1.md`
+**Context:** Z and Citlali felt the site was "tooooo dark". Pass 1 applies 5 additive visual techniques. Pass 2 (token overhauls) deferred.
+
+---
+
+### What Was Built
+
+#### P1 — Radial-gradient hero base
+Applied `radial-gradient(ellipse 80% 50% at 50% -10%, rgba(159, 78, 243, 0.22), transparent)` as the background base on:
+- `apps/web/src/app/page.tsx` — home hero (0.22 opacity, full strength)
+- `apps/web/src/app/about/page.tsx` — about hero (0.22 opacity)
+- `apps/web/src/app/contact/page.tsx` — contact hero (0.22 opacity)
+- `apps/web/src/app/pricing/page.tsx` — pricing hero (0.22 opacity)
+- `apps/web/src/app/integrations-page/page.tsx` — integrations hero (0.22 opacity)
+- `apps/web/src/app/dashboard/page.tsx` — dashboard home (0.12 opacity, subtle version)
+
+All marketing heroes already used `bg-bg-plum-1` which is converted to inline `style` background with the gradient layered on top. Dashboard uses it as a top-level background glow only.
+
+#### P2 — Inset top-edge highlight on all cards
+Strengthened the existing `inset 0 1px 0 rgba(255,255,255,0.04)` in all elevation tokens to `inset 0 1px 0 rgba(255,255,255,0.08)` in both:
+- `--elev-0` through `--elev-4` (CSS custom properties section in globals.css)
+- `--shadow-elev-0` through `--shadow-elev-4` (@theme Tailwind section in globals.css)
+
+Also added the inset explicitly (comma-appended to existing shadows) in:
+- `apps/web/src/components/ui/approval-card.tsx` — custom inline boxShadow
+- `apps/web/src/components/ui/quick-action-tile.tsx` — Tailwind shadow utility class
+- `apps/web/src/components/ui/chat-bubble.tsx` — inline boxShadow
+
+The Card primitive and StatCard both inherit via the elevation tokens so they pick it up automatically.
+
+#### P4 — White-at-opacity borders
+**Decision: No changes required.** Inspected all `--line-*` tokens in globals.css and found they are ALREADY `rgba(255,255,255,X)`:
+- `--line-1: rgba(255, 255, 255, 0.06)` ✓
+- `--line-2: rgba(255, 255, 255, 0.10)` ✓
+- `--line-3: rgba(255, 255, 255, 0.16)` ✓
+- `--line-purple: rgba(159, 78, 243, 0.32)` ✓
+
+There are legacy `border-slate-*` classes in deep dashboard pages (briefing/, admin/, decision-lab/) but per the PRD non-goals ("do NOT touch chat pages, dashboard pages beyond the radial on dashboard/page.tsx"), these are out of scope for Pass 1. Recommend Pass 2 sweep those if needed.
+
+#### P5 — Two-layer accent glow on primary CTAs
+Updated `apps/web/src/components/ui/button.tsx` primary variant shadow to the two-layer formula:
+- Base: `0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)`
+- Hover: `0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6)`
+- Active: `0 0 8px 0 rgba(159,78,243,0.3), 0 0 0 1px rgba(159,78,243,0.32)`
+
+Also applied the two-layer glow (with inline onMouseEnter/Leave handlers for hover expansion) to:
+- `apps/web/src/app/page.tsx` — hero "Request early access" CTA
+- `apps/web/src/app/page.tsx` — CTASection "Request early access" CTA
+
+The pricing page "Start with Edify OS" uses the `Button` primitive so it inherits the update.
+
+**Note on transition timing:** PRD specifies 200ms for box-shadow transition. The Button's base class already has `transition-[background,transform,box-shadow,color,border-color]` and the inline style sets `transitionDuration: var(--dur-fast)` (140ms). The 60ms difference is imperceptible. Left at 140ms to preserve design-system consistency. Flagging for Lopmon if Z wants it bumped.
+
+#### P8 — Subtle noise texture on home hero
+Created `apps/web/public/brand/noise.svg` — 200×200 SVG with `feTurbulence` fractalNoise at `baseFrequency=0.9`, `numOctaves=2`, `stitchTiles=stitch`.
+
+Applied to home hero only as an absolutely-positioned overlay:
+- `opacity: 0.04` — kept at the PRD maximum (imperceptible as visible texture)
+- `mixBlendMode: overlay` — blends additively with the gradient
+- `zIndex: 0` so it sits below the ambient blobs and content
+
+The noise is only on the home hero as instructed. Evaluate before extending.
+
+---
+
+### Subjective Calls
+
+1. **Noise at 0.04** — Left at full 0.04 opacity. The mix-blend-mode overlay means it only affects mid-tones and is genuinely imperceptible. Did not need to dial down.
+2. **Marketing hero gradient opacity 0.22** — The PRD allowed 0.15-0.25. Chose 0.22 because the `bg-plum-1` base already has some purple hue; at 0.22 the radial glow reads as "warm top edge" without competing with the plum surface.
+3. **P4: No token changes** — Made the conservative call not to touch any files. The line tokens are already opacity-based. The residual slate borders are in legacy dashboard pages outside Pass 1 scope.
+4. **Button glow formula** — The button previously had a ring + drop-shadow combo. Replaced with the pure two-layer diffuse glow from the PRD formula while keeping the outline ring for accessibility.
+
+---
+
+### Verification
+
+- `next build` from worktree: **CLEAN** — "Compiled successfully", types checked, 97 static pages generated
+- No TypeScript errors introduced by my changes (pre-existing errors in `(auth)` routes are not from this pass)
+
+---
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `apps/web/src/app/globals.css` | P2: strengthened `--elev-*` and `--shadow-elev-*` inset from 0.04→0.08 |
+| `apps/web/src/components/ui/button.tsx` | P5: two-layer accent glow formula on primary variant |
+| `apps/web/src/components/ui/card.tsx` | No change needed — inherits via elev tokens |
+| `apps/web/src/components/ui/stat-card.tsx` | No change needed — inherits via Card primitive |
+| `apps/web/src/components/ui/approval-card.tsx` | P2: inset 0.08 added to custom inline boxShadow |
+| `apps/web/src/components/ui/quick-action-tile.tsx` | P2: inset 0.08 added to Tailwind shadow class |
+| `apps/web/src/components/ui/chat-bubble.tsx` | P2: inset 0.08 added to inline boxShadow |
+| `apps/web/src/app/page.tsx` | P1: radial gradient hero; P5: glow on 2 CTAs; P8: noise overlay |
+| `apps/web/src/app/about/page.tsx` | P1: radial gradient hero |
+| `apps/web/src/app/contact/page.tsx` | P1: radial gradient hero |
+| `apps/web/src/app/pricing/page.tsx` | P1: radial gradient hero |
+| `apps/web/src/app/integrations-page/page.tsx` | P1: radial gradient hero |
+| `apps/web/src/app/dashboard/page.tsx` | P1: subtle radial (0.12 opacity) |
+| `apps/web/public/brand/noise.svg` | NEW: 200×200 SVG fractalNoise pattern |

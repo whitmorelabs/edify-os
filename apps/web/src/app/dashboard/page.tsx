@@ -509,7 +509,13 @@ export default function DashboardHome() {
   const pendingApprovals = summary?.stats.pendingApprovals ?? 0;
 
   return (
-    <div className="relative isolate min-h-full">
+    <div
+      className="relative isolate min-h-full"
+      style={{
+        background:
+          "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(159, 78, 243, 0.12), transparent)",
+      }}
+    >
       <AmbientBG />
       <div
         className="relative z-10 mx-auto px-6 lg:px-10"

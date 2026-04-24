@@ -13,10 +13,28 @@ function Hero() {
   return (
     <section
       className="relative overflow-hidden"
-      style={{ padding: "96px 0 128px", background: "var(--bg-1)" }}
+      style={{
+        padding: "96px 0 128px",
+        background:
+          "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(159, 78, 243, 0.22), transparent), var(--bg-1)",
+      }}
     >
+      {/* P8 — subtle noise texture overlay (home hero only) */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          backgroundImage: "url('/brand/noise.svg')",
+          backgroundRepeat: "repeat",
+          opacity: 0.04,
+          mixBlendMode: "overlay",
+          zIndex: 0,
+        }}
+      />
       {/* ambient blobs */}
-      <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
         <div
           className="absolute"
           style={{
@@ -94,9 +112,10 @@ function Hero() {
               They draft, schedule, and report while you approve.
             </p>
             <div className="flex gap-3 flex-wrap">
+              {/* P5 — two-layer accent glow CTA */}
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 no-underline"
+                className="inline-flex items-center gap-2 no-underline transition-shadow duration-200"
                 style={{
                   background: "var(--brand-purple)",
                   color: "var(--fg-on-purple)",
@@ -105,7 +124,16 @@ function Hero() {
                   fontSize: 15,
                   fontWeight: 600,
                   boxShadow:
-                    "0 0 0 1px rgba(159,78,243,0.48), 0 12px 48px rgba(159,78,243,0.44)",
+                    "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)",
+                  transition: "box-shadow 200ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+                    "0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+                    "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)";
                 }}
               >
                 Request early access
@@ -895,6 +923,7 @@ function CTASection() {
               We&apos;re onboarding 20 small nonprofits this quarter. Come tell
               us what&apos;s breaking.
             </p>
+            {/* P5 — two-layer accent glow CTA */}
             <Link
               href="/signup"
               className="inline-flex items-center gap-2.5 no-underline"
@@ -906,7 +935,16 @@ function CTASection() {
                 fontSize: 16,
                 fontWeight: 600,
                 boxShadow:
-                  "0 0 0 1px rgba(159,78,243,0.48), 0 16px 64px rgba(159,78,243,0.5)",
+                  "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)",
+                transition: "box-shadow 200ms ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+                  "0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+                  "0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48)";
               }}
             >
               Request early access
