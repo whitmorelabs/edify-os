@@ -33,6 +33,7 @@ const archetype: ArchetypeData = {
     { title: "Rebrand a community health initiative", description: "Develops new messaging framework, updates all social media profiles, creates a press release, and produces 30 days of launch content to introduce the refreshed program identity." },
     { title: "Grow newsletter subscribers by 40%", description: "Analyzes current engagement data, designs a lead magnet strategy, creates a 5-email welcome sequence, and builds a content calendar with shareable stories to drive organic growth." },
   ],
+  image: "/agents/marketing-director.jpg",
 };
 
 export default function MarketingDirectorPage() {

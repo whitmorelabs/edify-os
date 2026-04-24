@@ -18,7 +18,8 @@ const articles = [
     date: "April 8, 2026",
     readTime: "6 min read",
     featured: true,
-    image: "https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=800",
+    image: "/blog/ai-wont-replace-your-team.jpg",
+    imageAlt: "Diverse team collaborating around a table, sharing a high-five",
   },
   {
     slug: "grant-research-problem",
@@ -28,7 +29,8 @@ const articles = [
     date: "April 1, 2026",
     readTime: "5 min read",
     featured: false,
-    image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600",
+    image: "/blog/grant-research-problem.jpg",
+    imageAlt: "Two women studying together at a table with a laptop",
   },
   {
     slug: "affordable-development-director",
@@ -38,7 +40,8 @@ const articles = [
     date: "March 25, 2026",
     readTime: "7 min read",
     featured: false,
-    image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
+    image: "/blog/affordable-development-director.jpg",
+    imageAlt: "Woman leader with arms crossed, smiling confidently",
   },
   {
     slug: "from-drowning-to-leading",
@@ -48,7 +51,8 @@ const articles = [
     date: "March 18, 2026",
     readTime: "8 min read",
     featured: false,
-    image: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600",
+    image: "/blog/from-drowning-to-leading.jpg",
+    imageAlt: "Silhouette of a woman against a dramatic pink and purple sunset sky",
   },
 ];
 
@@ -81,7 +85,7 @@ export default function BlogPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={featured.image} alt={featured.title} className="w-full aspect-[4/3] object-cover" />
+              <img src={featured.image} alt={featured.imageAlt} className="w-full aspect-[4/3] object-cover" />
               <div className="p-10 flex flex-col justify-center">
                 <div className="eyebrow mb-3">{featured.category} -- Featured</div>
                 <h2 className="text-[26px] font-semibold tracking-[-0.01em] text-fg-1 mb-4 group-hover:text-brand-500 transition-colors duration-300">
@@ -114,7 +118,7 @@ export default function BlogPage() {
                 className="bg-bg-2 shadow-elev-1 rounded-xl overflow-hidden no-underline transition-all duration-300 hover:-translate-y-2 hover:shadow-elev-2 block group"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={article.image} alt={article.title} className="w-full h-[200px] object-cover" />
+                <img src={article.image} alt={article.imageAlt} className="w-full h-[200px] object-cover" />
                 <div className="p-7">
                   <div className="eyebrow mb-2.5">
                     {article.category}

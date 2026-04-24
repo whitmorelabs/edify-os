@@ -20,6 +20,11 @@ export interface QuickActionTileProps {
   accent?: string;
   /** Stagger index for entrance. */
   index?: number;
+  /**
+   * Optional count badge rendered as an amber dot at the top-right of the
+   * icon tile. Only rendered when > 0. Design preview §15.
+   */
+  badge?: number;
   className?: string;
 }
 
@@ -35,23 +40,45 @@ export function QuickActionTile({
   onClick,
   accent = "var(--brand-purple)",
   index = 0,
+  badge,
   className,
 }: QuickActionTileProps) {
   const delay = Math.min(index, 6) * 0.05;
 
   const inner = (
     <>
-      <div
-        className="flex items-center justify-center rounded-[10px]"
-        style={{
-          width: 40,
-          height: 40,
-          background: `linear-gradient(135deg, ${accent}2A, ${accent}0A)`,
-          boxShadow: `inset 0 0 0 1px ${accent}55`,
-          color: accent,
-        }}
-      >
-        {icon}
+      <div className="relative inline-flex">
+        <div
+          className="flex items-center justify-center rounded-[10px]"
+          style={{
+            width: 40,
+            height: 40,
+            background: `linear-gradient(135deg, ${accent}2A, ${accent}0A)`,
+            boxShadow: `inset 0 0 0 1px ${accent}55`,
+            color: accent,
+          }}
+        >
+          {icon}
+        </div>
+        {/* Count badge — amber dot, design preview §15 */}
+        {badge != null && badge > 0 && (
+          <span
+            aria-label={`${badge} pending`}
+            className="absolute inline-flex items-center justify-center font-mono font-bold leading-none rounded-full"
+            style={{
+              top: -4,
+              right: -4,
+              minWidth: 16,
+              height: 16,
+              padding: "0 4px",
+              fontSize: 10,
+              background: "var(--warn)",
+              color: "#0A0A0F",
+            }}
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
       </div>
       <div className="mt-4">
         <div className="text-[15px] font-medium text-[var(--fg-1)]">{title}</div>
@@ -66,9 +93,9 @@ export function QuickActionTile({
 
   const wrapperClass = cn(
     "block rounded-[14px] bg-[var(--bg-2)] p-5 text-left",
-    "shadow-[0_0_0_1px_var(--line-2)]",
+    "shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_var(--line-2)]",
     "transition-[transform,box-shadow,border-color]",
-    "hover:-translate-y-[1px] hover:shadow-[0_0_0_1px_var(--line-purple),var(--elev-2)]",
+    "hover:-translate-y-[1px] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_var(--line-purple),var(--elev-2)]",
     "cursor-pointer",
     className,
   );

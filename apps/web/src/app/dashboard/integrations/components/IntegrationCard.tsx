@@ -90,7 +90,7 @@ export function IntegrationCard({
             <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
               <Icon className={`h-5 w-5 ${iconText}`} />
             </span>
-            <span className="font-semibold text-slate-900">{name}</span>
+            <span className="font-semibold text-[var(--fg-1)]">{name}</span>
           </div>
           <span
             className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${categoryBg} ${categoryText}`}
@@ -100,7 +100,7 @@ export function IntegrationCard({
         </div>
 
         {/* Description */}
-        <p className="mt-3 text-sm text-slate-500">{description}</p>
+        <p className="mt-3 text-sm text-[var(--fg-3)]">{description}</p>
 
         {/* Agent dots */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -109,7 +109,7 @@ export function IntegrationCard({
             return (
               <span key={slug} className="flex items-center gap-1.5">
                 <span className={`inline-block h-2.5 w-2.5 rounded-full ${ac.bg}`} title={ac.label} />
-                <span className="text-[11px] text-slate-400">{ac.label.split(' ')[0]}</span>
+                <span className="text-[11px] text-[var(--fg-3)]">{ac.label.split(' ')[0]}</span>
               </span>
             );
           })}
@@ -118,7 +118,7 @@ export function IntegrationCard({
         {/* Capabilities */}
         <div className="mt-3 space-y-1">
           {capabilities.slice(0, 2).map((cap) => (
-            <div key={cap} className="flex items-center gap-1.5 text-xs text-slate-500">
+            <div key={cap} className="flex items-center gap-1.5 text-xs text-[var(--fg-3)]">
               <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
               {cap}
             </div>
@@ -135,8 +135,8 @@ export function IntegrationCard({
 
         {/* Connected account badge */}
         {isConnected && connectedAccount && (
-          <p className="mt-2 text-xs text-slate-400">
-            Connected as <span className="font-medium text-slate-600">{connectedAccount}</span>
+          <p className="mt-2 text-xs text-[var(--fg-3)]">
+            Connected as <span className="font-medium text-[var(--fg-2)]">{connectedAccount}</span>
           </p>
         )}
 
@@ -144,7 +144,7 @@ export function IntegrationCard({
         <div className="mt-4 flex items-center gap-2">
           {isConnected ? (
             <>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Connected
               </span>

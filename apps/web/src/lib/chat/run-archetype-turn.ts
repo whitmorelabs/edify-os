@@ -30,6 +30,7 @@ import {
   shouldAttachFrontendDesign,
 } from "@/lib/skills/registry";
 import type { ArchetypeSlug } from "@/lib/archetypes";
+import { insertActivityEvent } from "@/lib/hours-saved/insert-event";
 
 const TOOL_USE_LOOP_MAX = 8;
 const MAX_RESPONSE_TOKENS = 4096;
@@ -180,6 +181,9 @@ export async function runArchetypeTurn({
   const generatedFiles: GeneratedFile[] = [];
   let finalAssistantText = "";
   let lastAssistantText = "";
+  // Track whether at least one tool was successfully called this turn.
+  // If no tools were called, we insert a baseline chat:turn_no_tools event.
+  let anyToolCalled = false;
 
   for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
     // A+B+C: use cached system blocks, haiku/sonnet model, and attach skills only on demand.
@@ -223,7 +227,14 @@ export async function runArchetypeTurn({
         if (result?.type === expectedResultType && Array.isArray(result.content)) {
           for (const output of result.content) {
             if (output.file_id) {
-              await collectFileOutput(output.file_id, anthropic, generatedFiles, SKILL_MIME);
+              await collectFileOutput(
+                output.file_id,
+                anthropic,
+                generatedFiles,
+                SKILL_MIME,
+                // Pass context for activity tracking (skill:docx|xlsx|pptx|pdf events)
+                { serviceClient, orgId, archetype, memberId },
+              );
             }
           }
         }
@@ -295,6 +306,18 @@ export async function runArchetypeTurn({
             if (result.generatedFile) {
               generatedFiles.push(result.generatedFile);
             }
+            // Fire-and-forget: track successful tool call for hours-saved counter.
+            // Event key format: "tool:<tool_name>" matching estimates.ts.
+            if (!result.is_error) {
+              anyToolCalled = true;
+              void insertActivityEvent(serviceClient, {
+                orgId,
+                eventKey: `tool:${block.name}`,
+                archetypeSlug: archetype,
+                userId: memberId,
+                metadata: { tool_use_id: block.id },
+              });
+            }
             return {
               type: "tool_result" as const,
               tool_use_id: block.id,
@@ -354,20 +377,41 @@ export async function runArchetypeTurn({
       "I reached the tool-use limit. Try a more specific question.";
   }
 
+  // Fire-and-forget: if the turn used no tools, record a baseline chat turn.
+  if (!anyToolCalled) {
+    void insertActivityEvent(serviceClient, {
+      orgId,
+      eventKey: "chat:turn_no_tools",
+      archetypeSlug: archetype,
+      userId: memberId,
+    });
+  }
+
   return { text: finalAssistantText, generatedFiles };
 }
 
 // ---------------------------------------------------------------------------
 // Helper: collect skill-generated file metadata and build proxy download URL
 // ---------------------------------------------------------------------------
+
+interface SkillTrackingContext {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serviceClient: SupabaseClient<any>;
+  orgId: string;
+  archetype: ArchetypeSlug;
+  memberId: string | null;
+}
+
 async function collectFileOutput(
   fileId: string,
   anthropic: Anthropic,
   generatedFiles: GeneratedFile[],
-  mimeMap: Record<string, string>
+  mimeMap: Record<string, string>,
+  trackingCtx?: SkillTrackingContext,
 ): Promise<void> {
   let filename = fileId;
   let mimeType = "application/octet-stream";
+  let ext = "";
 
   try {
     const meta = await anthropic.beta.files.retrieveMetadata(fileId, {
@@ -375,7 +419,7 @@ async function collectFileOutput(
     } as Parameters<typeof anthropic.beta.files.retrieveMetadata>[1]);
     if (meta.filename) {
       filename = meta.filename;
-      const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+      ext = filename.split(".").pop()?.toLowerCase() ?? "";
       if (ext && mimeMap[ext]) mimeType = mimeMap[ext];
     }
   } catch {
@@ -387,4 +431,15 @@ async function collectFileOutput(
     mimeType,
     downloadUrl: `/api/files/${encodeURIComponent(fileId)}`,
   });
+
+  // Fire-and-forget: track skill document generation for hours-saved counter.
+  if (trackingCtx && ext && ["docx", "xlsx", "pptx", "pdf"].includes(ext)) {
+    void insertActivityEvent(trackingCtx.serviceClient, {
+      orgId: trackingCtx.orgId,
+      eventKey: `skill:${ext}`,
+      archetypeSlug: trackingCtx.archetype,
+      userId: trackingCtx.memberId,
+      metadata: { file_id: fileId },
+    });
+  }
 }

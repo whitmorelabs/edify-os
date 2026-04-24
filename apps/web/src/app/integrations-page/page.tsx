@@ -93,20 +93,23 @@ export default function IntegrationsPage() {
       <SpialNavbar />
 
       {/* Hero */}
-      <section className="bg-bg-plum-1 py-20">
-        <div className="spial-container mx-auto text-center">
+      <section
+        className="relative overflow-hidden py-28"
+        style={{ background: "var(--hero-gradient-marketing), var(--bg-plum-1)" }}
+      >
+        <div className="spial-container mx-auto text-center relative z-10">
           <div className="eyebrow mb-4">Integrations</div>
-          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
+          <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
             Your team works where you work.
           </h1>
-          <p className="text-fg-2 text-lg leading-[1.7] max-w-[700px] mx-auto">
+          <p className="text-fg-2 text-lg leading-[1.75] max-w-[700px] mx-auto">
             Edify OS connects to the tools your organization already uses. The more your team can see, the more value they can surface.
           </p>
         </div>
       </section>
 
       {/* Integration principle */}
-      <section className="py-14 bg-bg-0">
+      <section className="py-20 bg-bg-0">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -133,17 +136,17 @@ export default function IntegrationsPage() {
       </section>
 
       {/* Integration Grid */}
-      <section className="py-20 bg-bg-1">
+      <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto">
           <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-4 text-center">
             Supported integrations
           </h2>
-          <p className="text-center text-fg-3 leading-[1.7] max-w-[600px] mx-auto mb-[50px]">
+          <p className="text-center text-fg-3 leading-[1.7] max-w-[600px] mx-auto mb-14">
             Available integrations work today. Coming soon are in active development. Planned are on the roadmap.
           </p>
 
           {/* Status legend */}
-          <div className="flex flex-wrap gap-4 justify-center mb-10">
+          <div className="flex flex-wrap gap-4 justify-center mb-12">
             {["Available", "Coming soon", "Planned"].map((s) => (
               <span key={s} className={`text-sm px-3 py-1 rounded-full font-medium ${statusStyles[s]}`}>
                 {s}
@@ -151,7 +154,7 @@ export default function IntegrationsPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {integrations.map((integ) => (
               <div
                 key={integ.name}

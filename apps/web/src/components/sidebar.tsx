@@ -1,10 +1,9 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Sparkles,
   LayoutDashboard,
   Users,
   Inbox,
@@ -25,7 +24,9 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useNotifications } from '@/components/notifications/NotificationProvider';
 import { useAuth } from '@/components/AuthProvider';
 import { useArchetypeNames } from '@/hooks/useArchetypeNames';
+import { LogoLockup } from '@/components/brand/logo-lockup';
 import type { EnabledAgentsMap } from '@/app/api/team/enabled/route';
+import type { InboxItem } from '@/app/api/inbox/pending/route';
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -45,20 +46,30 @@ export function Sidebar() {
   const { unreadCount } = useNotifications();
   const { user } = useAuth();
   const { names: archetypeNames } = useArchetypeNames();
-  const [briefingComplete, setBriefingComplete] = useState(true); // default true to avoid flash
+  const [briefingComplete, setBriefingComplete] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [enabledAgents, setEnabledAgents] = useState<EnabledAgentsMap | null>(null);
+  /** Pending approvals count for the Inbox badge. Refreshes on route change. */
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
   useEffect(() => {
-    // Drive the "Active"/"Disabled" label from agent_configs so the sidebar
-    // matches the admin dashboard's source of truth instead of hardcoding "Active".
     fetch('/api/team/enabled')
       .then((res) => (res.ok ? res.json() : null))
       .then((data: EnabledAgentsMap | null) => setEnabledAgents(data))
       .catch(() => setEnabledAgents(null));
   }, []);
 
-  // Derive display name: prefer full_name > name > email local-part, capitalised
+  useEffect(() => {
+    // Reuses /api/inbox/pending — same endpoint the Inbox page uses.
+    fetch('/api/inbox/pending', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: InboxItem[]) => {
+        const count = data.filter((item) => item.status === 'pending').length;
+        setPendingApprovalsCount(count);
+      })
+      .catch(() => setPendingApprovalsCount(0));
+  }, [pathname]);
+
   const displayName: string = (() => {
     const meta = user?.user_metadata as Record<string, string> | undefined;
     if (meta?.full_name) return meta.full_name;
@@ -80,23 +91,17 @@ export function Sidebar() {
     }
   }, []);
 
-  // Close sidebar when route changes on mobile
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
   const sidebarContent = (
     <aside className="w-64 shrink-0 h-full flex flex-col bg-brand-950 overflow-y-auto sidebar-scroll">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 p-5">
-        <Sparkles size={22} className="text-brand-300" />
-        <span className="text-white font-bold text-lg">Edify OS</span>
+      {/* Header — logo lockup replaces old Edify OS text + Sparkles icon */}
+      <div className="flex items-center gap-2 px-4 pt-5 pb-4">
+        <LogoLockup size="sm" showBeta={false} />
         <div className="ml-auto flex items-center gap-1.5">
           <NotificationBell />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-300 bg-white/10 px-2 py-0.5 rounded-full">
-            AI Teams
-          </span>
-          {/* Close button — mobile only */}
           <button
             className="lg:hidden ml-1 text-brand-300 hover:text-white transition"
             onClick={() => setMobileOpen(false)}
@@ -108,30 +113,43 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="px-3 mt-6 space-y-0.5">
+      <nav className="px-3 mt-2 space-y-0.5">
         {navLinks.map(({ href, label, icon: Icon }) => {
           const isActive =
             href === '/dashboard'
               ? pathname === '/dashboard'
               : pathname.startsWith(href);
-          const showBadge = href === '/dashboard/inbox' && unreadCount > 0;
+
+          // Approvals badge: amber pill on the Inbox row when pending count > 0
+          const isInbox = href === '/dashboard/inbox';
+          const approvalsBadgeCount = isInbox ? pendingApprovalsCount : 0;
+          const showApprovalsBadge = approvalsBadgeCount > 0;
 
           return (
             <Link
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                 isActive
-                  ? 'bg-white/15 text-white'
-                  : 'text-brand-200 hover:bg-white/10',
+                  ? 'text-white'
+                  : 'text-brand-200 hover:bg-white/10 hover:text-white',
               )}
+              style={
+                isActive
+                  ? {
+                      background: 'rgba(159,78,243,0.15)',
+                      boxShadow:
+                        'inset 0 0 0 1px rgba(159,78,243,0.5), 0 0 8px rgba(159,78,243,0.12)',
+                    }
+                  : undefined
+              }
             >
               <Icon size={18} />
               <span className="flex-1">{label}</span>
-              {showBadge && (
-                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
-                  {unreadCount > 99 ? '99+' : unreadCount}
+              {showApprovalsBadge && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold leading-none">
+                  {approvalsBadgeCount >= 100 ? '99+' : approvalsBadgeCount}
                 </span>
               )}
             </Link>
@@ -174,8 +192,6 @@ export function Sidebar() {
             const isChatActive = pathname.startsWith(`/dashboard/team/${slug}`);
             const customName = archetypeNames[slug];
             const displayLabel = customName ? `${customName} (${config.label})` : config.label;
-            // Until the enabled-agents fetch returns we simply hide the badge
-            // rather than flashing a stale "Active" label.
             const enabled = enabledAgents ? enabledAgents[slug] : null;
 
             return (
@@ -223,19 +239,19 @@ export function Sidebar() {
         <span className="text-sm text-brand-200 flex-1 truncate">
           {displayName}
         </span>
-        <button
+        <Link
+          href="/dashboard/settings"
           className="text-brand-400 hover:text-brand-200 transition"
           aria-label="Settings"
         >
           <Settings size={16} />
-        </button>
+        </Link>
       </div>
     </aside>
   );
 
   return (
     <>
-      {/* Hamburger button — mobile only, fixed top-left */}
       <button
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-brand-950 text-brand-300 hover:text-white transition shadow-lg"
         onClick={() => setMobileOpen(true)}
@@ -244,21 +260,17 @@ export function Sidebar() {
         <Menu size={22} />
       </button>
 
-      {/* Desktop sidebar — always visible on lg+ */}
       <div className="hidden lg:flex h-screen">
         {sidebarContent}
       </div>
 
-      {/* Mobile sidebar — overlay when open */}
       {mobileOpen && (
         <>
-          {/* Backdrop */}
           <div
             className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
-          {/* Slide-in panel */}
           <div className="lg:hidden fixed inset-y-0 left-0 z-50 flex h-screen overflow-hidden">
             {sidebarContent}
           </div>

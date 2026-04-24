@@ -33,6 +33,7 @@ const archetype: ArchetypeData = {
     { title: "Evaluate a workforce development initiative", description: "Analyzes 18 months of outcome data from 200 participants, identifies that job placement rates exceed targets but retention at 6 months is lagging, and recommends a post-placement support component." },
     { title: "Prepare a multi-funder compliance dashboard", description: "Creates a unified view of deliverables across 5 active grants, flags 2 reports due in 30 days, and pre-populates program narratives with the latest outcome data." },
   ],
+  image: "/agents/programs-director.jpg",
 };
 
 export default function ProgramsDirectorPage() {

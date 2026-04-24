@@ -22,6 +22,7 @@ import {
 } from "./api";
 import { cn } from "@/lib/utils";
 import { useArchetypeNames } from "@/hooks/useArchetypeNames";
+import { SuggestionChip } from "@/components/ui";
 
 // ---------------------------------------------------------------------------
 // Suggested prompts per archetype
@@ -89,33 +90,27 @@ function EmptyState({
       >
         <Icon size={32} className="text-white" />
       </div>
-      <h3 className="mt-4 text-lg font-semibold text-slate-800">
+      <h3 className="mt-4 text-lg font-semibold text-[var(--fg-1)]">
         Start a conversation with your {config.label}
       </h3>
-      <p className="mt-1 text-sm text-slate-500 max-w-sm">
+      <p className="mt-1 text-sm text-[var(--fg-3)] max-w-sm">
         {config.description}. Ask anything — they know your organization.
       </p>
 
       {prompts.length > 0 && (
         <div className="mt-8 w-full max-w-md">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--fg-3)] mb-3">
             Try one of these
           </p>
-          <div className="space-y-2">
+          <div className="flex flex-col items-center gap-2">
             {prompts.slice(0, 4).map((prompt, i) => (
-              <button
+              <SuggestionChip
                 key={i}
+                icon={<Sparkles size={14} />}
                 onClick={() => onPromptSelect(prompt)}
-                className="w-full text-left text-sm rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-600 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition group shadow-sm"
               >
-                <span className="flex items-start gap-2">
-                  <Sparkles
-                    size={14}
-                    className="shrink-0 mt-0.5 text-slate-300 group-hover:text-brand-400 transition"
-                  />
-                  {prompt}
-                </span>
-              </button>
+                {prompt}
+              </SuggestionChip>
             ))}
           </div>
         </div>
@@ -323,12 +318,12 @@ export default function TeamChatClient({
       />
 
       {/* Main chat area */}
-      <div className="flex flex-col flex-1 min-w-0 bg-slate-50">
+      <div className="flex flex-col flex-1 min-w-0 bg-[var(--bg-0)]">
         {/* Chat header */}
-        <header className="flex items-center gap-3 px-4 sm:px-6 py-4 bg-white border-b border-slate-200 shrink-0">
+        <header className="flex items-center gap-3 px-4 sm:px-6 py-4 bg-[var(--bg-1)] border-b border-[var(--line-1)] shrink-0">
           <Link
             href="/dashboard/team"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+            className="p-1.5 rounded-lg text-[var(--fg-3)] hover:text-[var(--fg-1)] hover:bg-[var(--bg-2)] transition"
             aria-label="Back to team"
           >
             <ArrowLeft size={18} />
@@ -344,16 +339,16 @@ export default function TeamChatClient({
           </div>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-slate-900 truncate">
+            <h1 className="text-sm font-semibold text-[var(--fg-1)] truncate">
               {displayLabel}
             </h1>
-            <p className="text-xs text-slate-500 truncate">
+            <p className="text-xs text-[var(--fg-3)] truncate">
               {config.description}
             </p>
           </div>
 
           {/* Active indicator */}
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 shrink-0">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 text-xs font-medium text-emerald-400 shrink-0">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Active
           </span>

@@ -130,27 +130,35 @@
   --radius-pill: 999px;
 
   /* ---------- ELEVATION ------------------------------------------------ */
-  --elev-0: 0 0 0 1px var(--line-2);
+  --elev-0: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px var(--line-2);
   --elev-1:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.35),
     0 0 0 1px var(--line-2);
   --elev-2:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 4px 12px rgba(0, 0, 0, 0.4),
     0 0 0 1px var(--line-2);
   --elev-3:
-    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 12px 32px rgba(0, 0, 0, 0.5),
     0 0 0 1px var(--line-2);
   --elev-4:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 24px 64px rgba(0, 0, 0, 0.6),
     0 0 0 1px var(--line-3);
 
   --glow-purple-sm: 0 0 0 1px var(--purple-a32), 0 4px 16px var(--purple-a32);
   --glow-purple-md: 0 0 0 1px var(--purple-a32), 0 8px 32px var(--purple-a48);
   --glow-purple-lg: 0 0 0 1px var(--purple-a48), 0 16px 64px rgba(159, 78, 243, 0.6);
+
+  /* CTA two-layer diffuse glow — expands on hover */
+  --glow-cta-base: 0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48);
+  --glow-cta-hover: 0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6);
+
+  /* Hero radial gradients — top-edge light source effect */
+  --hero-gradient-marketing: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(159,78,243,0.22), transparent);
+  --hero-gradient-dashboard: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(159,78,243,0.12), transparent);
 
   /* ---------- MOTION --------------------------------------------------- */
   --dur-instant: 80ms;
@@ -257,26 +265,28 @@
   --radius-2xl:  28px;
 
   /* Elevation / shadows */
-  --shadow-elev-0: 0 0 0 1px rgba(255,255,255,0.10);
+  --shadow-elev-0: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-1:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.35),
     0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-2:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 4px 12px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-3:
-    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 12px 32px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-4:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 24px 64px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255,255,255,0.16);
   --shadow-glow-sm: 0 0 0 1px rgba(159,78,243,0.32), 0 4px 16px rgba(159,78,243,0.32);
   --shadow-glow-md: 0 0 0 1px rgba(159,78,243,0.32), 0 8px 32px rgba(159,78,243,0.48);
   --shadow-glow-lg: 0 0 0 1px rgba(159,78,243,0.48), 0 16px 64px rgba(159,78,243,0.6);
+  --shadow-cta-base: 0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48);
+  --shadow-cta-hover: 0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6);
 
   /* Legacy animations (kept for existing components that import them). */
   --animate-fade-in: fade-in 0.5s ease-out;
@@ -419,6 +429,11 @@ body {
   0%, 100% { opacity: 0.4; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.15); }
 }
+/* FileCard just-arrived glow decay — fades purple ring+glow to resting hairline over 5s */
+@keyframes filecard-glow-decay {
+  0%   { box-shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset, 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(159,78,243,0.32), 0 0 32px rgba(159,78,243,0.24); }
+  100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.06); }
+}
 
 /* =========================================================================
    LEGACY COMPONENT CLASSES (kept for existing pages still migrating)
@@ -427,17 +442,31 @@ body {
    ========================================================================= */
 
 @layer components {
+  /* Dark-design-system card primitives — bg-2 surface, hairline border, elevation shadow */
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    @apply rounded-xl;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--elev-1);
   }
 
   .card-elevated {
-    @apply bg-white rounded-xl border border-gray-200 shadow-md;
+    @apply rounded-xl;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--elev-2);
   }
 
   .card-interactive {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm
-      hover:shadow-lg hover:border-[#8B5CF6]/40 transition-all duration-200 cursor-pointer;
+    @apply rounded-xl cursor-pointer transition-all duration-200;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--elev-1);
+  }
+  .card-interactive:hover {
+    background: var(--bg-4);
+    border-color: var(--line-purple);
+    box-shadow: var(--elev-2);
   }
 
   .card-dark {
@@ -447,33 +476,64 @@ body {
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
-      text-slate-900 placeholder:text-slate-400
+    @apply w-full rounded-lg px-3.5 py-2.5 text-sm
       focus:outline-none focus:ring-2
       transition-colors;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--fg-1);
+  }
+  .input-field::placeholder {
+    color: var(--fg-4);
+  }
+  .input-field:focus {
+    border-color: var(--brand-purple);
+    box-shadow: 0 0 0 2px rgba(159, 78, 243, 0.20);
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-6 py-3
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
       text-sm font-semibold text-white
-      hover:bg-gray-800 active:bg-gray-700
-      focus:outline-none focus:ring-2 focus:ring-gray-500/50 focus:ring-offset-2
+      focus:outline-none focus:ring-2 focus:ring-offset-2
       transition-all duration-200;
+    background: var(--brand-purple);
+  }
+  .btn-primary:hover {
+    background: var(--brand-purple-hover);
+  }
+  .btn-primary:active {
+    background: var(--brand-purple-press);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-300
-      bg-white px-6 py-3 text-sm font-semibold text-slate-700
-      hover:bg-slate-50 active:bg-slate-100
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
+      text-sm font-semibold
       focus:outline-none focus:ring-2 focus:ring-offset-2
       transition-all duration-200;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--fg-2);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-4);
+    color: var(--fg-1);
+  }
+  .btn-secondary:active {
+    background: var(--bg-5);
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
-      text-sm font-semibold text-slate-600
-      hover:bg-slate-100 active:bg-slate-200
+      text-sm font-semibold
       transition-all duration-150;
+    color: var(--fg-3);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-3);
+    color: var(--fg-1);
+  }
+  .btn-ghost:active {
+    background: var(--bg-4);
   }
 
   .btn-light {
@@ -492,15 +552,18 @@ body {
   }
 
   .heading-1 {
-    @apply text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl;
+    @apply text-2xl font-bold tracking-tight sm:text-3xl;
+    color: var(--fg-1);
   }
 
   .heading-2 {
-    @apply text-xl font-semibold text-gray-900;
+    @apply text-xl font-semibold;
+    color: var(--fg-1);
   }
 
   .heading-3 {
-    @apply text-base font-semibold text-gray-900;
+    @apply text-base font-semibold;
+    color: var(--fg-1);
   }
 
   .section-dark {
