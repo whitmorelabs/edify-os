@@ -110,11 +110,7 @@ const plans: Plan[] = [
   },
 ];
 
-const invoices = [
-  { month: "April 2026", amount: "$49.00", status: "Paid" },
-  { month: "March 2026", amount: "$49.00", status: "Paid" },
-  { month: "February 2026", amount: "$49.00", status: "Paid" },
-];
+const invoices: { month: string; amount: string; status: string }[] = [];
 
 const faqs = [
   {
@@ -130,7 +126,7 @@ const faqs = [
   {
     question: "Do you offer nonprofit discounts?",
     answer:
-      "Edify OS is built specifically for nonprofits, and our pricing already reflects that mission. For organizations with 501(c)(3) status, we offer an additional 20% discount on annual plans. Contact our sales team for details.",
+      "Edify OS is built specifically for nonprofits, so our pricing already reflects that mission. Reach out if you are working with a very small organization — we have options.",
   },
   {
     question: "What payment methods do you accept?",
@@ -503,47 +499,53 @@ export default function BillingPage() {
         <div className="card p-6">
           <h3 className="heading-3 mb-5">Billing History</h3>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-bg-3">
-                  <th className="pb-2 text-left font-medium text-fg-3">
-                    Period
-                  </th>
-                  <th className="pb-2 text-left font-medium text-fg-3">
-                    Amount
-                  </th>
-                  <th className="pb-2 text-left font-medium text-fg-3">
-                    Status
-                  </th>
-                  <th className="pb-2 text-right font-medium text-fg-3">
-                    Invoice
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-bg-3">
-                {invoices.map((inv) => (
-                  <tr key={inv.month}>
-                    <td className="py-3 font-medium text-fg-1">
-                      {inv.month}
-                    </td>
-                    <td className="py-3 text-fg-2">{inv.amount}</td>
-                    <td className="py-3">
-                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right">
-                      <button className="inline-flex items-center gap-1 text-brand-500 hover:text-brand-600 text-sm font-medium">
-                        <Download className="h-3.5 w-3.5" />
-                        Download
-                      </button>
-                    </td>
+          {invoices.length === 0 ? (
+            <p className="text-sm text-fg-3 py-4 text-center">
+              No billing history yet. Invoices will appear here after your first payment.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-bg-3">
+                    <th className="pb-2 text-left font-medium text-fg-3">
+                      Period
+                    </th>
+                    <th className="pb-2 text-left font-medium text-fg-3">
+                      Amount
+                    </th>
+                    <th className="pb-2 text-left font-medium text-fg-3">
+                      Status
+                    </th>
+                    <th className="pb-2 text-right font-medium text-fg-3">
+                      Invoice
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-bg-3">
+                  {invoices.map((inv) => (
+                    <tr key={inv.month}>
+                      <td className="py-3 font-medium text-fg-1">
+                        {inv.month}
+                      </td>
+                      <td className="py-3 text-fg-2">{inv.amount}</td>
+                      <td className="py-3">
+                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                          {inv.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right">
+                        <button className="inline-flex items-center gap-1 text-brand-500 hover:text-brand-600 text-sm font-medium">
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="mt-5 border-t border-bg-3 pt-5">
             <button className="btn-secondary w-full justify-center">
