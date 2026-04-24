@@ -16,8 +16,11 @@ export default function AboutPage() {
       <SpialNavbar />
 
       {/* Hero */}
-      <section className="bg-bg-plum-1 py-28">
-        <div className="spial-container mx-auto text-center">
+      <section
+        className="relative overflow-hidden py-28"
+        style={{ background: "var(--hero-gradient-marketing), var(--bg-plum-1)" }}
+      >
+        <div className="spial-container mx-auto text-center relative z-10">
           <div className="eyebrow mb-4">Our story</div>
           <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
             We didn&apos;t set out to build software.

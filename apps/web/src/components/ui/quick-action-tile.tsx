@@ -93,9 +93,9 @@ export function QuickActionTile({
 
   const wrapperClass = cn(
     "block rounded-[14px] bg-[var(--bg-2)] p-5 text-left",
-    "shadow-[0_0_0_1px_var(--line-2)]",
+    "shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_var(--line-2)]",
     "transition-[transform,box-shadow,border-color]",
-    "hover:-translate-y-[1px] hover:shadow-[0_0_0_1px_var(--line-purple),var(--elev-2)]",
+    "hover:-translate-y-[1px] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_var(--line-purple),var(--elev-2)]",
     "cursor-pointer",
     className,
   );

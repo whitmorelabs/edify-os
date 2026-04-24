@@ -13,10 +13,27 @@ function Hero() {
   return (
     <section
       className="relative overflow-hidden"
-      style={{ padding: "96px 0 128px", background: "var(--bg-1)" }}
+      style={{
+        padding: "96px 0 128px",
+        background: "var(--hero-gradient-marketing), var(--bg-1)",
+      }}
     >
+      {/* noise texture overlay — home hero only */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          backgroundImage: "url('/brand/noise.svg')",
+          backgroundRepeat: "repeat",
+          opacity: 0.04,
+          mixBlendMode: "overlay",
+          zIndex: 0,
+        }}
+      />
       {/* ambient blobs */}
-      <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
         <div
           className="absolute"
           style={{
@@ -104,8 +121,14 @@ function Hero() {
                   borderRadius: 10,
                   fontSize: 15,
                   fontWeight: 600,
-                  boxShadow:
-                    "0 0 0 1px rgba(159,78,243,0.48), 0 12px 48px rgba(159,78,243,0.44)",
+                  boxShadow: "var(--glow-cta-base)",
+                  transition: "box-shadow 200ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-base)";
                 }}
               >
                 Request early access
@@ -905,8 +928,14 @@ function CTASection() {
                 borderRadius: 12,
                 fontSize: 16,
                 fontWeight: 600,
-                boxShadow:
-                  "0 0 0 1px rgba(159,78,243,0.48), 0 16px 64px rgba(159,78,243,0.5)",
+                boxShadow: "var(--glow-cta-base)",
+                transition: "box-shadow 200ms ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-hover)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--glow-cta-base)";
               }}
             >
               Request early access

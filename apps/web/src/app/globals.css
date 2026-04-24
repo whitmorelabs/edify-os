@@ -130,27 +130,35 @@
   --radius-pill: 999px;
 
   /* ---------- ELEVATION ------------------------------------------------ */
-  --elev-0: 0 0 0 1px var(--line-2);
+  --elev-0: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px var(--line-2);
   --elev-1:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.35),
     0 0 0 1px var(--line-2);
   --elev-2:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 4px 12px rgba(0, 0, 0, 0.4),
     0 0 0 1px var(--line-2);
   --elev-3:
-    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 12px 32px rgba(0, 0, 0, 0.5),
     0 0 0 1px var(--line-2);
   --elev-4:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 24px 64px rgba(0, 0, 0, 0.6),
     0 0 0 1px var(--line-3);
 
   --glow-purple-sm: 0 0 0 1px var(--purple-a32), 0 4px 16px var(--purple-a32);
   --glow-purple-md: 0 0 0 1px var(--purple-a32), 0 8px 32px var(--purple-a48);
   --glow-purple-lg: 0 0 0 1px var(--purple-a48), 0 16px 64px rgba(159, 78, 243, 0.6);
+
+  /* CTA two-layer diffuse glow — expands on hover */
+  --glow-cta-base: 0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48);
+  --glow-cta-hover: 0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6);
+
+  /* Hero radial gradients — top-edge light source effect */
+  --hero-gradient-marketing: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(159,78,243,0.22), transparent);
+  --hero-gradient-dashboard: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(159,78,243,0.12), transparent);
 
   /* ---------- MOTION --------------------------------------------------- */
   --dur-instant: 80ms;
@@ -257,26 +265,28 @@
   --radius-2xl:  28px;
 
   /* Elevation / shadows */
-  --shadow-elev-0: 0 0 0 1px rgba(255,255,255,0.10);
+  --shadow-elev-0: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-1:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.35),
     0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-2:
-    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 4px 12px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-3:
-    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 12px 32px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255,255,255,0.10);
   --shadow-elev-4:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 24px 64px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255,255,255,0.16);
   --shadow-glow-sm: 0 0 0 1px rgba(159,78,243,0.32), 0 4px 16px rgba(159,78,243,0.32);
   --shadow-glow-md: 0 0 0 1px rgba(159,78,243,0.32), 0 8px 32px rgba(159,78,243,0.48);
   --shadow-glow-lg: 0 0 0 1px rgba(159,78,243,0.48), 0 16px 64px rgba(159,78,243,0.6);
+  --shadow-cta-base: 0 0 15px 0 rgba(159,78,243,0.35), 0 0 5px 0 rgba(159,78,243,0.35), 0 0 0 1px rgba(159,78,243,0.48);
+  --shadow-cta-hover: 0 0 25px 5px rgba(159,78,243,0.4), 0 0 10px 0 rgba(159,78,243,0.4), 0 0 0 1px rgba(159,78,243,0.6);
 
   /* Legacy animations (kept for existing components that import them). */
   --animate-fade-in: fade-in 0.5s ease-out;

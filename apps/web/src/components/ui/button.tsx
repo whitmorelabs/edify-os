@@ -30,13 +30,13 @@ const sizes: Record<ButtonSize, string> = {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    // brand purple with glow
+    // two-layer accent glow that expands on hover (see --shadow-cta-* tokens)
     "bg-[var(--brand-purple)] text-[var(--fg-on-purple)] " +
-    "shadow-[0_0_0_1px_rgba(159,78,243,0.32),0_4px_16px_rgba(159,78,243,0.32)] " +
+    "shadow-cta-base " +
     "hover:bg-[var(--brand-purple-hover)] hover:-translate-y-[1px] " +
-    "hover:shadow-[0_0_0_1px_rgba(159,78,243,0.48),0_8px_32px_rgba(159,78,243,0.48)] " +
+    "hover:shadow-cta-hover " +
     "active:bg-[var(--brand-purple-press)] active:translate-y-0 " +
-    "active:scale-[0.98] active:shadow-[0_0_0_1px_rgba(159,78,243,0.32),0_2px_8px_rgba(159,78,243,0.24)]",
+    "active:scale-[0.98] active:shadow-[0_0_8px_0_rgba(159,78,243,0.3),0_0_0_1px_rgba(159,78,243,0.32)]",
   secondary:
     // hairline on near-black
     "bg-transparent text-[var(--fg-1)] " +

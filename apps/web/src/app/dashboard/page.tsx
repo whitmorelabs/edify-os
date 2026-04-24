@@ -509,7 +509,10 @@ export default function DashboardHome() {
   const pendingApprovals = summary?.stats.pendingApprovals ?? 0;
 
   return (
-    <div className="relative isolate min-h-full">
+    <div
+      className="relative isolate min-h-full"
+      style={{ background: "var(--hero-gradient-dashboard)" }}
+    >
       <AmbientBG />
       <div
         className="relative z-10 mx-auto px-6 lg:px-10"
