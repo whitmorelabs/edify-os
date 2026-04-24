@@ -7,29 +7,41 @@ import { Button, Card, CardHeader, CardBody, CardFooter, Badge } from "@/compone
 export const metadata = {
   title: "Pricing | Edify OS",
   description:
-    "One plan, everything included. $249/month per organization — no hidden fees, no per-seat surprises.",
+    "Four plans for every nonprofit — from free to enterprise. Start for free, scale as you grow. No hidden fees, no per-seat surprises.",
 };
 
-const edifyFeatures = [
-  "All 6 AI directors (Executive Assistant, Development Director, Marketing Director, Events Director, Programs Director, HR & Volunteer Coordinator)",
-  "Unlimited conversations with your team",
-  "Google Workspace integration (Calendar, Gmail, Drive)",
-  "Grant discovery (Grants.gov + SAM.gov)",
-  "Donor CRM",
-  "Social publishing (Instagram, Facebook, LinkedIn, YouTube)",
-  "Document generation (docx, xlsx, pptx, pdf)",
-  "Bring your own Claude API key (BYOK — you pay Anthropic directly)",
-  "Priority email support",
+const freeFeatures = [
+  "1 AI director",
+  "10 conversations/month",
+  "Basic org memory",
+  "Community support",
+];
+
+const starterFeatures = [
+  "3 AI directors",
+  "100 conversations/month",
+  "Full org memory",
+  "Email support",
+  "Google Calendar integration",
+];
+
+const proFeatures = [
+  "All 6 AI directors",
+  "Unlimited conversations",
+  "Full org memory + auto-save",
+  "Priority support",
+  "All integrations (Calendar, Drive, Gmail)",
+  "Heartbeat proactive check-ins",
+  "Decision Lab",
 ];
 
 const enterpriseFeatures = [
-  "Everything in Edify OS, plus:",
-  "Multi-organization accounts",
-  "Dedicated account manager",
-  "Custom integrations (Salesforce, Raiser's Edge, custom APIs)",
-  "SSO / SAML",
-  "Advanced audit logs and compliance support",
-  "SLA-backed uptime",
+  "Everything in Pro",
+  "Custom integrations",
+  "Dedicated support",
+  "Multi-org management",
+  "Custom AI training",
+  "SLA guarantees",
 ];
 
 const faqItems = [
@@ -38,8 +50,8 @@ const faqItems = [
     a: "Yes — all AI interactions go through your own Anthropic API key. You sign up for free at console.anthropic.com. Most organizations spend less than $5/day in API costs even with heavy use.",
   },
   {
-    q: "Is there a free trial?",
-    a: "We are working on a free trial option. In the meantime, reach out and we will give you a hands-on demo of the full product before you commit.",
+    q: "Can I upgrade or downgrade my plan?",
+    a: "Yes. You can change your plan at any time from your account settings. Upgrades take effect immediately. Downgrades apply at the start of your next billing cycle.",
   },
   {
     q: "What does BYOK mean?",
@@ -66,18 +78,100 @@ export default function PricingPage() {
           <h1 className="text-fg-1 text-[36px] md:text-[52px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
             Simple pricing for every nonprofit.
           </h1>
-          <p className="text-fg-2 text-lg leading-[1.75] max-w-[600px] mx-auto">
-            One plan, everything included. No hidden fees, no per-seat surprises.
+          <p className="text-fg-2 text-lg leading-[1.75] max-w-[640px] mx-auto">
+            Start free, scale as you grow. From a single AI director to a full team — pick the plan that fits your organization.
           </p>
         </div>
       </section>
 
-      {/* Two-card grid */}
+      {/* Four-card grid */}
       <section className="py-28 bg-bg-1">
         <div className="spial-container mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-[960px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-[1280px] mx-auto">
 
-            {/* Card 1 — Edify OS (primary) */}
+            {/* Card 1 — Free */}
+            <Card elevation={1} className="flex flex-col">
+              <CardHeader className="pb-0">
+                <Badge tone="neutral" eyebrow className="mb-4">
+                  Free
+                </Badge>
+                <h2 className="text-2xl font-semibold text-fg-1 mb-1">Free</h2>
+                <p className="text-xs text-fg-3 mb-4">Try Edify OS</p>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-[44px] font-semibold leading-none text-fg-1">$0</span>
+                  <span className="text-sm text-fg-2 ml-1">/month</span>
+                </div>
+                <p className="text-sm text-fg-3 leading-[1.6]">
+                  Try Edify OS with limited features. No credit card required.
+                </p>
+              </CardHeader>
+
+              <CardBody className="flex-1 pt-6">
+                <ul className="list-none space-y-3">
+                  {freeFeatures.map((feature, i) => (
+                    <li key={i} className="flex gap-3 text-sm leading-[1.5] text-fg-2">
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-fg-3" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+
+              <CardFooter>
+                <Link href="/signup" className="block w-full no-underline">
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="w-full justify-center"
+                  >
+                    Get started
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+
+            {/* Card 2 — Starter */}
+            <Card elevation={1} className="flex flex-col">
+              <CardHeader className="pb-0">
+                <Badge tone="neutral" eyebrow className="mb-4">
+                  Starter
+                </Badge>
+                <h2 className="text-2xl font-semibold text-fg-1 mb-1">Starter</h2>
+                <p className="text-xs text-fg-3 mb-4">For small nonprofits</p>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-[44px] font-semibold leading-none text-fg-1">$49</span>
+                  <span className="text-sm text-fg-2 ml-1">/month</span>
+                </div>
+                <p className="text-sm text-fg-3 leading-[1.6]">
+                  For small nonprofits getting started with AI.
+                </p>
+              </CardHeader>
+
+              <CardBody className="flex-1 pt-6">
+                <ul className="list-none space-y-3">
+                  {starterFeatures.map((feature, i) => (
+                    <li key={i} className="flex gap-3 text-sm leading-[1.5] text-fg-2">
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-fg-3" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+
+              <CardFooter>
+                <Link href="/signup" className="block w-full no-underline">
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="w-full justify-center"
+                  >
+                    Start free trial
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+
+            {/* Card 3 — Pro (highlighted) */}
             <Card
               elevation={2}
               className="flex flex-col border-t-[3px] border-t-brand-500 relative"
@@ -86,20 +180,20 @@ export default function PricingPage() {
                 <Badge tone="brand" eyebrow className="mb-4">
                   Recommended
                 </Badge>
-                <h2 className="text-2xl font-semibold text-fg-1 mb-1">Edify OS</h2>
-                <p className="text-xs text-fg-3 mb-4">Per organization</p>
+                <h2 className="text-2xl font-semibold text-fg-1 mb-1">Pro</h2>
+                <p className="text-xs text-fg-3 mb-4">For growing nonprofits</p>
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-[52px] font-semibold leading-none text-fg-1">$249</span>
+                  <span className="text-[44px] font-semibold leading-none text-fg-1">$149</span>
                   <span className="text-sm text-fg-2 ml-1">/month</span>
                 </div>
                 <p className="text-sm text-fg-3 leading-[1.6]">
-                  Everything you need to run your nonprofit, powered by AI.
+                  The full Edify OS experience. Every director, every integration.
                 </p>
               </CardHeader>
 
               <CardBody className="flex-1 pt-6">
                 <ul className="list-none space-y-3">
-                  {edifyFeatures.map((feature, i) => (
+                  {proFeatures.map((feature, i) => (
                     <li key={i} className="flex gap-3 text-sm leading-[1.5] text-fg-2">
                       <Check className="w-4 h-4 shrink-0 mt-0.5 text-brand-500" />
                       {feature}
@@ -116,27 +210,27 @@ export default function PricingPage() {
                     className="w-full justify-center"
                     trailingIcon={<ArrowRight className="w-4 h-4" />}
                   >
-                    Start with Edify OS
+                    Start free trial
                   </Button>
                 </Link>
               </CardFooter>
             </Card>
 
-            {/* Card 2 — Enterprise (secondary) */}
+            {/* Card 4 — Enterprise */}
             <Card elevation={1} className="flex flex-col">
               <CardHeader className="pb-0">
                 <Badge tone="neutral" eyebrow className="mb-4">
                   Enterprise
                 </Badge>
-                <h2 className="text-2xl font-semibold text-fg-1 mb-1">Custom</h2>
-                <p className="text-xs text-fg-3 mb-4">&nbsp;</p>
+                <h2 className="text-2xl font-semibold text-fg-1 mb-1">Enterprise</h2>
+                <p className="text-xs text-fg-3 mb-4">Large nonprofits &amp; networks</p>
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-[40px] font-semibold leading-none text-fg-2">
-                    Let&apos;s talk
+                  <span className="text-[36px] font-semibold leading-none text-fg-2">
+                    Custom
                   </span>
                 </div>
                 <p className="text-sm text-fg-3 leading-[1.6]">
-                  For larger nonprofits, multi-org networks, or custom integrations.
+                  For large nonprofits, multi-org networks, or custom integrations.
                 </p>
               </CardHeader>
 
@@ -161,7 +255,7 @@ export default function PricingPage() {
                     size="lg"
                     className="w-full justify-center"
                   >
-                    Contact sales
+                    Contact us
                   </Button>
                 </a>
               </CardFooter>
