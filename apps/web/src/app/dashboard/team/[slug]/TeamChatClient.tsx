@@ -18,6 +18,7 @@ import {
   saveConversationMeta,
   getLocalConversations,
   generateTitle,
+  deleteLocalConversation,
   type Message,
   type Conversation,
 } from "./api";
@@ -363,6 +364,30 @@ export default function TeamChatClient({
   }
 
   // ---------------------------------------------------------------------------
+  // Delete a conversation — cleans up server + localStorage, resets UI if active
+  // ---------------------------------------------------------------------------
+  async function handleDeleteConversation(conversationId: string) {
+    // Remove from local list immediately (optimistic)
+    setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+    deleteLocalConversation(slug, conversationId);
+
+    // If this was the active conversation, reset to empty state
+    if (activeConversation?.id === conversationId) {
+      setActiveConversation(null);
+      setMessages([]);
+    }
+
+    // Delete from server (fire-and-forget; UI already updated)
+    try {
+      await fetch(`/api/conversations/${encodeURIComponent(conversationId)}`, {
+        method: "DELETE",
+      });
+    } catch {
+      // Server delete failed — localStorage already cleaned up; tolerate silently
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Select existing conversation
   // Messages are loaded by the activeConversation useEffect above.
   // ---------------------------------------------------------------------------
@@ -384,6 +409,7 @@ export default function TeamChatClient({
         activeConversationId={activeConversation?.id ?? null}
         onSelect={handleSelectConversation}
         onNew={handleNewConversation}
+        onDelete={handleDeleteConversation}
         isCreating={false}
       />
 
