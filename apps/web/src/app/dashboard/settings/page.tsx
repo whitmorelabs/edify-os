@@ -246,6 +246,9 @@ export default function SettingsPage() {
                     setDraftNames((prev) => ({ ...prev, [slug]: e.target.value }))
                   }
                   placeholder={config.label}
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
                   className="input-field flex-1"
                 />
               </div>
