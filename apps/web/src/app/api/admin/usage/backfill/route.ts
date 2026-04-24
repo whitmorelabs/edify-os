@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
-import { createServiceRoleClient } from "@/lib/supabase-service";
+import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 
 /**
  * POST /api/admin/usage/backfill
