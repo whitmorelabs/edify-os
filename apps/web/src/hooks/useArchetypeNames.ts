@@ -63,6 +63,8 @@ export function useArchetypeNames(): UseArchetypeNamesReturn {
     if (res.ok) {
       const updated = await res.json() as ArchetypeNamesMap;
       setNames(updated);
+      // Keep localStorage in sync so next mount reflects the updated names (DB wins)
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(updated)); } catch {}
     } else {
       const err = await res.json().catch(() => ({ error: "Unknown error" })) as { error: string };
       throw new Error(err.error ?? "Failed to update name");

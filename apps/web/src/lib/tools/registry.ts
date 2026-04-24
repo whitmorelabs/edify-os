@@ -110,7 +110,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools],
-  development_director: [...grantsTools, ...crmTools, ...gmailTools, ...driveTools],
+  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools],
   marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools],
   programs_director: [...grantsTools, ...driveTools],
   hr_volunteer_coordinator: [],

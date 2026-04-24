@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 import { SuggestionChip } from "@/components/ui";
+import type { EnabledAgentsMap } from "@/app/api/team/enabled/route";
 
 // ---------------------------------------------------------------------------
 // Suggested prompts per archetype
@@ -143,6 +144,16 @@ export default function TeamChatClient({
   const customName = archetypeNames[archetypeSlug];
   // Display label: "Anna (Executive Assistant)" or "Executive Assistant"
   const displayLabel = customName ? `${customName} (${config.label})` : config.label;
+
+  // Fetch enabled/disabled state — same source of truth as the sidebar indicator
+  const [enabledAgents, setEnabledAgents] = useState<EnabledAgentsMap | null>(null);
+  useEffect(() => {
+    fetch("/api/team/enabled")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: EnabledAgentsMap | null) => setEnabledAgents(data))
+      .catch(() => setEnabledAgents(null));
+  }, []);
+  const isEnabled = enabledAgents ? enabledAgents[archetypeSlug] !== false : true;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -417,11 +428,18 @@ export default function TeamChatClient({
             </p>
           </div>
 
-          {/* Active indicator */}
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700 shrink-0">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Active
-          </span>
+          {/* Active/Off indicator — same source of truth as sidebar */}
+          {isEnabled ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700 shrink-0">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Active
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-500 shrink-0">
+              <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+              Off
+            </span>
+          )}
         </header>
 
         {/* Messages or empty state */}
