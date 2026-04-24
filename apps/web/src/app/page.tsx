@@ -205,12 +205,12 @@ function HowItWorks() {
       className="relative"
       style={{
         padding: "128px 0",
-        background: "#ffffff",
-        borderTop: "1px solid #e5e7eb",
+        background: "var(--bg-2)",
+        borderTop: "1px solid var(--line-1)",
       }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
-        <span className="eyebrow" style={{ color: "var(--brand-purple)" }}>HOW IT WORKS</span>
+        <span className="eyebrow">HOW IT WORKS</span>
         <h2
           style={{
             fontSize: "clamp(36px, 5vw, 56px)",
@@ -218,16 +218,16 @@ function HowItWorks() {
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
             margin: "16px 0 24px",
-            color: "#111827",
+            color: "var(--fg-1)",
           }}
         >
           You approve.
           <br />
-          <span style={{ color: "#6b7280" }}>They do the work.</span>
+          <span style={{ color: "var(--fg-3)" }}>They do the work.</span>
         </h2>
         <p
           style={{
-            color: "#4b5563",
+            color: "var(--fg-2)",
             fontSize: 18,
             maxWidth: 620,
             lineHeight: 1.6,
@@ -251,9 +251,9 @@ function HowItWorks() {
               style={{
                 padding: 28,
                 borderRadius: 16,
-                background: "white",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)",
-                border: "1px solid #f3f4f6",
+                background: "var(--bg-3)",
+                boxShadow: "var(--elev-1)",
+                border: "1px solid var(--line-1)",
               }}
             >
               {i === 2 && (
@@ -288,14 +288,14 @@ function HowItWorks() {
                     fontSize: 20,
                     fontWeight: 500,
                     margin: "12px 0 8px",
-                    color: "#111827",
+                    color: "var(--fg-1)",
                   }}
                 >
                   {s.title}
                 </h3>
                 <p
                   style={{
-                    color: "#6b7280",
+                    color: "var(--fg-3)",
                     fontSize: 14,
                     lineHeight: 1.6,
                   }}
@@ -501,12 +501,12 @@ function FeaturesDeepDive() {
     <section
       style={{
         padding: "128px 0",
-        background: "#f9fafb",
-        borderTop: "1px solid #e5e7eb",
+        background: "var(--bg-1)",
+        borderTop: "1px solid var(--line-1)",
       }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
-        <span className="eyebrow" style={{ color: "var(--brand-purple)" }}>FEATURES</span>
+        <span className="eyebrow">FEATURES</span>
         <h2
           style={{
             fontSize: "clamp(36px, 5vw, 56px)",
@@ -514,12 +514,12 @@ function FeaturesDeepDive() {
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
             margin: "16px 0 48px",
-            color: "#111827",
+            color: "var(--fg-1)",
           }}
         >
           One platform.
           <br />
-          <span style={{ color: "#6b7280" }}>Six roles. Everything covered.</span>
+          <span style={{ color: "var(--fg-3)" }}>Six roles. Everything covered.</span>
         </h2>
 
         <div className="flex gap-2.5 mb-10 flex-wrap">
@@ -536,15 +536,15 @@ function FeaturesDeepDive() {
                 background:
                   activeTab === i
                     ? "var(--brand-purple)"
-                    : "white",
+                    : "var(--bg-3)",
                 color:
                   activeTab === i
                     ? "white"
-                    : "#374151",
+                    : "var(--fg-2)",
                 boxShadow:
                   activeTab === i
                     ? "0 0 0 1px rgba(159,78,243,0.48), 0 8px 24px rgba(159,78,243,0.32)"
-                    : "0 0 0 1px #e5e7eb",
+                    : "0 0 0 1px var(--line-2)",
                 transitionDuration: "var(--dur-fast)",
                 transitionTimingFunction: "var(--ease-standard)",
               }}
@@ -563,7 +563,7 @@ function FeaturesDeepDive() {
               style={{
                 fontSize: 26,
                 fontWeight: 500,
-                color: "#111827",
+                color: "var(--fg-1)",
                 marginBottom: 20,
                 letterSpacing: "-0.015em",
               }}
@@ -575,7 +575,7 @@ function FeaturesDeepDive() {
                 <li
                   key={i}
                   className="flex gap-2.5 mb-4"
-                  style={{ color: "#4b5563", lineHeight: 1.6 }}
+                  style={{ color: "var(--fg-2)", lineHeight: 1.6 }}
                 >
                   <span
                     className="shrink-0"
@@ -603,10 +603,10 @@ function FeaturesDeepDive() {
             className="relative rounded-[20px] overflow-hidden"
             style={{
               background:
-                "linear-gradient(135deg, rgba(159,78,243,0.08), rgba(124,58,237,0.04))",
+                "linear-gradient(135deg, rgba(159,78,243,0.12), rgba(124,58,237,0.06))",
               aspectRatio: "4 / 3",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)",
-              border: "1px solid #e5e7eb",
+              boxShadow: "var(--elev-1)",
+              border: "1px solid var(--line-purple)",
             }}
           >
             <div
@@ -614,7 +614,7 @@ function FeaturesDeepDive() {
               className="absolute inset-0 flex items-center justify-center font-mono"
               style={{
                 fontSize: 14,
-                color: "#9ca3af",
+                color: "var(--fg-4)",
                 letterSpacing: "0.1em",
               }}
             >
@@ -661,12 +661,12 @@ function BlogSection() {
       id="blogs"
       style={{
         padding: "128px 0",
-        background: "#ffffff",
-        borderTop: "1px solid #e5e7eb",
+        background: "var(--bg-2)",
+        borderTop: "1px solid var(--line-1)",
       }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
-        <span className="eyebrow" style={{ color: "var(--brand-purple)" }}>FROM THE BLOG</span>
+        <span className="eyebrow">FROM THE BLOG</span>
         <h2
           style={{
             fontSize: "clamp(36px, 5vw, 56px)",
@@ -674,12 +674,12 @@ function BlogSection() {
             letterSpacing: "-0.025em",
             lineHeight: 1.04,
             margin: "16px 0 56px",
-            color: "#111827",
+            color: "var(--fg-1)",
           }}
         >
           For the people
           <br />
-          <span style={{ color: "#6b7280" }}>doing the work.</span>
+          <span style={{ color: "var(--fg-3)" }}>doing the work.</span>
         </h2>
         <div
           className="grid gap-8"
@@ -693,11 +693,11 @@ function BlogSection() {
               href={b.href}
               className="no-underline block transition-transform"
               style={{
-                background: "white",
+                background: "var(--bg-3)",
                 borderRadius: 16,
                 overflow: "hidden",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)",
-                border: "1px solid #f3f4f6",
+                boxShadow: "var(--elev-1)",
+                border: "1px solid var(--line-1)",
               }}
             >
               {/* Article cover — real photo */}
@@ -723,7 +723,7 @@ function BlogSection() {
                   className="font-medium"
                   style={{
                     fontSize: 18,
-                    color: "#111827",
+                    color: "var(--fg-1)",
                     marginBottom: 10,
                     letterSpacing: "-0.01em",
                     lineHeight: 1.3,
@@ -733,7 +733,7 @@ function BlogSection() {
                 </h3>
                 <div
                   className="font-mono"
-                  style={{ fontSize: 12, color: "#9ca3af" }}
+                  style={{ fontSize: 12, color: "var(--fg-4)" }}
                 >
                   {b.date}
                 </div>
