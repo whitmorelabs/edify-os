@@ -100,36 +100,7 @@ function formatFirstEventDate(isoString: string): string {
 /* --------------------------------------------------------------------- */
 
 function AmbientBG() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden z-0">
-      <div
-        className="absolute"
-        style={{
-          top: "10%",
-          left: "-10%",
-          width: "60%",
-          height: "80%",
-          background:
-            "radial-gradient(circle at 30% 30%, rgba(159,78,243,0.04) 0%, transparent 60%)",
-          filter: "blur(80px)",
-          animation: "blob-a 22s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute"
-        style={{
-          bottom: "-20%",
-          right: "-10%",
-          width: "55%",
-          height: "70%",
-          background:
-            "radial-gradient(circle at 60% 60%, rgba(124,58,237,0.03) 0%, transparent 60%)",
-          filter: "blur(80px)",
-          animation: "blob-b 28s ease-in-out infinite",
-        }}
-      />
-    </div>
-  );
+  return null;
 }
 
 /* --------------------------------------------------------------------- */

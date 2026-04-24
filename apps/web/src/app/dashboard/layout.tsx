@@ -15,7 +15,7 @@ export default function DashboardLayout({
   return (
     <NotificationProvider>
       <SupportChatProvider>
-        <div className="flex h-screen overflow-hidden bg-bg-1 text-fg-1">
+        <div className="flex h-screen overflow-hidden bg-gray-100 text-fg-1">
           <Sidebar />
           <main className="flex-1 min-w-0 overflow-y-auto bg-gray-50 pt-14 lg:pt-0">
             <div className="w-full max-w-[1280px] mx-auto px-6 py-8 lg:px-10 lg:py-10">
