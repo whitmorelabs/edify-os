@@ -19,8 +19,20 @@ interface UseArchetypeNamesReturn {
  * Hook that fetches the current user's custom archetype names once on mount
  * and provides an updateName helper that PATCHes the API and refreshes local state.
  */
+const CACHE_KEY = "edify:archetype-names";
+
+function getCachedNames(): ArchetypeNamesMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as ArchetypeNamesMap) : {};
+  } catch {
+    return {};
+  }
+}
+
 export function useArchetypeNames(): UseArchetypeNamesReturn {
-  const [names, setNames] = useState<ArchetypeNamesMap>({});
+  const [names, setNames] = useState<ArchetypeNamesMap>(getCachedNames);
   const [loading, setLoading] = useState(true);
 
   const fetchNames = useCallback(async () => {
@@ -29,9 +41,10 @@ export function useArchetypeNames(): UseArchetypeNamesReturn {
       if (res.ok) {
         const data = await res.json() as ArchetypeNamesMap;
         setNames(data);
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
       }
     } catch {
-      // Non-fatal — fall back to empty map (default role titles everywhere)
+      // Non-fatal — fall back to cached or empty map
     } finally {
       setLoading(false);
     }
