@@ -728,3 +728,16 @@ main.bg-gray-50 .bg-bg-2 {
 main.bg-gray-50 .bg-bg-3 {
   background: #f9fafb !important;
 }
+
+/* Override CSS tokens inside the light dashboard so components using
+   var(--bg-3) (ArchetypeMark), var(--fg-*) (ActivityRow text), and
+   var(--line-1) (row dividers) render correctly on white/gray-50. */
+main.bg-gray-50 {
+  --bg-3: #f3f4f6;
+  --line-1: rgba(0, 0, 0, 0.08);
+  --line-2: rgba(0, 0, 0, 0.10);
+  --fg-1: #111827;
+  --fg-2: #374151;
+  --fg-3: #6b7280;
+  --fg-4: #9ca3af;
+}

@@ -105,13 +105,13 @@ function AmbientBG() {
       <div
         className="absolute"
         style={{
-          top: "-20%",
+          top: "10%",
           left: "-10%",
           width: "60%",
           height: "80%",
           background:
-            "radial-gradient(circle at 30% 30%, rgba(159,78,243,0.08) 0%, transparent 60%)",
-          filter: "blur(60px)",
+            "radial-gradient(circle at 30% 30%, rgba(159,78,243,0.04) 0%, transparent 60%)",
+          filter: "blur(80px)",
           animation: "blob-a 22s ease-in-out infinite",
         }}
       />
@@ -123,8 +123,8 @@ function AmbientBG() {
           width: "55%",
           height: "70%",
           background:
-            "radial-gradient(circle at 60% 60%, rgba(124,58,237,0.06) 0%, transparent 60%)",
-          filter: "blur(70px)",
+            "radial-gradient(circle at 60% 60%, rgba(124,58,237,0.03) 0%, transparent 60%)",
+          filter: "blur(80px)",
           animation: "blob-b 28s ease-in-out infinite",
         }}
       />
@@ -278,7 +278,7 @@ function HoursSavedCard({
   return (
     <>
       <HowWeCalculateDialog open={showInfo} onClose={() => setShowInfo(false)} />
-      <Card elevation={0} className="p-5">
+      <Card elevation={0} className="p-5" style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between mb-1">
           <span className="eyebrow">HOURS SAVED</span>
           <button
@@ -304,25 +304,25 @@ function HoursSavedCard({
           </button>
         </div>
         {loading ? (
-          <div className="text-[13px] py-2" style={{ color: "var(--fg-3)" }}>
+          <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
             Loading…
           </div>
         ) : !data || data.hours_saved_total === 0 ? (
-          <div className="text-[13px] py-1 leading-[1.55]" style={{ color: "var(--fg-3)" }}>
+          <div className="text-[13px] py-1 leading-[1.55]" style={{ color: "#6b7280" }}>
             Start chatting with your team to see hours saved. Estimates update in real time.
           </div>
         ) : (
           <div>
             <div
               className="font-mono font-medium leading-none tracking-[-0.02em] mt-1"
-              style={{ fontSize: 32, color: "var(--fg-1)" }}
+              style={{ fontSize: 32, color: "#111827" }}
             >
               {formatHoursSaved(data.hours_saved_total)}
             </div>
             {data.first_event_at && (
               <div
                 className="text-[11px] mt-2"
-                style={{ color: "var(--fg-3)" }}
+                style={{ color: "#6b7280" }}
               >
                 since {formatFirstEventDate(data.first_event_at)}
               </div>
@@ -615,7 +615,11 @@ export default function DashboardHome() {
               <Card
                 elevation={1}
                 className="relative overflow-hidden p-6 cursor-pointer group transition-transform hover:-translate-y-[1px]"
-                style={{ boxShadow: "0 0 0 1px var(--warn-line)" }}
+                style={{
+                  background: "#ffffff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(245,181,68,0.4)",
+                  border: "1px solid #e5e7eb",
+                }}
               >
                 <div
                   aria-hidden
@@ -626,7 +630,7 @@ export default function DashboardHome() {
                     width: 160,
                     height: "100%",
                     background:
-                      "linear-gradient(90deg, transparent, var(--warn-tint))",
+                      "linear-gradient(90deg, transparent, rgba(245,181,68,0.08))",
                     animation: "amber-shift 4s ease-in-out infinite",
                     opacity: 0.6,
                   }}
@@ -638,17 +642,17 @@ export default function DashboardHome() {
                   <div className="flex items-baseline gap-3.5 mt-1.5">
                     <span
                       className="font-mono font-medium leading-[0.9] tracking-[-0.03em]"
-                      style={{ fontSize: 72, color: "var(--fg-1)" }}
+                      style={{ fontSize: 72, color: "#111827" }}
                     >
                       {loading ? "—" : pendingApprovals}
                     </span>
-                    <span style={{ color: "var(--fg-2)", fontSize: 18 }}>
+                    <span style={{ color: "#6b7280", fontSize: 18 }}>
                       approvals pending
                     </span>
                   </div>
                   <div
                     className="mt-2.5 text-[13px]"
-                    style={{ color: "var(--fg-3)" }}
+                    style={{ color: "#9ca3af" }}
                   >
                     <span style={{ color: "var(--warn)" }}>Review now →</span>
                   </div>
@@ -656,15 +660,15 @@ export default function DashboardHome() {
               </Card>
             </Link>
 
-            <Card elevation={0} className="p-5">
+            <Card elevation={0} className="p-5" style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <span className="eyebrow">THIS WEEK</span>
               <div className="mt-3.5 flex flex-col gap-2.5">
                 {loading ? (
-                  <div className="text-[13px] py-2" style={{ color: "var(--fg-3)" }}>
+                  <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
                     Loading…
                   </div>
                 ) : tasksCompleted === 0 ? (
-                  <div className="text-[13px] py-2" style={{ color: "var(--fg-3)" }}>
+                  <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
                     No activity yet — start a conversation to kick things off.
                   </div>
                 ) : (

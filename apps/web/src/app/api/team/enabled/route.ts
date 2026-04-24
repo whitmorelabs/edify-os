@@ -11,7 +11,7 @@ const DEFAULT_ENABLED: Record<string, boolean> = {
   marketing_director: true,
   executive_assistant: true,
   programs_director: true,
-  hr_volunteer_coordinator: false,
+  hr_volunteer_coordinator: true,
   events_director: true,
 };
 
