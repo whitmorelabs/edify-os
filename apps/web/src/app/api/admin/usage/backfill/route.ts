@@ -2,9 +2,45 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 
 /**
- * POST /api/admin/usage/backfill
- * One-time backfill: estimate token_usage for historical messages that lack it.
- * ~4 chars per output token, input estimated at 1.5x output.
+ * DELETE /api/admin/usage/backfill
+ * Remove estimated token_usage from historical messages (keep only real API-tracked data).
+ */
+export async function DELETE() {
+  const { user, orgId } = await getAuthContext();
+  if (!user || !orgId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  const { data: messages } = await serviceClient
+    .from("messages")
+    .select("id, metadata, conversations!inner(org_id)")
+    .eq("role", "assistant")
+    .eq("conversations.org_id", orgId)
+    .not("metadata", "is", null)
+    .limit(500);
+
+  let cleared = 0;
+  for (const msg of messages ?? []) {
+    const meta = (msg.metadata ?? {}) as Record<string, unknown>;
+    const usage = meta.token_usage as Record<string, number> | undefined;
+    if (!usage) continue;
+    // Real API data has high input counts (>5000). Estimates are lower or exactly 9000.
+    if ((usage.input_tokens ?? 0) > 5000 && (usage.input_tokens ?? 0) !== 9000) continue;
+    const cleaned = { ...meta };
+    delete cleaned.token_usage;
+    await serviceClient.from("messages").update({ metadata: cleaned }).eq("id", msg.id);
+    cleared++;
+  }
+
+  return NextResponse.json({ cleared });
+}
+
+/**
+ * POST /api/admin/usage/backfill — disabled, real tracking only.
  */
 export async function POST() {
   const { user, orgId } = await getAuthContext();
@@ -36,8 +72,8 @@ export async function POST() {
   for (const msg of messages ?? []) {
     const meta = (msg.metadata ?? {}) as Record<string, unknown>;
     const existing = meta.token_usage as Record<string, number> | undefined;
-    // Skip messages with real API-captured usage (input > 5000 indicates real data)
-    if (existing && (existing.input_tokens ?? 0) > 5000) {
+    // Remove estimated backfill data — keep only real API-captured usage
+    if (existing) {
       skipped++;
       continue;
     }

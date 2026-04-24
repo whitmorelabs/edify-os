@@ -527,7 +527,7 @@ export default function DashboardHome() {
                   className="text-[13px] mt-1"
                   style={{ color: "#6b7280" }}
                 >
-                  estimated cost this month
+                  estimated cost this month (tracked from API)
                 </div>
                 <div
                   className="mt-5 pt-5 flex flex-col gap-2"
@@ -564,7 +564,7 @@ export default function DashboardHome() {
                     cursor: "pointer",
                   }}
                   onClick={() => {
-                    fetch("/api/admin/usage/backfill", { method: "POST" })
+                    fetch("/api/admin/usage/backfill", { method: "DELETE" })
                       .then((r) => r.json())
                       .then(() => {
                         fetch("/api/admin/usage/tokens?days=30")
@@ -573,7 +573,7 @@ export default function DashboardHome() {
                       });
                   }}
                 >
-                  Sync historical usage
+                  Reset to tracked usage only
                 </button>
               </div>
             )}
