@@ -143,8 +143,8 @@ export async function runArchetypeTurn({
   const temporalPrefix = `[Context: Today is ${nowLocal} (${nowUtc.toISOString()} UTC — ${timezone}). When the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.]\n\n`;
 
   const tools = ARCHETYPE_TOOLS[archetype] ?? [];
-  const serverTools = (ARCHETYPE_SERVER_TOOLS[archetype] ?? []) as unknown[];
-  const allTools = [...tools, ...serverTools];
+  const serverTools = ARCHETYPE_SERVER_TOOLS[archetype] ?? [];
+  const allTools = [...tools, ...serverTools] as Record<string, unknown>[];
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];
   const toolAddendums = buildSystemAddendums(tools);
 
