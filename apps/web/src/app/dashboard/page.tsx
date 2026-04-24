@@ -486,9 +486,34 @@ export default function DashboardHome() {
               <div className="text-[13px] py-2 mt-2" style={{ color: "#6b7280" }}>
                 Loading…
               </div>
-            ) : !tokenUsage ? (
-              <div className="text-[13px] py-2 mt-2" style={{ color: "#6b7280" }}>
-                No usage data available.
+            ) : !tokenUsage || tokenUsage.grandTotal === 0 ? (
+              <div className="py-2 mt-2">
+                <div className="text-[13px]" style={{ color: "#6b7280" }}>
+                  No usage data yet.
+                </div>
+                <button
+                  className="mt-3 text-[12px] font-medium px-3 py-1.5 rounded-md"
+                  style={{
+                    color: "var(--brand-purple)",
+                    border: "1px solid var(--brand-purple)",
+                    background: "transparent",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    fetch("/api/admin/usage/backfill", { method: "POST" })
+                      .then((r) => r.json())
+                      .then((d) => {
+                        if (d.backfilled > 0) {
+                          // Refetch token usage
+                          fetch("/api/admin/usage/tokens?days=30")
+                            .then((r) => r.ok ? r.json() : null)
+                            .then((data: TokenUsageSummary | null) => setTokenUsage(data));
+                        }
+                      });
+                  }}
+                >
+                  Sync historical usage
+                </button>
               </div>
             ) : (
               <div>
