@@ -19,7 +19,6 @@ import {
   FileText,
   Pencil,
   Loader2,
-  Power,
 } from "lucide-react";
 import { useArchetypeNames } from "@/hooks/useArchetypeNames";
 import { ARCHETYPE_CONFIG, ARCHETYPE_SLUGS } from "@/lib/archetype-config";
@@ -214,28 +213,6 @@ export default function SettingsPage() {
           className="btn-secondary inline-flex items-center gap-1.5"
         >
           Configure Check-ins
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-
-      {/* AI Team Members */}
-      <div className="card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
-            <Power className="h-5 w-5 text-brand-500" />
-          </div>
-          <div>
-            <h2 className="heading-3">AI Team Members</h2>
-            <p className="text-sm text-fg-3">
-              Enable or disable individual AI directors for your organization.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/dashboard/admin/ai-config"
-          className="btn-secondary inline-flex items-center gap-1.5"
-        >
-          Enable / disable AI team members
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
