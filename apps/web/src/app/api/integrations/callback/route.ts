@@ -34,10 +34,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (isMock) {
-    // Demo: skip real token exchange, report success immediately
-    return new NextResponse(closePopupHtml(integrationId, true), {
-      headers: { 'Content-Type': 'text/html' },
-    });
+    // Mock flows are disabled — return an error so no fake "Connected" state is created.
+    return new NextResponse(
+      closePopupHtml(integrationId, false, 'This integration is not yet available.'),
+      { headers: { 'Content-Type': 'text/html' } }
+    );
   }
 
   // Production: exchange code for tokens

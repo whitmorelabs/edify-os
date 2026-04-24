@@ -11,6 +11,7 @@ import { ScenarioHistory } from './components/ScenarioHistory';
 import {
   runScenario,
   getHistory,
+  getScenario,
   askFollowUp,
   type ScenarioResult,
   type ScenarioSummary,
@@ -85,11 +86,18 @@ export default function DecisionLabPage() {
   // Load historical scenario
   // -------------------------------------------------------------------
   async function handleHistorySelect(id: string) {
-    // For now, mock: re-run the scenario from history summary
-    const entry = history.find((h) => h.id === id);
-    if (!entry) return;
     setActiveHistoryId(id);
-    await handleRun(entry.scenario_text);
+    // Try to load the cached result from localStorage first (no AI call needed)
+    try {
+      const cached = await getScenario(id);
+      setResult(cached);
+      setError(null);
+    } catch {
+      // Cached result not found — re-run the scenario text through the AI
+      const entry = history.find((h) => h.id === id);
+      if (!entry) return;
+      await handleRun(entry.scenario_text);
+    }
   }
 
   // -------------------------------------------------------------------

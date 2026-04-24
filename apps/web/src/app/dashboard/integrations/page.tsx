@@ -542,6 +542,15 @@ const COMPOSIO_INTEGRATION_TO_PLATFORM: Record<string, string> = {
   youtube: 'youtube',
 };
 
+/**
+ * Returns true only for integrations with a real OAuth flow implemented:
+ * Google (direct) and social media (Composio-brokered).
+ * All other OAuth integrations are "coming soon".
+ */
+function hasRealOAuthFlow(id: string): boolean {
+  return GOOGLE_INTEGRATION_IDS.has(id) || COMPOSIO_INTEGRATION_IDS.has(id);
+}
+
 function IntegrationsPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1006,6 +1015,10 @@ function IntegrationsPageInner() {
                       Disconnect
                     </button>
                   </>
+                ) : i.connectionType === 'oauth' && !hasRealOAuthFlow(i.id) ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-bg-3 px-3 py-1.5 text-xs font-medium text-fg-3 w-full justify-center">
+                    Coming soon
+                  </span>
                 ) : (
                   <button
                     onClick={() => handleConnectClick(i.id)}
@@ -1122,6 +1135,13 @@ function IntegrationsPageInner() {
                         >
                           Disconnect
                         </button>
+                      </div>
+                    ) : i.connectionType === 'oauth' && !hasRealOAuthFlow(i.id) ? (
+                      <div className="rounded-lg bg-bg-3 px-4 py-3 text-center">
+                        <p className="text-sm font-medium text-fg-2">Coming soon</p>
+                        <p className="mt-1 text-xs text-fg-3">
+                          Direct integration with {i.name} is on our roadmap.
+                        </p>
                       </div>
                     ) : i.connectionType === 'oauth' ? (
                       <button

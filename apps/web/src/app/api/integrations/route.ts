@@ -52,13 +52,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build OAuth redirect URL
-    // For now we return a mock URL since real OAuth per-integration is Phase 2 work.
-    // The callback route handles real token exchange when code is present.
-    const callbackBase = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const oauthUrl = `${callbackBase}/api/integrations/callback?integration=${integrationId}&mock=true`;
-
-    return NextResponse.json({ success: true, integrationId, oauthUrl });
+    // Google integrations are handled by their own OAuth route (/api/integrations/google/connect).
+    // Composio-brokered social platforms use /api/integrations/composio/connect.
+    // All other OAuth integrations are not yet implemented — return an error instead of
+    // faking a connection so clients know not to show a "Connected" state.
+    return NextResponse.json(
+      {
+        success: false,
+        error: `OAuth for ${integrationId} is not yet available. Check back soon.`,
+        comingSoon: true,
+      },
+      { status: 501 }
+    );
   } catch (err) {
     console.error('[POST /api/integrations]', err);
     return NextResponse.json(

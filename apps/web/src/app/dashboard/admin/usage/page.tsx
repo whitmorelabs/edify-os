@@ -56,29 +56,51 @@ export default function UsagePage() {
     "conversations"
   );
 
+  const [prevData, setPrevData] = useState<UsageData | null>(null);
+
   useEffect(() => {
     setLoading(true);
+    setPrevData(null);
     Promise.all([
       fetch(`/api/admin/usage?days=${selectedPeriod}`).then((r) => r.json()),
+      fetch(`/api/admin/usage?days=${selectedPeriod * 2}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
       fetch(`/api/admin/usage/tokens?days=${selectedPeriod}`)
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
     ])
-      .then(([d, t]: [UsageData, TokenUsageSummary | null]) => {
+      .then(([d, prev, t]: [UsageData, UsageData | null, TokenUsageSummary | null]) => {
         setData(d);
+        setPrevData(prev);
         setTokenData(t);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedPeriod]);
 
-  // Comparison to previous period (mock: ~15% change baseline)
-  const changeMap: Record<string, number> = {
-    totalConversations: 12,
-    totalMessages: 8,
-    tasksCreated: -3,
-    heartbeatsDelivered: 5,
-    documentsUploaded: 22,
+  /**
+   * Compute period-over-period percentage change.
+   * prev covers 2x the current window; the "previous period" portion is
+   * (prev - current). If we can't isolate it, we skip the comparison.
+   */
+  function computeChange(key: keyof UsageData["summary"]): number | undefined {
+    if (!data || !prevData) return undefined;
+    const current = data.summary[key];
+    // prevData covers 2x days; subtract current to get the earlier half
+    const prevTotal = prevData.summary[key];
+    const earlier = prevTotal - current;
+    if (earlier <= 0) return undefined; // no prior activity — hide badge
+    const pct = Math.round(((current - earlier) / earlier) * 100);
+    return pct;
+  }
+
+  const changeMap = {
+    totalConversations: computeChange("totalConversations"),
+    totalMessages: computeChange("totalMessages"),
+    tasksCreated: computeChange("tasksCreated"),
+    heartbeatsDelivered: computeChange("heartbeatsDelivered"),
+    documentsUploaded: computeChange("documentsUploaded"),
   };
 
   return (
