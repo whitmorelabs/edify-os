@@ -266,13 +266,13 @@ The noise is only on the home hero as instructed. Evaluate before extending.
 
 ---
 
-## 2026-04-24 — Agent C (Chat UX bundle)
+## 2026-04-24 — Agent B (HR + Memory)
 
-**Identity:** Agent C — Chat UX Bundle (Sonnet, spawned by Lopmon)
-**Branch:** `lopmon/chat-ux-bundle`
-**Worktree:** `C:/Users/Araly/edify-worktrees/agent-c`
-**PRD:** `PRD-C-chat-ux-bundle.md`
-**PR:** https://github.com/whitmorelabs/edify-os/pull/16
+**Identity:** Agent B (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/hr-tools-and-memory-logging`
+**Worktree:** `C:\Users\Araly\edify-worktrees\agent-b`
+**PRD:** `C:\Users\Araly\life\projects\edify-os\prds-2026-04-24\PRD-B-hr-and-memory.md`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/18
 
 ---
 
@@ -280,60 +280,36 @@ The noise is only on the home hero as instructed. Evaluate before extending.
 
 | SHA | Message |
 |-----|---------|
-| `87ce6dd` | feat(tasks): exclude chat_reply rows from tasks page |
-| `a327aa2` | feat(chat): add hover-reveal delete button to ConversationSidebar |
-| `47671e2` | fix(build): resolve pre-existing allTools redeclaration + type errors |
-
----
+| `53ce12b` | feat(memory): add save_to_memory tool for persisting org facts |
+| `59d47cc` | feat(prompts): add MEMORY_POSTFIX to all 6 archetype prompts |
+| `57127e2` | feat(drive): add ensureArchetypeFolder helper for per-archetype Drive folders |
+| `8a40ceb` | feat(registry): wire HR Drive tools, memory tool on all 6 archetypes |
 
 ### What Was Built
 
-#### Part 1 — Default to last conversation
-Already implemented on the branch prior to this sprint. `TeamChatClient` had a mount-time `useEffect` that fetches remote conversations via `getConversations(slug)`, merges with localStorage, and calls `setActiveConversation(merged[0])` if any exist. `EmptyState` only renders when the merged list is empty. No changes needed.
+**Part 1 — HR Tools:**
+- `apps/web/src/lib/tools/drive-folders.ts` (NEW) — `ensureArchetypeFolder(accessToken, slug)` helper that finds or creates `Edify OS / {Archetype Label}` folder tree in Drive. Non-fatal (falls back to root). ARCHETYPE_FOLDER_NAMES map covers all 6 archetypes.
+- `apps/web/src/lib/tools/drive.ts` — `executeDriveTool` now accepts optional `archetypeSlug`. `drive_create_file` auto-places files under the archetype folder when `parents` is not supplied.
+- `apps/web/src/lib/tools/registry.ts` — `hr_volunteer_coordinator` gets `driveTools`. `executeTool` gains `archetypeSlug` param passed through to `executeDriveTool`.
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — passes `archetype` as `archetypeSlug` to `executeTool`.
+- `apps/web/src/lib/archetype-prompts.ts` — HR prompt addendum: document creation instructions (Drive folder path, docx/pdf skills), volunteer roster management (google_sheet at `Edify OS/HR & Volunteer Coordinator/Volunteer Roster`, xlsx skill for row updates).
+- Skills: `hr_volunteer_coordinator: ["docx", "xlsx", "pdf"]` was already present from prior sprint — no change needed.
 
-#### Part 2 — Delete conversations UI + server endpoint
+**Part 2 — Memory Auto-Logging:**
+- `apps/web/src/lib/tools/memory.ts` (NEW) — `save_to_memory` tool. Input: `{key, value, category?}`. Inserts directly to `memory_entries` Supabase table. Category map: program→programs, policy→processes, person→contacts, values→brand_voice, other→general.
+- `apps/web/src/lib/tools/registry.ts` — all 6 `ARCHETYPE_TOOLS` get `...memoryTools`. `MEMORY_TOOL_NAMES` Set + dispatch branch for `save_to_memory`. `buildSystemAddendums` emits `MEMORY_TOOLS_ADDENDUM` when memory family detected.
+- `apps/web/src/lib/archetype-prompts.ts` — `MEMORY_POSTFIX` constant appended to all 6 entries in `ARCHETYPE_PROMPTS` map (consumed by `run-archetype-turn` and `decision-lab` routes).
 
-**`apps/web/src/app/api/conversations/[id]/route.ts`** (NEW)
-- `DELETE` handler with `getAuthContext()` → org-scoped ownership check → `serviceClient.from("conversations").delete()`
-- Returns 204 on success, 404 if conversation not found in caller's org, 401/503 on auth/config failures
+### Build Result
 
-**`apps/web/src/app/dashboard/team/[slug]/components/ConversationSidebar.tsx`** (MODIFIED)
-- Added `onDelete: (conversationId: string) => void` prop
-- Added `hoveredId` state; each row wrapped in a `<div>` with `onMouseEnter/Leave`
-- `Trash2` icon button: `opacity-0 pointer-events-none` when not hovered → `opacity-100` on hover; `text-[var(--fg-3)]` default, `hover:text-red-500`; positioned absolute right-1.5
-- `handleDelete` stops propagation, shows `window.confirm`, calls `onDelete`
+`pnpm -w -r build` — **4 successful, 4 total**. TypeScript: **0 errors**.
 
-**`apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx`** (MODIFIED)
-- Added `handleDeleteConversation(conversationId)` — optimistic list removal, `deleteLocalConversation()`, resets to EmptyState if deleted conv was active, then `fetch(DELETE /api/conversations/[id])`
-- Passes `onDelete={handleDeleteConversation}` to `<ConversationSidebar>`
+### Decisions Made
 
-**`apps/web/src/app/dashboard/team/[slug]/api.ts`** (MODIFIED)
-- Added `deleteLocalConversation(slug, conversationId)` helper — removes from `chat:conversations:{slug}` key and deletes `chat:messages:{conversationId}` from localStorage
+- Memory tool writes directly to Supabase via `serviceClient` (same path as API route POST handler) — no HTTP round-trip, cleaner for server-side tool execution.
+- `MEMORY_POSTFIX` applied at the `ARCHETYPE_PROMPTS` map level (not per-prompt constant) so all consumers pick it up without touching each of 6 constants.
+- `ensureArchetypeFolder` is non-fatal by design — if Drive folder creation fails (permission issue, quota), file still creates at root rather than erroring out entirely.
 
-#### Part 3 — Tasks page hides chat_reply
+### Open Items
 
-**`apps/web/src/app/api/tasks/recent/route.ts`** (MODIFIED)
-- Added `.neq("kind", "chat_reply")` to the Supabase query
-- `kindConfig.chat_reply` entry left in `tasks/page.tsx` for any cached rows
-
-#### Build fix (pre-existing errors)
-
-**`apps/web/src/lib/chat/run-archetype-turn.ts`** (MODIFIED)
-- Removed duplicate `const allTools = [...tools, ...serverTools]` (line 147)
-- Updated the single remaining `allTools` declaration to include `serverTools` in both branches
-- Added `as unknown as` intermediate cast on `cachedTools` → `BetaToolUnion[]` / `ToolUnion[]`
-
-**`apps/web/src/lib/tools/websearch.ts`** (MODIFIED)
-- Changed `webSearchTools: never[]` → `webSearchTools: { name: string }[]` so registry Set construction doesn't error
-- Added optional `_args` param to `executeWebSearchTool` stub to match call-site
-
----
-
-### Decisions / Notes
-
-- Part 1 was pre-done; noted in PR body to avoid confusion
-- Delete is optimistic (UI updates immediately); server failure is swallowed silently — acceptable for a delete action where localStorage is already cleaned
-- `window.confirm` used for delete dialog (matches existing tasks page pattern). No custom modal added per "no redesign" constraint
-- Build was failing before this sprint due to `allTools` redeclaration introduced in a prior commit. Fixed as part of this session's build requirement
-- `pnpm -w -r build`: PASSED
-- TypeScript typecheck (`pnpm --filter web typecheck`): CLEAN (pre-existing `_onboarding-old` errors are not new)
+None — all PRD requirements met.

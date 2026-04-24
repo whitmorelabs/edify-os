@@ -330,6 +330,7 @@ export async function runArchetypeTurn({
               serviceClient,
               preFetchedTokens,
               anthropic,
+              archetypeSlug: archetype,
             });
             // Tools that produce downloadable files (currently just the
             // render tool) surface them via result.generatedFile — thread
