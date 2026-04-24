@@ -116,11 +116,14 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   hr_volunteer_coordinator: [],
 };
 
-/** Archetypes that get Claude's native web_search server tool */
-export const ARCHETYPE_SERVER_TOOLS: Partial<Record<ArchetypeSlug, unknown[]>> = {
+/** All directors get Claude's native web_search server tool */
+export const ARCHETYPE_SERVER_TOOLS: Record<ArchetypeSlug, unknown[]> = {
+  executive_assistant: [webSearchServerTool],
+  events_director: [webSearchServerTool],
   development_director: [webSearchServerTool],
-  programs_director: [webSearchServerTool],
   marketing_director: [webSearchServerTool],
+  programs_director: [webSearchServerTool],
+  hr_volunteer_coordinator: [webSearchServerTool],
 };
 
 export { webSearchServerTool };

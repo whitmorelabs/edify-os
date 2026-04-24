@@ -33,15 +33,24 @@ export async function GET(
   // Fetch conversations for this org filtered by agent_config_id OR by slug in metadata.
   // Backfill: old conversations may have agent_config_id=null but store the slug in metadata.
   if (agentConfig?.id) {
-    // First: backfill any unlinked conversations that belong to this agent
-    // (match by tasks.agent_role or conversation metadata)
-    await serviceClient
-      .from("conversations")
-      .update({ agent_config_id: agentConfig.id })
-      .eq("org_id", orgId)
-      .is("agent_config_id", null)
-      .like("title", `%${slug.replace(/_/g, " ")}%`)
-      .then(() => {});  // fire-and-forget
+    // Backfill: link unlinked conversations to this agent via tasks.agent_role
+    const { data: taskConvos } = await serviceClient
+      .from("tasks")
+      .select("conversation_id")
+      .eq("agent_role", slug)
+      .not("conversation_id", "is", null);
+
+    if (taskConvos && taskConvos.length > 0) {
+      const convIds = [...new Set(taskConvos.map((t) => t.conversation_id).filter(Boolean))];
+      for (const cid of convIds) {
+        await serviceClient
+          .from("conversations")
+          .update({ agent_config_id: agentConfig.id })
+          .eq("id", cid)
+          .eq("org_id", orgId)
+          .is("agent_config_id", null);
+      }
+    }
   }
 
   let query = serviceClient
