@@ -10,7 +10,6 @@ import {
   ARCHETYPE_LIST,
   ActivityRow,
   ArchetypeMark,
-  ArchetypePortrait,
   Card,
   type Archetype,
   type ArchetypeKey,
@@ -171,7 +170,7 @@ function MiniBar({
       <div className="flex justify-between text-[12px] mb-1" style={{ color: "var(--fg-3)" }}>
         <span>{label}</span>
         <span className="font-mono" style={{ color: "var(--fg-2)" }}>
-          {value}/{max}
+          {value}
         </span>
       </div>
       <div
@@ -255,65 +254,6 @@ function TeamCard({ arc, index, name }: { arc: Archetype; index: number; name?: 
   );
 }
 
-function TimeSlot({
-  time,
-  title,
-  tag,
-  color,
-  active,
-}: {
-  time: string;
-  title: string;
-  tag: string;
-  color: string;
-  active?: boolean;
-}) {
-  return (
-    <div
-      className="grid grid-cols-[56px_1fr] gap-4 py-2.5"
-      style={{
-        borderTop: "1px solid var(--line-1)",
-        opacity: active ? 1 : 0.85,
-      }}
-    >
-      <div
-        className="font-mono text-[13px]"
-        style={{ color: active ? "var(--fg-1)" : "var(--fg-3)" }}
-      >
-        {time}
-      </div>
-      <div>
-        <div
-          className="text-[14px] flex items-center gap-2"
-          style={{
-            color: active ? "var(--fg-1)" : "var(--fg-2)",
-            fontWeight: active ? 500 : 400,
-          }}
-        >
-          {active && (
-            <span
-              className="inline-block rounded-full"
-              style={{
-                width: 6,
-                height: 6,
-                background: color,
-                boxShadow: `0 0 8px ${color}`,
-                animation: "active-pulse 2s ease-in-out infinite",
-              }}
-            />
-          )}
-          {title}
-        </div>
-        <div
-          className="text-[11px] font-mono uppercase tracking-[0.08em] mt-0.5"
-          style={{ color }}
-        >
-          {tag}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* --------------------------------------------------------------------- */
 /* Main page                                                               */
@@ -347,10 +287,7 @@ export default function DashboardHome() {
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  // Spotlight defaults to the Executive Assistant.
-  const spotlight = ARCHETYPES.exec;
-  const spotlightName = archetypeNames[KEY_TO_SLUG[spotlight.key]];
-  const otherDirectors = ARCHETYPE_LIST.filter((a) => a.key !== spotlight.key);
+  const otherDirectors = ARCHETYPE_LIST;
 
   const tasksCompleted = summary?.stats.tasksCompleted ?? 0;
   const pendingApprovals = summary?.stats.pendingApprovals ?? 0;
@@ -407,12 +344,12 @@ export default function DashboardHome() {
             gridTemplateColumns: "minmax(0, 1.45fr) minmax(0, 1fr)",
           }}
         >
-          {/* Spotlight director */}
+          {/* Team Status */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: DURATION.slow, ease: EASE.entrance }}
-            className="relative overflow-hidden rounded-[20px] p-8 flex flex-col justify-between"
+            className="relative overflow-hidden rounded-[20px] p-8 flex flex-col"
             style={{
               background:
                 "linear-gradient(135deg, var(--bg-plum-1) 0%, var(--bg-2) 60%)",
@@ -428,65 +365,81 @@ export default function DashboardHome() {
                 right: -40,
                 width: 340,
                 height: 340,
-                background: `radial-gradient(circle, ${spotlight.color}33 0%, transparent 60%)`,
+                background: "radial-gradient(circle, rgba(159,78,243,0.2) 0%, transparent 60%)",
                 filter: "blur(20px)",
                 animation: "hero-breathe 7s ease-in-out infinite",
               }}
             />
-            <div className="relative">
-              <div className="flex items-center gap-2.5 mb-4">
+            <div className="relative flex-1">
+              <div className="flex items-center gap-2.5 mb-6">
                 <span
                   className="font-mono text-[11px] tracking-[0.14em]"
-                  style={{ color: spotlight.color }}
+                  style={{ color: "var(--brand-tint)" }}
                 >
-                  SPOTLIGHT ·{" "}
-                  <span style={{ color: "var(--fg-3)" }}>
-                    {spotlight.role.toUpperCase()}
-                  </span>
+                  TEAM STATUS
                 </span>
               </div>
-              <div className="flex gap-7 items-start flex-wrap">
-                <ArchetypePortrait arc={spotlight} size={200} />
-                <div className="flex-1 min-w-[220px] pt-4">
-                  {!spotlightName && (
-                    <div
-                      className="font-mono text-[12px] mb-1"
-                      style={{ color: "var(--fg-3)" }}
+              <div className="grid grid-cols-2 gap-3">
+                {ARCHETYPE_LIST.map((arc) => {
+                  const name = archetypeNames[KEY_TO_SLUG[arc.key]];
+                  return (
+                    <Link
+                      key={arc.key}
+                      href={`/dashboard/team/${KEY_TO_SLUG[arc.key]}`}
+                      className="flex items-center gap-3 rounded-[12px] p-3 transition-colors"
+                      style={{
+                        background: "var(--bg-3)",
+                        boxShadow: "0 0 0 1px var(--line-1)",
+                      }}
                     >
-                      you haven&apos;t named them yet
-                    </div>
-                  )}
-                  <h2
-                    className="font-semibold leading-[1.02] tracking-[-0.025em] mb-3"
-                    style={{ fontSize: 44, margin: "0 0 12px" }}
-                  >
-                    <NameSlot big name={spotlightName} />
-                  </h2>
-                  <p
-                    className="m-0 max-w-[360px] leading-[1.6]"
-                    style={{ color: "var(--fg-2)", fontSize: 15 }}
-                  >
-                    Your <span style={{ color: spotlight.color }}>
-                      {spotlight.role.toLowerCase()}
-                    </span>{" "}
-                    is ready to run your calendar, triage email, and draft
-                    follow-ups. Name them to personalize their voice.
-                  </p>
-                </div>
+                      <ArchetypeMark arc={arc} size={28} />
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="text-[13px] font-medium truncate"
+                          style={{ color: "var(--fg-1)" }}
+                        >
+                          {name ?? (
+                            <span style={{ color: "var(--fg-4)", fontStyle: "italic" }}>
+                              {arc.role}
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          className="text-[11px] font-mono uppercase tracking-[0.08em]"
+                          style={{ color: arc.color }}
+                        >
+                          {arc.short}
+                        </div>
+                      </div>
+                      <span
+                        className="inline-block rounded-full flex-shrink-0"
+                        style={{
+                          width: 6,
+                          height: 6,
+                          background: arc.color,
+                          boxShadow: `0 0 6px ${arc.color}`,
+                        }}
+                      />
+                    </Link>
+                  );
+                })}
               </div>
             </div>
             <div className="relative flex gap-5 mt-7 flex-wrap items-center">
-              <MicroStat value="—" label="meetings managed" />
+              <MicroStat
+                value={String(ARCHETYPE_LIST.filter((a) => archetypeNames[KEY_TO_SLUG[a.key]]).length)}
+                label="named"
+              />
               <MicroDivider />
-              <MicroStat value="—" label="emails handled" />
+              <MicroStat value={String(ARCHETYPE_LIST.length)} label="directors" />
               <MicroDivider />
-              <MicroStat value="—" label="drafts waiting" />
+              <MicroStat value={loading ? "—" : String(pendingApprovals)} label="pending" />
               <Link
-                href="/dashboard/team/executive_assistant"
+                href="/dashboard/team"
                 className="ml-auto inline-flex items-center gap-1.5 font-medium text-[13px]"
-                style={{ color: spotlight.color }}
+                style={{ color: "var(--brand-tint)" }}
               >
-                Talk to them
+                View team
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14" />
                   <path d="m13 5 7 7-7 7" />
@@ -556,8 +509,8 @@ export default function DashboardHome() {
                 ) : (
                   <MiniBar
                     label="Tasks done"
-                    value={Math.min(tasksCompleted, 40)}
-                    max={40}
+                    value={tasksCompleted}
+                    max={tasksCompleted || 1}
                     color="var(--brand-purple)"
                   />
                 )}
@@ -566,14 +519,14 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* ————— REST OF TEAM ————— */}
+        {/* ————— TEAM CARDS ————— */}
         <div className="mb-6">
           <div className="flex items-baseline gap-4">
             <h2
               className="font-medium tracking-[-0.015em] m-0"
               style={{ fontSize: 28 }}
             >
-              The rest of your team
+              Your team
             </h2>
             <span className="font-mono text-[12px]" style={{ color: "var(--fg-3)" }}>
               {otherDirectors.length} directors · idle but ready
@@ -666,31 +619,18 @@ export default function DashboardHome() {
           <aside className="sticky top-24 self-start">
             <span className="eyebrow">TODAY</span>
             <div className="mt-3.5 flex flex-col gap-1">
-              <TimeSlot
-                time="10:30"
-                title="Donor catch-up call"
-                tag="Development"
-                color="var(--dir-dev)"
-              />
-              <TimeSlot
-                time="12:00"
-                title="Staff lunch (blocked)"
-                tag="You"
-                color="var(--fg-3)"
-              />
-              <TimeSlot
-                time="14:00"
-                title="Venue walkthrough"
-                tag="Events"
-                color="var(--dir-events)"
-                active
-              />
-              <TimeSlot
-                time="16:30"
-                title="Q3 retro"
-                tag="Programs"
-                color="var(--dir-programs)"
-              />
+              <div
+                className="py-4 text-[13px]"
+                style={{ color: "var(--fg-3)" }}
+              >
+                No events today.{" "}
+                <Link
+                  href="/dashboard/integrations"
+                  style={{ color: "var(--brand-tint)" }}
+                >
+                  Connect your calendar →
+                </Link>
+              </div>
             </div>
 
             <div className="mt-8">
@@ -699,20 +639,51 @@ export default function DashboardHome() {
                 className="mt-3 p-0 list-none flex flex-col gap-2.5 text-[13px]"
                 style={{ color: "var(--fg-2)" }}
               >
-                <li className="flex gap-2.5">
-                  <span style={{ color: "var(--brand-purple)" }}>·</span>
-                  Your Events Director still has no name.{" "}
-                  <Link
-                    href="/dashboard/team"
-                    style={{ color: "var(--brand-tint)" }}
-                  >
-                    Name them →
-                  </Link>
-                </li>
-                <li className="flex gap-2.5">
-                  <span style={{ color: "var(--brand-purple)" }}>·</span>
-                  Import last year&apos;s donor list to finish Development setup.
-                </li>
+                {ARCHETYPE_LIST.filter(
+                  (a) => !archetypeNames[KEY_TO_SLUG[a.key]]
+                ).length > 0 ? (
+                  <li className="flex gap-2.5">
+                    <span style={{ color: "var(--brand-purple)" }}>·</span>
+                    <span>
+                      {ARCHETYPE_LIST.filter(
+                        (a) => !archetypeNames[KEY_TO_SLUG[a.key]]
+                      ).length === ARCHETYPE_LIST.length
+                        ? "Your team members don't have names yet."
+                        : `${ARCHETYPE_LIST.filter(
+                            (a) => !archetypeNames[KEY_TO_SLUG[a.key]]
+                          )
+                            .map((a) => a.role)
+                            .join(", ")} still need a name.`}{" "}
+                      <Link
+                        href="/dashboard/team"
+                        style={{ color: "var(--brand-tint)" }}
+                      >
+                        Name them →
+                      </Link>
+                    </span>
+                  </li>
+                ) : (
+                  <li className="flex gap-2.5">
+                    <span style={{ color: "var(--brand-purple)" }}>·</span>
+                    All team members are named and ready.
+                  </li>
+                )}
+                {pendingApprovals > 0 && (
+                  <li className="flex gap-2.5">
+                    <span style={{ color: "var(--brand-purple)" }}>·</span>
+                    <span>
+                      {pendingApprovals} item
+                      {pendingApprovals !== 1 ? "s" : ""} waiting for your
+                      approval.{" "}
+                      <Link
+                        href="/dashboard/inbox"
+                        style={{ color: "var(--brand-tint)" }}
+                      >
+                        Review →
+                      </Link>
+                    </span>
+                  </li>
+                )}
               </ul>
             </div>
           </aside>
