@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, MessageSquare, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import type { Conversation } from "../api";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ interface ConversationSidebarProps {
   activeConversationId: string | null;
   onSelect: (conversation: Conversation) => void;
   onNew: () => void;
+  onDelete: (conversationId: string) => void;
   isCreating: boolean;
 }
 
@@ -30,9 +31,17 @@ export function ConversationSidebar({
   activeConversationId,
   onSelect,
   onNew,
+  onDelete,
   isCreating,
 }: ConversationSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  function handleDelete(e: React.MouseEvent, conv: Conversation) {
+    e.stopPropagation();
+    if (!window.confirm("Delete this conversation? This cannot be undone.")) return;
+    onDelete(conv.id);
+  }
 
   return (
     <>
@@ -103,34 +112,53 @@ export function ConversationSidebar({
               </div>
             ) : (
               conversations.map((conv) => (
-                <button
+                <div
                   key={conv.id}
-                  onClick={() => onSelect(conv)}
-                  className={cn(
-                    "w-full flex items-start gap-2 px-3 py-2.5 rounded-lg text-left transition",
-                    activeConversationId === conv.id
-                      ? "bg-white/15 text-[var(--fg-1)]"
-                      : "text-[var(--fg-2)] hover:bg-white/10"
-                  )}
+                  className="relative group"
+                  onMouseEnter={() => setHoveredId(conv.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                 >
-                  <MessageSquare
-                    size={14}
+                  <button
+                    onClick={() => onSelect(conv)}
                     className={cn(
-                      "shrink-0 mt-0.5",
+                      "w-full flex items-start gap-2 px-3 py-2.5 rounded-lg text-left transition pr-8",
                       activeConversationId === conv.id
-                        ? "text-brand-400"
-                        : "text-[var(--fg-3)]"
+                        ? "bg-white/15 text-[var(--fg-1)]"
+                        : "text-[var(--fg-2)] hover:bg-white/10"
                     )}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium truncate leading-tight">
-                      {conv.title}
-                    </p>
-                    <p className="text-xs text-[var(--fg-3)] mt-0.5">
-                      {formatDate(conv.updatedAt)}
-                    </p>
-                  </div>
-                </button>
+                  >
+                    <MessageSquare
+                      size={14}
+                      className={cn(
+                        "shrink-0 mt-0.5",
+                        activeConversationId === conv.id
+                          ? "text-brand-400"
+                          : "text-[var(--fg-3)]"
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium truncate leading-tight">
+                        {conv.title}
+                      </p>
+                      <p className="text-xs text-[var(--fg-3)] mt-0.5">
+                        {formatDate(conv.updatedAt)}
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Hover-reveal trash icon */}
+                  <button
+                    onClick={(e) => handleDelete(e, conv)}
+                    aria-label="Delete conversation"
+                    className={cn(
+                      "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-all",
+                      "text-[var(--fg-3)] hover:text-red-500 hover:bg-white/10",
+                      hoveredId === conv.id ? "opacity-100" : "opacity-0 pointer-events-none"
+                    )}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               ))
             )}
           </div>

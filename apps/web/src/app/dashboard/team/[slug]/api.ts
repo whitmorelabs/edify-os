@@ -277,6 +277,23 @@ export function getLocalConversations(slug: string): Conversation[] {
   }
 }
 
+/**
+ * Remove a conversation from localStorage (client-side cleanup after server delete).
+ */
+export function deleteLocalConversation(slug: string, conversationId: string): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    const key = `chat:conversations:${slug}`;
+    const raw = localStorage.getItem(key);
+    const existing: Conversation[] = raw ? JSON.parse(raw) : [];
+    localStorage.setItem(key, JSON.stringify(existing.filter((c) => c.id !== conversationId)));
+    localStorage.removeItem(`chat:messages:${conversationId}`);
+  } catch {
+    // ignore
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

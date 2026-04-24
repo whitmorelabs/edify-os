@@ -144,7 +144,6 @@ export async function runArchetypeTurn({
 
   const tools = ARCHETYPE_TOOLS[archetype] ?? [];
   const serverTools = ARCHETYPE_SERVER_TOOLS[archetype] ?? [];
-  const allTools = [...tools, ...serverTools] as Record<string, unknown>[];
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];
   const toolAddendums = buildSystemAddendums(tools);
 
@@ -168,8 +167,10 @@ export async function runArchetypeTurn({
     { type: "text" as const, text: cachedSystemText, cache_control: { type: "ephemeral" as const } },
   ];
 
-  // Tool list for this call — include code_execution only when skills are attached.
-  const allTools = attachSkills ? [...tools, CODE_EXECUTION_TOOL] : tools;
+  // Tool list for this call — include serverTools always, code_execution only when skills are attached.
+  const allTools = attachSkills
+    ? ([...tools, ...serverTools, CODE_EXECUTION_TOOL] as Record<string, unknown>[])
+    : ([...tools, ...serverTools] as Record<string, unknown>[]);
 
   // A. Cache the last tool definition (breakpoint on the tools prefix).
   // When tools are present we mark the last one; the API caches tools → system together.
@@ -216,7 +217,7 @@ export async function runArchetypeTurn({
           system: systemBlocks,
           messages: loopMessages,
           ...(cachedTools.length > 0
-            ? { tools: cachedTools as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] }
+            ? { tools: cachedTools as unknown as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] }
             : {}),
           ...(containerParam ? { container: containerParam } : {}),
         })
@@ -226,7 +227,7 @@ export async function runArchetypeTurn({
           temperature: 0.3,
           system: systemBlocks,
           messages: loopMessages,
-          ...(cachedTools.length > 0 ? { tools: cachedTools as Parameters<typeof anthropic.messages.create>[0]["tools"] } : {}),
+          ...(cachedTools.length > 0 ? { tools: cachedTools as unknown as Parameters<typeof anthropic.messages.create>[0]["tools"] } : {}),
         });
 
     // Accumulate token usage from this API response

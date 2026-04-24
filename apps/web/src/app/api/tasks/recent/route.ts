@@ -74,6 +74,7 @@ export async function GET() {
       task_steps(id, step_number, agent_role, action, duration_ms)
     `)
     .eq("org_id", orgId)
+    .neq("kind", "chat_reply")
     .order("created_at", { ascending: false })
     .limit(50);
 

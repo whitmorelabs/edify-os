@@ -263,3 +263,77 @@ The noise is only on the home hero as instructed. Evaluate before extending.
 | `apps/web/src/app/integrations-page/page.tsx` | P1: radial gradient hero |
 | `apps/web/src/app/dashboard/page.tsx` | P1: subtle radial (0.12 opacity) |
 | `apps/web/public/brand/noise.svg` | NEW: 200×200 SVG fractalNoise pattern |
+
+---
+
+## 2026-04-24 — Agent C (Chat UX bundle)
+
+**Identity:** Agent C — Chat UX Bundle (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/chat-ux-bundle`
+**Worktree:** `C:/Users/Araly/edify-worktrees/agent-c`
+**PRD:** `PRD-C-chat-ux-bundle.md`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/16
+
+---
+
+### Commits
+
+| SHA | Message |
+|-----|---------|
+| `87ce6dd` | feat(tasks): exclude chat_reply rows from tasks page |
+| `a327aa2` | feat(chat): add hover-reveal delete button to ConversationSidebar |
+| `47671e2` | fix(build): resolve pre-existing allTools redeclaration + type errors |
+
+---
+
+### What Was Built
+
+#### Part 1 — Default to last conversation
+Already implemented on the branch prior to this sprint. `TeamChatClient` had a mount-time `useEffect` that fetches remote conversations via `getConversations(slug)`, merges with localStorage, and calls `setActiveConversation(merged[0])` if any exist. `EmptyState` only renders when the merged list is empty. No changes needed.
+
+#### Part 2 — Delete conversations UI + server endpoint
+
+**`apps/web/src/app/api/conversations/[id]/route.ts`** (NEW)
+- `DELETE` handler with `getAuthContext()` → org-scoped ownership check → `serviceClient.from("conversations").delete()`
+- Returns 204 on success, 404 if conversation not found in caller's org, 401/503 on auth/config failures
+
+**`apps/web/src/app/dashboard/team/[slug]/components/ConversationSidebar.tsx`** (MODIFIED)
+- Added `onDelete: (conversationId: string) => void` prop
+- Added `hoveredId` state; each row wrapped in a `<div>` with `onMouseEnter/Leave`
+- `Trash2` icon button: `opacity-0 pointer-events-none` when not hovered → `opacity-100` on hover; `text-[var(--fg-3)]` default, `hover:text-red-500`; positioned absolute right-1.5
+- `handleDelete` stops propagation, shows `window.confirm`, calls `onDelete`
+
+**`apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx`** (MODIFIED)
+- Added `handleDeleteConversation(conversationId)` — optimistic list removal, `deleteLocalConversation()`, resets to EmptyState if deleted conv was active, then `fetch(DELETE /api/conversations/[id])`
+- Passes `onDelete={handleDeleteConversation}` to `<ConversationSidebar>`
+
+**`apps/web/src/app/dashboard/team/[slug]/api.ts`** (MODIFIED)
+- Added `deleteLocalConversation(slug, conversationId)` helper — removes from `chat:conversations:{slug}` key and deletes `chat:messages:{conversationId}` from localStorage
+
+#### Part 3 — Tasks page hides chat_reply
+
+**`apps/web/src/app/api/tasks/recent/route.ts`** (MODIFIED)
+- Added `.neq("kind", "chat_reply")` to the Supabase query
+- `kindConfig.chat_reply` entry left in `tasks/page.tsx` for any cached rows
+
+#### Build fix (pre-existing errors)
+
+**`apps/web/src/lib/chat/run-archetype-turn.ts`** (MODIFIED)
+- Removed duplicate `const allTools = [...tools, ...serverTools]` (line 147)
+- Updated the single remaining `allTools` declaration to include `serverTools` in both branches
+- Added `as unknown as` intermediate cast on `cachedTools` → `BetaToolUnion[]` / `ToolUnion[]`
+
+**`apps/web/src/lib/tools/websearch.ts`** (MODIFIED)
+- Changed `webSearchTools: never[]` → `webSearchTools: { name: string }[]` so registry Set construction doesn't error
+- Added optional `_args` param to `executeWebSearchTool` stub to match call-site
+
+---
+
+### Decisions / Notes
+
+- Part 1 was pre-done; noted in PR body to avoid confusion
+- Delete is optimistic (UI updates immediately); server failure is swallowed silently — acceptable for a delete action where localStorage is already cleaned
+- `window.confirm` used for delete dialog (matches existing tasks page pattern). No custom modal added per "no redesign" constraint
+- Build was failing before this sprint due to `allTools` redeclaration introduced in a prior commit. Fixed as part of this session's build requirement
+- `pnpm -w -r build`: PASSED
+- TypeScript typecheck (`pnpm --filter web typecheck`): CLEAN (pre-existing `_onboarding-old` errors are not new)
