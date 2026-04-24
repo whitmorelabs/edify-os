@@ -130,6 +130,10 @@ export const FRONTEND_DESIGN_ARCHETYPES: ReadonlySet<ArchetypeSlug> = new Set<Ar
 /**
  * Design-intent trigger patterns. Matched against the user message to decide
  * whether to inject the Frontend Design addendum for an eligible archetype.
+ *
+ * Social content series patterns are included because Marketing Director uses
+ * render_design_to_image for every multi-post request — the Frontend Design
+ * addendum provides the HTML composition guidance for those graphics.
  */
 const FRONTEND_DESIGN_TRIGGER_PATTERNS: RegExp[] = [
   /\b(design|designs|designed|designing)\b/i,
@@ -143,6 +147,13 @@ const FRONTEND_DESIGN_TRIGGER_PATTERNS: RegExp[] = [
   /\b(website|web page|webpage|site|microsite)\b/i,
   /\b(html|css|tailwind|react component|jsx|tsx)\b/i,
   /\b(palette|color scheme|typography|font pairing)\b/i,
+  // Social content series — triggers design guidance for render_design_to_image graphics
+  /\b(social\s+media\s+series|social\s+series|content\s+series)\b/i,
+  /\b(create|draft|design|make|build|generate)\b.{0,30}\b(\d+|a\s+series\s+of|multiple|three|two|four|five)\b.{0,20}\b(posts?|graphics?|images?|cards?)\b/i,
+  /\b(draft|design|create|make)\b.{0,20}\bposts?\b/i,
+  /\b(instagram|linkedin|facebook|twitter|tiktok)\b.{0,30}\b(post|graphic|card|image|banner|flyer)\b/i,
+  /\bsocial\s+(post|graphic|content|card|image)\b/i,
+  /\b(event\s+flyer|flyer|poster|banner)\b/i,
 ];
 
 /**

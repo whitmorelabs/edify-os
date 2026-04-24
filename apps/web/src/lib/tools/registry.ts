@@ -23,6 +23,7 @@ import {
 } from "@/lib/tools/render";
 import { socialTools, executeSocialTool, SOCIAL_TOOLS_ADDENDUM } from "@/lib/tools/social";
 import { webSearchTools, executeWebSearchTool, WEBSEARCH_TOOLS_ADDENDUM, webSearchServerTool } from "@/lib/tools/websearch";
+import { handoffTools, executeHandoffTool, HANDOFF_TOOLS_ADDENDUM } from "@/lib/tools/handoff";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
@@ -39,6 +40,7 @@ export {
   RENDER_TOOLS_ADDENDUM,
   SOCIAL_TOOLS_ADDENDUM,
   WEBSEARCH_TOOLS_ADDENDUM,
+  HANDOFF_TOOLS_ADDENDUM,
 };
 export type { RenderToolGeneratedFile };
 
@@ -50,6 +52,7 @@ const SOCIAL_TOOL_NAMES = new Set(socialTools.map((t) => t.name));
 // webSearchTools is never[] (server tool — no client definitions). Cast to avoid TS error.
 const WEBSEARCH_TOOL_NAMES = new Set((webSearchTools as Anthropic.Tool[]).map((t) => t.name));
 const MEMORY_TOOL_NAMES = new Set(memoryTools.map((t) => t.name));
+const HANDOFF_TOOL_NAMES = new Set(handoffTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -85,6 +88,10 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("memory");
       continue;
     }
+    if (HANDOFF_TOOL_NAMES.has(t.name)) {
+      families.add("handoff");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -108,6 +115,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("social")) parts.push(SOCIAL_TOOLS_ADDENDUM);
   if (families.has("websearch")) parts.push(WEBSEARCH_TOOLS_ADDENDUM);
   if (families.has("memory")) parts.push(MEMORY_TOOLS_ADDENDUM);
+  if (families.has("handoff")) parts.push(HANDOFF_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -120,7 +128,7 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools],
   development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools],
-  marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools, ...memoryTools],
+  marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools, ...memoryTools, ...handoffTools],
   programs_director: [...grantsTools, ...driveTools, ...memoryTools],
   hr_volunteer_coordinator: [...driveTools, ...memoryTools],
 };
@@ -245,13 +253,29 @@ export async function executeTool({
   }
 
   if (WEBSEARCH_TOOL_NAMES.has(name)) {
-    // Web search is a server tool — executed by Anthropic, never dispatched locally.
-    // This branch is unreachable at runtime; the guard is kept for exhaustiveness.
-    executeWebSearchTool();
+    // Web search is a native server tool — Anthropic executes it, this branch is unreachable.
+    return executeWebSearchTool();
   }
 
   if (MEMORY_TOOL_NAMES.has(name)) {
     return executeMemoryTool({ name, input, orgId, memberId, serviceClient });
+  }
+
+  if (HANDOFF_TOOL_NAMES.has(name)) {
+    if (!anthropic) {
+      return {
+        content: "Handoff tool requires an Anthropic client; none was provided.",
+        is_error: true,
+      };
+    }
+    // Resolve org name from DB for the sub-turn system prompt.
+    const { data: orgRow } = await serviceClient
+      .from("orgs")
+      .select("name")
+      .eq("id", orgId)
+      .single();
+    const orgName = (orgRow?.name as string | null) ?? "your organization";
+    return executeHandoffTool({ name, input, orgId, orgName, serviceClient, anthropic });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };

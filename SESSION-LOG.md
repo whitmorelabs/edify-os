@@ -266,50 +266,27 @@ The noise is only on the home hero as instructed. Evaluate before extending.
 
 ---
 
-## 2026-04-24 — Agent B (HR + Memory)
+## 2026-04-24 — Agent A (Marketing coordination)
 
-**Identity:** Agent B (Sonnet, spawned by Lopmon)
-**Branch:** `lopmon/hr-tools-and-memory-logging`
-**Worktree:** `C:\Users\Araly\edify-worktrees\agent-b`
-**PRD:** `C:\Users\Araly\life\projects\edify-os\prds-2026-04-24\PRD-B-hr-and-memory.md`
-**PR:** https://github.com/whitmorelabs/edify-os/pull/18
-
----
+**Identity:** Agent A — Marketing coordination (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/marketing-coordination-wow`
+**Worktree:** `C:/Users/Araly/edify-worktrees/agent-a`
+**PRD:** `C:/Users/Araly/life/projects/edify-os/prds-2026-04-24/PRD-A-marketing-coordination.md`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/17
 
 ### Commits
 
 | SHA | Message |
 |-----|---------|
-| `53ce12b` | feat(memory): add save_to_memory tool for persisting org facts |
-| `59d47cc` | feat(prompts): add MEMORY_POSTFIX to all 6 archetype prompts |
-| `57127e2` | feat(drive): add ensureArchetypeFolder helper for per-archetype Drive folders |
-| `8a40ceb` | feat(registry): wire HR Drive tools, memory tool on all 6 archetypes |
+| `bb03d53` | feat(tools): add request_archetype_context handoff tool |
+| `2369995` | feat(registry): wire handoff tool onto marketing_director |
+| `a652c78` | feat(prompts): add cross-team coordination + mandatory graphics sections to Marketing Director |
+| `32b7641` | feat(skills): extend shouldAttachFrontendDesign to capture social series intent |
 
-### What Was Built
+### Summary
 
-**Part 1 — HR Tools:**
-- `apps/web/src/lib/tools/drive-folders.ts` (NEW) — `ensureArchetypeFolder(accessToken, slug)` helper that finds or creates `Edify OS / {Archetype Label}` folder tree in Drive. Non-fatal (falls back to root). ARCHETYPE_FOLDER_NAMES map covers all 6 archetypes.
-- `apps/web/src/lib/tools/drive.ts` — `executeDriveTool` now accepts optional `archetypeSlug`. `drive_create_file` auto-places files under the archetype folder when `parents` is not supplied.
-- `apps/web/src/lib/tools/registry.ts` — `hr_volunteer_coordinator` gets `driveTools`. `executeTool` gains `archetypeSlug` param passed through to `executeDriveTool`.
-- `apps/web/src/lib/chat/run-archetype-turn.ts` — passes `archetype` as `archetypeSlug` to `executeTool`.
-- `apps/web/src/lib/archetype-prompts.ts` — HR prompt addendum: document creation instructions (Drive folder path, docx/pdf skills), volunteer roster management (google_sheet at `Edify OS/HR & Volunteer Coordinator/Volunteer Roster`, xlsx skill for row updates).
-- Skills: `hr_volunteer_coordinator: ["docx", "xlsx", "pdf"]` was already present from prior sprint — no change needed.
+1. Shipped `request_archetype_context` tool — Marketing Director can now query any other director (Haiku 4.5, 1200-token cap) for event/grant/program context before drafting social content; registered exclusively on `marketing_director`.
+2. Appended "Cross-team coordination" and "Graphics are mandatory for series requests" sections to `MARKETING_DIRECTOR_PROMPT` — series requests now require `render_design_to_image` per post, never plain text.
+3. Extended `shouldAttachFrontendDesign` with 6 social-series patterns so HTML design guidance fires on "create 3 posts / social series / event flyer" requests.
 
-**Part 2 — Memory Auto-Logging:**
-- `apps/web/src/lib/tools/memory.ts` (NEW) — `save_to_memory` tool. Input: `{key, value, category?}`. Inserts directly to `memory_entries` Supabase table. Category map: program→programs, policy→processes, person→contacts, values→brand_voice, other→general.
-- `apps/web/src/lib/tools/registry.ts` — all 6 `ARCHETYPE_TOOLS` get `...memoryTools`. `MEMORY_TOOL_NAMES` Set + dispatch branch for `save_to_memory`. `buildSystemAddendums` emits `MEMORY_TOOLS_ADDENDUM` when memory family detected.
-- `apps/web/src/lib/archetype-prompts.ts` — `MEMORY_POSTFIX` constant appended to all 6 entries in `ARCHETYPE_PROMPTS` map (consumed by `run-archetype-turn` and `decision-lab` routes).
-
-### Build Result
-
-`pnpm -w -r build` — **4 successful, 4 total**. TypeScript: **0 errors**.
-
-### Decisions Made
-
-- Memory tool writes directly to Supabase via `serviceClient` (same path as API route POST handler) — no HTTP round-trip, cleaner for server-side tool execution.
-- `MEMORY_POSTFIX` applied at the `ARCHETYPE_PROMPTS` map level (not per-prompt constant) so all consumers pick it up without touching each of 6 constants.
-- `ensureArchetypeFolder` is non-fatal by design — if Drive folder creation fails (permission issue, quota), file still creates at root rather than erroring out entirely.
-
-### Open Items
-
-None — all PRD requirements met.
+Build: **4/4 tasks successful**. No new TypeScript errors introduced.
