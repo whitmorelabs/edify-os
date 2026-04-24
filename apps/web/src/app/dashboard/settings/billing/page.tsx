@@ -201,7 +201,7 @@ function ProgressBar({
 /* ------------------------------------------------------------------ */
 
 export default function BillingPage() {
-  const [currentPlan, setCurrentPlan] = useState("starter");
+  const [currentPlan, setCurrentPlan] = useState("pro");
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -224,12 +224,20 @@ export default function BillingPage() {
   }
 
   /* ---- derived usage based on current plan (demo data) ---- */
+  // TODO: fetch real usage from API. For now, show plan limits with zero usage.
+  const planLimits = {
+    free: { tasksDay: 5, integrations: 3, memory: 50, agents: 1 },
+    starter: { tasksDay: 50, integrations: 10, memory: 500, agents: 3 },
+    pro: { tasksDay: Infinity, integrations: Infinity, memory: Infinity, agents: 6 },
+    enterprise: { tasksDay: Infinity, integrations: Infinity, memory: Infinity, agents: 6 },
+  }[currentPlan] ?? { tasksDay: Infinity, integrations: Infinity, memory: Infinity, agents: 6 };
   const usage = {
-    free: { tasksDay: { v: 4, m: 5 }, integrations: { v: 2, m: 3 }, memory: { v: 38, m: 50 }, agents: { v: 1, m: 1 }, tasksMonth: 87 },
-    starter: { tasksDay: { v: 32, m: 50 }, integrations: { v: 7, m: 10 }, memory: { v: 156, m: 500 }, agents: { v: 3, m: 3 }, tasksMonth: 847 },
-    pro: { tasksDay: { v: 73, m: Infinity }, integrations: { v: 14, m: Infinity }, memory: { v: 1240, m: Infinity }, agents: { v: 3, m: 3 }, tasksMonth: 2134 },
-    enterprise: { tasksDay: { v: 73, m: Infinity }, integrations: { v: 14, m: Infinity }, memory: { v: 1240, m: Infinity }, agents: { v: 3, m: 3 }, tasksMonth: 2134 },
-  }[currentPlan] ?? { tasksDay: { v: 32, m: 50 }, integrations: { v: 7, m: 10 }, memory: { v: 156, m: 500 }, agents: { v: 3, m: 3 }, tasksMonth: 847 };
+    tasksDay: { v: 0, m: planLimits.tasksDay },
+    integrations: { v: 0, m: planLimits.integrations },
+    memory: { v: 0, m: planLimits.memory },
+    agents: { v: planLimits.agents, m: planLimits.agents },
+    tasksMonth: 0,
+  };
 
   const isUnlimited = (m: number) => !isFinite(m);
 
@@ -268,7 +276,7 @@ export default function BillingPage() {
                   </span>
                   <span className="text-fg-3">/mo</span>
                   <span className="ml-3 text-fg-4">
-                    Renews May 10, 2026
+                    Developer account
                   </span>
                 </>
               ) : (
