@@ -31,6 +31,8 @@ import {
 } from "@/lib/skills/registry";
 import type { ArchetypeSlug } from "@/lib/archetypes";
 import { insertActivityEvent } from "@/lib/hours-saved/insert-event";
+import { ARCHETYPE_PLUGIN_SKILLS } from "@/lib/plugins/registry";
+import { buildMcpServersForOrg } from "@/lib/mcp/registry";
 
 const TOOL_USE_LOOP_MAX = 8;
 const MAX_RESPONSE_TOKENS = 4096;
@@ -147,9 +149,21 @@ export async function runArchetypeTurn({
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];
   const toolAddendums = buildSystemAddendums(tools);
 
-  // C. Skills-on-demand — only attach skills when intent suggests doc generation.
-  const attachSkills = archetypeSkillIds.length > 0 && shouldAttachSkills(userMessage);
-  const skillsAddendum = attachSkills ? SKILLS_ADDENDUM : "";
+  // E. Plugin skills — uploaded knowledge-work-plugins skill IDs (dynamic, from uploaded-ids.json).
+  // These are resolved once before the loop and merged into the container alongside pre-built skills.
+  const pluginSkillIds = ARCHETYPE_PLUGIN_SKILLS[archetype] ?? [];
+
+  // F. MCP servers — resolved async (DB lookup in Sprint 2; env-var fallback in Sprint 1).
+  const mcpServers = await buildMcpServersForOrg(archetype, orgId);
+
+  // C. Skills-on-demand — attach skills when:
+  //   (a) the archetype has pre-built skill IDs AND the message signals doc generation, OR
+  //   (b) the archetype has uploaded plugin skill IDs (always attach — plugin skills are
+  //       always-on domain knowledge, not on-demand doc generators).
+  const attachPrebuiltSkills = archetypeSkillIds.length > 0 && shouldAttachSkills(userMessage);
+  const attachPluginSkills = pluginSkillIds.length > 0;
+  const attachSkills = attachPrebuiltSkills || attachPluginSkills;
+  const skillsAddendum = attachPrebuiltSkills ? SKILLS_ADDENDUM : "";
 
   // D. Frontend Design — inject when archetype is eligible AND design intent is detected.
   // Independent of the docx/xlsx/pptx/pdf skills beta: this is a pure system-prompt
@@ -182,7 +196,23 @@ export async function runArchetypeTurn({
         ]
       : allTools;
 
-  const containerParam = attachSkills ? buildContainer(archetypeSkillIds) : undefined;
+  // Build the container param, merging pre-built + uploaded plugin skill IDs.
+  // SDK shape: container.skills[] where each entry is { type, skill_id, version? }
+  //   - Pre-built (docx/xlsx/pptx/pdf): type = "anthropic"
+  //   - Uploaded knowledge-work-plugins: type = "custom"
+  const containerParam = attachSkills
+    ? (() => {
+        const prebuiltSkills = attachPrebuiltSkills
+          ? (buildContainer(archetypeSkillIds)?.skills ?? [])
+          : [];
+        const pluginSkills = pluginSkillIds.map((id) => ({
+          type: "custom" as const,
+          skill_id: id,
+        }));
+        const allSkills = [...prebuiltSkills, ...pluginSkills];
+        return allSkills.length > 0 ? { skills: allSkills } : undefined;
+      })()
+    : undefined;
 
   // Prepend temporal prefix to the user message (volatile — stays uncached).
   const userMessageWithTemporal = temporalPrefix + userMessage;
@@ -207,8 +237,17 @@ export async function runArchetypeTurn({
   };
 
   for (let round = 0; round < TOOL_USE_LOOP_MAX; round++) {
-    // A+B+C: use cached system blocks, haiku/sonnet model, and attach skills only on demand.
-    const response = attachSkills
+    // A+B+C+E+F: use cached system blocks, haiku/sonnet model, attach skills on demand,
+    // merge plugin skill IDs, and pass MCP server configs.
+    //
+    // We always use the beta path when ANY of the following apply:
+    //   - Pre-built skills are attached (doc generation intent)
+    //   - Uploaded plugin skills are available for this archetype
+    //   - MCP servers are configured for this org + archetype
+    // The non-beta path is used only for pure-chat turns with no skills/MCP.
+    const useBetaPath = attachSkills || mcpServers.length > 0;
+
+    const response = useBetaPath
       ? await anthropic.beta.messages.create({
           betas: [...SKILLS_BETA_HEADERS],
           model: modelId,
@@ -220,6 +259,9 @@ export async function runArchetypeTurn({
             ? { tools: cachedTools as unknown as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] }
             : {}),
           ...(containerParam ? { container: containerParam } : {}),
+          // F. MCP servers — always present (even if empty) to make the param visible in API calls.
+          // Empty array is equivalent to omitting the param; included for observability.
+          ...(mcpServers.length > 0 ? { mcp_servers: mcpServers } : {}),
         })
       : await anthropic.messages.create({
           model: modelId,
