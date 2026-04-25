@@ -290,3 +290,82 @@ The noise is only on the home hero as instructed. Evaluate before extending.
 3. Extended `shouldAttachFrontendDesign` with 6 social-series patterns so HTML design guidance fires on "create 3 posts / social series / event flyer" requests.
 
 Build: **4/4 tasks successful**. No new TypeScript errors introduced.
+
+---
+
+## 2026-04-24 — Plugin Ingestion Spike
+
+**Identity:** Plugin Ingestion Spike Agent (Sonnet)
+**Branch:** `lopmon/plugin-ingestion-spike`
+**Worktree:** `C:/Users/Araly/edify-worktrees/sprint1`
+**Date:** 2026-04-24
+**PRD:** `C:/Users/Araly/life/projects/edify-os/prds-2026-04-24/PRD-sprint-1-plugin-ingestion.md`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/19
+
+### Commits
+
+| SHA | Message |
+|-----|---------|
+| `cf2826b` | feat(plugins): vendor marketing/content-creation skill from anthropics/knowledge-work-plugins |
+| `f920c39` | feat(plugins): add upload-plugin-skills CLI script + package.json script entry |
+| `5fe3ea8` | feat(plugins): add ARCHETYPE_PLUGIN_SKILLS and ARCHETYPE_MCP_SERVERS registries |
+| `d369953` | feat(db): add mcp_connections migration for per-org MCP OAuth tokens |
+| `fafaf79` | feat(chat): wire container.skill_ids + mcp_servers into run-archetype-turn |
+
+### What Was Built
+
+**`apps/web/plugins/marketing/content-creation/SKILL.md`** (NEW)
+- Vendored from `anthropics/knowledge-work-plugins` (Apache 2.0)
+- Contains content creation frameworks for blog, social, email, landing pages, press releases, case studies
+
+**`apps/web/plugins/README.md`** (NEW)
+- Documents vendoring approach, directory layout, how to add skills, how to refresh from upstream
+
+**`apps/web/plugins/uploaded-ids.json`** (NEW)
+- Starts as `{}` — populated when Citlali runs upload script with real ANTHROPIC_API_KEY
+
+**`scripts/upload-plugin-skills.ts`** (NEW)
+- Discovers all `SKILL.md` bundles under `apps/web/plugins/`
+- Builds ZIP buffer (pure Node stdlib — no external deps)
+- POSTs to `POST https://api.anthropic.com/v1/skills` with all three required beta headers
+- Idempotent by content hash; supports `--dry-run` and `--force` flags
+- Invoked via `pnpm --filter web upload-plugin-skills`
+
+**`apps/web/src/lib/plugins/registry.ts`** (NEW)
+- `ARCHETYPE_PLUGIN_SKILLS`: maps archetype slugs to uploaded plugin skill_ids
+- Marketing Director wired to `marketing/content-creation`; all others empty for Sprint 1
+
+**`apps/web/src/lib/mcp/registry.ts`** (NEW)
+- `ARCHETYPE_MCP_SERVERS` static config: Marketing Director → Slack MCP
+- `buildMcpServersForOrg()`: resolves tokens at call time (env-var fallback in Sprint 1)
+- `ResolvedMCPServer` shape matches SDK's `BetaRequestMCPServerURLDefinition` (type: "url")
+- Sprint 2 TODO block for per-org DB lookup from mcp_connections table
+
+**`supabase/migrations/00022_mcp_connections.sql`** (NEW)
+- `mcp_connections` table: org_id FK, server_name, access_token, refresh_token, expires_at
+- RLS enabled, service-role bypass policy, updated_at trigger
+
+**`apps/web/src/lib/chat/run-archetype-turn.ts`** (MODIFIED)
+- Imports `ARCHETYPE_PLUGIN_SKILLS` and `buildMcpServersForOrg`
+- Resolves plugin skill IDs + MCP servers before the tool-use loop
+- `attachSkills` now fires for pre-built OR plugin skills
+- `containerParam` merges pre-built (`type:"anthropic"`) + uploaded (`type:"custom"`) into `container.skills[]`
+- `useBetaPath` triggers beta path when skills OR MCP servers present
+- `mcp_servers` param passed to `anthropic.beta.messages.create()` when non-empty
+
+**`apps/web/src/lib/skills/registry.ts`** (MODIFIED)
+- Added `files-api-2025-04-14` to `SKILLS_BETA_HEADERS` (required for file retrieval after skill execution)
+
+**`apps/web/package.json`** (MODIFIED)
+- Added `"upload-plugin-skills": "npx tsx ../../scripts/upload-plugin-skills.ts"` script
+
+### Key Decisions
+
+- Used `type: "custom"` for uploaded plugin skills per SDK's `BetaSkillParams` (not a separate `skill_ids` field — that doesn't exist in the installed SDK shape)
+- Added `type: "url"` to `ResolvedMCPServer` to satisfy `BetaRequestMCPServerURLDefinition`
+- Plugin skills are always-on (not on-demand like pre-built doc skills) — they encode domain knowledge, not doc generation
+- `files-api-2025-04-14` added to beta headers since skill execution already calls `anthropic.beta.files.retrieveMetadata()`
+
+### Build
+
+`pnpm -w -r build`: **4/4 tasks successful, 0 TypeScript errors**
