@@ -36,7 +36,6 @@ import * as https from "https";
 const REPO_ROOT = path.resolve(__dirname, "..");
 const PLUGINS_DIR = path.join(REPO_ROOT, "apps", "web", "plugins");
 const UPLOADED_IDS_PATH = path.join(PLUGINS_DIR, "uploaded-ids.json");
-const ANTHROPIC_SKILLS_URL = "https://api.anthropic.com/v1/skills";
 const BETA_HEADERS = [
   "code-execution-2025-08-25",
   "skills-2025-10-02",
@@ -127,7 +126,7 @@ function hashSkillDir(skillDir: string): string {
  *
  * Format: ZIP local file headers + central directory + end-of-central-directory.
  */
-function buildZip(skillDir: string, skillKey: string): Buffer {
+function buildZip(skillDir: string): Buffer {
   const files = collectFiles(skillDir).sort();
   const localHeaders: Buffer[] = [];
   const centralDir: Buffer[] = [];
@@ -198,7 +197,6 @@ function buildZip(skillDir: string, skillKey: string): Buffer {
   eocd.writeUInt32LE(offset, 16);    // offset of CD
   eocd.writeUInt16LE(0, 20);         // comment length
 
-  void skillKey; // used for logging only, not embedded in zip
   return Buffer.concat([...localHeaders, centralDirBuffer, eocd]);
 }
 
@@ -371,7 +369,7 @@ async function main() {
 
     console.log(`  [UPLOAD] ${key} (hash: ${hash}) ...`);
     try {
-      const zip = buildZip(dir, key);
+      const zip = buildZip(dir);
       const skillId = await uploadSkill(key, zip, apiKey!);
       uploadedIds[key] = {
         skill_id: skillId,
@@ -388,18 +386,7 @@ async function main() {
 
   // Persist updated uploaded-ids.json (skip in dry-run mode)
   if (!DRY_RUN) {
-    // Write only the skill_id field at top level for clean consumption by registry.ts
-    // The full entry (with hash + uploaded_at) is kept under a _meta subkey.
-    const clean: Record<string, string | Record<string, unknown>> = {};
-    const meta: Record<string, UploadedEntry> = {};
-    for (const [k, v] of Object.entries(uploadedIds)) {
-      if (typeof v === "object" && v.skill_id) {
-        clean[k] = v.skill_id;
-        meta[k] = v;
-      }
-    }
-    // Write slim version for registry consumption (top-level key → skill_id string)
-    fs.writeFileSync(UPLOADED_IDS_PATH, JSON.stringify(clean, null, 2) + "\n", "utf8");
+    fs.writeFileSync(UPLOADED_IDS_PATH, JSON.stringify(uploadedIds, null, 2) + "\n", "utf8");
     console.log(`\nWrote ${UPLOADED_IDS_PATH}`);
   }
 
