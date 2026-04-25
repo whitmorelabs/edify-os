@@ -369,3 +369,53 @@ Build: **4/4 tasks successful**. No new TypeScript errors introduced.
 ### Build
 
 `pnpm -w -r build`: **4/4 tasks successful, 0 TypeScript errors**
+
+---
+
+## 2026-04-25 — Merge + Smoke-Test Sequence Agent
+
+**Identity:** Merge + Smoke-Test Sequence Agent (Sonnet, spawned by Lopmon)
+**Branch:** `main` (direct merge run — no worktree, working tree was clean)
+**Date:** 2026-04-25
+
+### PRs Merged
+
+| PR | Title | Merge Commit SHA | Merged At |
+|----|-------|-----------------|-----------|
+| #2 | Design system ingest: tokens + motion + 14 primitives + dashboard + landing | `e8791ebf05312cf8c6f73880e207ea2a508885c9` | 2026-04-23 (already merged prior to this session) |
+| #19 | feat(plugins): wire Anthropic Skills API + mcp_servers — ingestion spike | `7cc35fd248850b1662a30ef96b35cb58c6e903d3` | 2026-04-25 17:52:35 UTC |
+
+Both merged using `--merge` (merge commit convention, matching repo history).
+
+### Upload Script Result — BLOCKED
+
+The upload script ran (`npx tsx scripts/upload-plugin-skills.ts`) and successfully authenticated to the Anthropic API, but received a 400 error:
+
+```
+Skills API error 400: {"type":"error","error":{"type":"invalid_request_error",
+"message":"No files provided. Please provide files using 'files[]' field."}}
+```
+
+**Root cause:** `scripts/upload-plugin-skills.ts` sends the multipart ZIP field as `name="file"`. The Anthropic Skills API expects `name="files[]"`. No skill_id was returned. `apps/web/plugins/uploaded-ids.json` remains `{}`.
+
+**Action required:** Lopmon must patch line ~250 in `scripts/upload-plugin-skills.ts`, changing the `name="file"` field name to `name="files[]"` in the multipart body construction, then re-run the upload script.
+
+### Build Failure — Pre-existing Environment Issue
+
+`pnpm --filter web build` failed with `'next' is not recognized`. Investigation found the `next` package directory inside the pnpm virtual store is empty (0 bytes). This is a pre-existing local environment issue — Vercel handles the production build and was not affected. No fix attempted per protocol. Lopmon should investigate if local builds are required.
+
+### Files Changed This Session
+
+| File | Change |
+|------|--------|
+| `apps/web/plugins/uploaded-ids.json` | Remains `{}` — upload blocked by API field name bug |
+| `SESSION-LOG.md` | Appended this entry |
+| `SMOKE-TEST-NEXT-STEPS.md` | NEW — Citlali's manual next steps (migration SQL + smoke test instructions) |
+
+### Notes
+
+- PR #2 was already in MERGED state when this session began (merged 2026-04-23). Phase 2 was a no-op.
+- PR #19 was MERGEABLE and CLEAN — merged cleanly with no conflicts.
+- `apps/web/.env.local` confirmed present and gitignored before any operations.
+- pnpm WARNs about `node.exe.EXE` bin creation are benign Windows-only symlink limitations.
+- No architectural decisions made. All blockers escalated.
