@@ -133,8 +133,9 @@ function buildZip(skillDir: string, skillKey: string): Buffer {
   const centralDir: Buffer[] = [];
   let offset = 0;
 
+  const folderName = path.basename(skillDir);
   for (const filePath of files) {
-    const relPath = path.relative(skillDir, filePath).replace(/\\/g, "/");
+    const relPath = `${folderName}/${path.relative(skillDir, filePath).replace(/\\/g, "/")}`;
     const data = fs.readFileSync(filePath);
     const nameBuffer = Buffer.from(relPath, "utf8");
 
@@ -251,7 +252,7 @@ async function uploadSkill(
     parts.push(
       Buffer.from(
         `--${boundary}${CRLF}` +
-        `Content-Disposition: form-data; name="file"; filename="skill.zip"${CRLF}` +
+        `Content-Disposition: form-data; name="files[]"; filename="skill.zip"${CRLF}` +
         `Content-Type: application/zip${CRLF}${CRLF}`,
         "utf8",
       ),
