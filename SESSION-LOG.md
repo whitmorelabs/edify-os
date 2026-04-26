@@ -570,3 +570,62 @@ Added to `MARKETING_DIRECTOR_PROMPT` via a `PLATFORM_FORMAT_MATRIX` constant in 
 - `SESSION-LOG.md` (this entry)
 
 **Agent 2 (Canva MCP wiring) is next.**
+
+---
+
+## 2026-04-25 — Sprint 2 Agent 2 (Canva MCP wiring + Connect Canva UI)
+
+**Identity:** Sprint 2 Agent 2 (Sonnet coding agent)
+**Branch:** `main`
+**Date:** 2026-04-25
+**Commit SHA:** `acdee81`
+
+---
+
+### Pattern Chosen
+
+**Edify-mediated OAuth.** Edify registers a Canva developer app; users authorize
+through Edify's `/api/integrations/canva/connect` → Canva returns a code to
+`/api/integrations/canva/callback` → access + refresh tokens are encrypted with
+AES-256-GCM and stored per-org in `mcp_connections` (server_name = 'canva'). At
+chat time, `buildMcpServersForOrg()` calls `getValidCanvaAccessToken()` which reads
+the DB row, auto-refreshes if within 60s of expiry, and passes the decrypted token
+as `authorization_token` in the MCP server entry to the Anthropic API. This mirrors
+the Google OAuth pattern exactly and is the right choice for multi-tenant SaaS: each
+org owns their own Canva connection, tokens never cross org boundaries.
+
+### Key Finding: Canva MCP URL
+
+Canva has NOT published a stable production MCP SSE endpoint for third-party
+applications as of Sprint 2 (2026-04-25). The "Canva AI Connector" is a
+developer-tooling server, not a production tool endpoint. The `CANVA_MCP_URL` env
+var is a placeholder — when Canva ships it, set the var and the entire pipeline
+activates automatically. Until then, the Canva MCP entry is gracefully skipped
+(Kida is unaffected).
+
+### Files Touched
+
+| File | Change |
+|------|--------|
+| `apps/web/.env.example` | Canva OAuth vars added |
+| `apps/web/.env.local.example` | Canva OAuth vars added |
+| `apps/web/.env.local` | Canva OAuth vars added as TODO (gitignored, not committed) |
+| `apps/web/src/lib/mcp/canva-oauth.ts` | NEW — token refresh, revoke, valid-token lookup |
+| `apps/web/src/lib/mcp/registry.ts` | Updated — Canva entry + per-org DB lookup (Sprint 2 path) |
+| `apps/web/src/app/api/integrations/canva/route.ts` | NEW — GET connection status |
+| `apps/web/src/app/api/integrations/canva/connect/route.ts` | NEW — OAuth initiation (PKCE) |
+| `apps/web/src/app/api/integrations/canva/callback/route.ts` | NEW — OAuth callback + upsert |
+| `apps/web/src/app/api/integrations/canva/disconnect/route.ts` | NEW — DELETE + revoke |
+| `apps/web/src/app/dashboard/settings/integrations/page.tsx` | NEW — integrations settings page |
+| `apps/web/src/components/integrations/CanvaIntegrationCard.tsx` | NEW — Connect Canva card |
+| `apps/web/src/app/dashboard/settings/page.tsx` | Added MCP Integrations nav card |
+| `SMOKE-TEST-NEXT-STEPS-SPRINT-2-AGENT-2.md` | NEW — setup + smoke test guide |
+| `SESSION-LOG.md` | This entry |
+
+### Encryption
+
+Tokens ARE encrypted at rest (AES-256-GCM via `lib/crypto.ts`). Requires
+`ENCRYPTION_KEY` to be set — safe-fails if not set. Citlali must confirm
+`ENCRYPTION_KEY` is set in both `.env.local` and Vercel before testing.
+
+**Agent 3 (custom Canva tools) is next.**
