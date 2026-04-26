@@ -13,13 +13,15 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { encrypt, decryptIfEncrypted } from "@/lib/crypto";
+import { handleJsonResponse } from "@/lib/http";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-export const CANVA_TOKEN_URL = "https://api.canva.com/rest/v1/oauth/token";
-export const CANVA_REVOKE_URL = "https://api.canva.com/rest/v1/oauth/revoke";
+export const CANVA_API_BASE = "https://api.canva.com/rest/v1";
+export const CANVA_TOKEN_URL = `${CANVA_API_BASE}/oauth/token`;
+export const CANVA_REVOKE_URL = `${CANVA_API_BASE}/oauth/revoke`;
 export const CANVA_AUTHORIZE_URL = "https://www.canva.com/api/oauth/authorize";
 
 /**
@@ -46,6 +48,38 @@ export const CANVA_SERVER_NAME = "canva";
  */
 export const CRYPTO_LABEL_CANVA_ACCESS_TOKEN = "mcp_connections.canva.access_token";
 export const CRYPTO_LABEL_CANVA_REFRESH_TOKEN = "mcp_connections.canva.refresh_token";
+
+// ---------------------------------------------------------------------------
+// Shared Canva REST error class + response handler
+// Used by canva-generate-design.ts and canva-export-design.ts tool files.
+// ---------------------------------------------------------------------------
+
+export class CanvaApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "CanvaApiError";
+  }
+}
+
+/**
+ * Wraps handleJsonResponse with Canva's error envelope shape:
+ *   { "error": { "code": "...", "message": "..." } }
+ */
+export async function handleCanvaResponse<T>(response: Response): Promise<T> {
+  return handleJsonResponse<T>(response, {
+    extractMessage: (body) => {
+      const b = body as Record<string, unknown> | null;
+      const err = b?.error as Record<string, unknown> | undefined;
+      if (typeof err?.message === "string") return err.message;
+      if (typeof err?.code === "string") return err.code;
+      return undefined;
+    },
+    makeError: (status, msg) => new CanvaApiError(status, msg),
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Basic auth helper (Canva requires client_id:client_secret as HTTP Basic)

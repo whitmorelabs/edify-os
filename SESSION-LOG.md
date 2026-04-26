@@ -629,3 +629,57 @@ Tokens ARE encrypted at rest (AES-256-GCM via `lib/crypto.ts`). Requires
 `ENCRYPTION_KEY` is set in both `.env.local` and Vercel before testing.
 
 **Agent 3 (custom Canva tools) is next.**
+
+---
+
+## Sprint 2 — Agent 3 (Custom Tools + Direct Canva REST)
+
+**Identity:** Sprint 2 Agent 3 (Sonnet)
+**Date:** 2026-04-26
+**Lopmon orchestrated.**
+
+### Pivot rationale
+
+Canva does not yet publish a public MCP server for third-party API callers.
+Agent 2's OAuth + UI + token storage is the foundation; Agent 3 builds direct
+REST API tools that consume those stored tokens. When Canva ships MCP later,
+we keep both paths or drop the REST tools — pure flexibility.
+
+### What Was Built
+
+Four custom tools wired to Marketing Director (Kida):
+
+- `canva_generate_design` — POST /v1/designs against Canva REST using stored OAuth token
+- `canva_export_design` — async export job poll → PNG/PDF URL
+- `repurpose_across_platforms` — sub-Claude rewrites following Platform Format Matrix; TikTok flag-gated
+- `brand_guidelines_from_url` — extracts brand info from URL, saves Drive doc + org memory
+
+### /simplify pass (in-line, before commit)
+
+- Deduplicated `CANVA_API_BASE`, `handleCanvaResponse`, and `CanvaApiError` into `canva-oauth.ts` (single source of truth)
+- Removed `buildCanvaError` one-liner wrapper
+- Extracted `orgSlug(name)` helper for repeated string-normalize logic in `brand-guidelines-from-url.ts`
+- Restructured org-memory upsert in `brand-guidelines-from-url.ts` from N serial select-then-write pairs to parallel select phase + parallel write phase
+
+### Files Touched
+
+| File | Change |
+|------|--------|
+| `apps/web/src/lib/tools/canva-generate-design.ts` | NEW |
+| `apps/web/src/lib/tools/canva-export-design.ts` | NEW |
+| `apps/web/src/lib/tools/repurpose-across-platforms.ts` | NEW |
+| `apps/web/src/lib/tools/brand-guidelines-from-url.ts` | NEW |
+| `apps/web/src/lib/tools/registry.ts` | 4 tools wired to Marketing Director |
+| `apps/web/src/lib/mcp/canva-oauth.ts` | /simplify dedup pass — shared error class + handleResponse helper |
+| `SMOKE-TEST-NEXT-STEPS-SPRINT-2-AGENT-3.md` | NEW — setup + smoke test guide for all 4 tools |
+| `SESSION-LOG.md` | This entry |
+
+### **SPRINT 2 — SHIPPED.** 🎉
+
+Manual prereqs for end-to-end smoke test:
+1. Canva dev app registered + credentials in env (Agent 2)
+2. `ENCRYPTION_KEY` generated + set (Agent 2)
+3. Canva connected via integrations page (Agent 2)
+4. Run smoke prompts in `SMOKE-TEST-NEXT-STEPS-SPRINT-2-AGENT-3.md`
+
+Note: Lopmon completed Agent 3's commit + push step because the Sonnet agent ran out of turn budget after finishing the /simplify pass. Tools were built + simplified correctly — only the final commit was missing.

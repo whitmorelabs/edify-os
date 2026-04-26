@@ -24,6 +24,26 @@ import {
 import { socialTools, executeSocialTool, SOCIAL_TOOLS_ADDENDUM } from "@/lib/tools/social";
 import { webSearchTools, executeWebSearchTool, WEBSEARCH_TOOLS_ADDENDUM, webSearchServerTool } from "@/lib/tools/websearch";
 import { handoffTools, executeHandoffTool, HANDOFF_TOOLS_ADDENDUM } from "@/lib/tools/handoff";
+import {
+  canvaGenerateTools,
+  executeCanvaGenerateTool,
+  CANVA_GENERATE_TOOLS_ADDENDUM,
+} from "@/lib/tools/canva-generate-design";
+import {
+  canvaExportTools,
+  executeCanvaExportTool,
+  CANVA_EXPORT_TOOLS_ADDENDUM,
+} from "@/lib/tools/canva-export-design";
+import {
+  repurposeTools,
+  executeRepurposeTool,
+  REPURPOSE_TOOLS_ADDENDUM,
+} from "@/lib/tools/repurpose-across-platforms";
+import {
+  brandGuidelinesTools,
+  executeBrandGuidelinesTool,
+  BRAND_GUIDELINES_TOOLS_ADDENDUM,
+} from "@/lib/tools/brand-guidelines-from-url";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
@@ -41,6 +61,10 @@ export {
   SOCIAL_TOOLS_ADDENDUM,
   WEBSEARCH_TOOLS_ADDENDUM,
   HANDOFF_TOOLS_ADDENDUM,
+  CANVA_GENERATE_TOOLS_ADDENDUM,
+  CANVA_EXPORT_TOOLS_ADDENDUM,
+  REPURPOSE_TOOLS_ADDENDUM,
+  BRAND_GUIDELINES_TOOLS_ADDENDUM,
 };
 export type { RenderToolGeneratedFile };
 
@@ -53,6 +77,10 @@ const SOCIAL_TOOL_NAMES = new Set(socialTools.map((t) => t.name));
 const WEBSEARCH_TOOL_NAMES = new Set((webSearchTools as Anthropic.Tool[]).map((t) => t.name));
 const MEMORY_TOOL_NAMES = new Set(memoryTools.map((t) => t.name));
 const HANDOFF_TOOL_NAMES = new Set(handoffTools.map((t) => t.name));
+const CANVA_GENERATE_TOOL_NAMES = new Set(canvaGenerateTools.map((t) => t.name));
+const CANVA_EXPORT_TOOL_NAMES = new Set(canvaExportTools.map((t) => t.name));
+const REPURPOSE_TOOL_NAMES = new Set(repurposeTools.map((t) => t.name));
+const BRAND_GUIDELINES_TOOL_NAMES = new Set(brandGuidelinesTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -92,6 +120,22 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("handoff");
       continue;
     }
+    if (CANVA_GENERATE_TOOL_NAMES.has(t.name)) {
+      families.add("canva_generate");
+      continue;
+    }
+    if (CANVA_EXPORT_TOOL_NAMES.has(t.name)) {
+      families.add("canva_export");
+      continue;
+    }
+    if (REPURPOSE_TOOL_NAMES.has(t.name)) {
+      families.add("repurpose");
+      continue;
+    }
+    if (BRAND_GUIDELINES_TOOL_NAMES.has(t.name)) {
+      families.add("brand_guidelines");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -116,6 +160,10 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("websearch")) parts.push(WEBSEARCH_TOOLS_ADDENDUM);
   if (families.has("memory")) parts.push(MEMORY_TOOLS_ADDENDUM);
   if (families.has("handoff")) parts.push(HANDOFF_TOOLS_ADDENDUM);
+  if (families.has("canva_generate")) parts.push(CANVA_GENERATE_TOOLS_ADDENDUM);
+  if (families.has("canva_export")) parts.push(CANVA_EXPORT_TOOLS_ADDENDUM);
+  if (families.has("repurpose")) parts.push(REPURPOSE_TOOLS_ADDENDUM);
+  if (families.has("brand_guidelines")) parts.push(BRAND_GUIDELINES_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -128,7 +176,18 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools],
   development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools],
-  marketing_director: [...driveTools, ...unsplashTools, ...renderTools, ...socialTools, ...memoryTools, ...handoffTools],
+  marketing_director: [
+    ...driveTools,
+    ...unsplashTools,
+    ...renderTools,
+    ...socialTools,
+    ...memoryTools,
+    ...handoffTools,
+    ...canvaGenerateTools,
+    ...canvaExportTools,
+    ...repurposeTools,
+    ...brandGuidelinesTools,
+  ],
   programs_director: [...grantsTools, ...driveTools, ...memoryTools],
   hr_volunteer_coordinator: [...driveTools, ...memoryTools],
 };
@@ -276,6 +335,34 @@ export async function executeTool({
       .single();
     const orgName = (orgRow?.name as string | null) ?? "your organization";
     return executeHandoffTool({ name, input, orgId, orgName, serviceClient, anthropic });
+  }
+
+  if (CANVA_GENERATE_TOOL_NAMES.has(name)) {
+    return executeCanvaGenerateTool({ name, input, orgId, serviceClient });
+  }
+
+  if (CANVA_EXPORT_TOOL_NAMES.has(name)) {
+    return executeCanvaExportTool({ name, input, orgId, serviceClient });
+  }
+
+  if (REPURPOSE_TOOL_NAMES.has(name)) {
+    if (!anthropic) {
+      return {
+        content: "Repurpose tool requires an Anthropic client; none was provided.",
+        is_error: true,
+      };
+    }
+    return executeRepurposeTool({ name, input, anthropic });
+  }
+
+  if (BRAND_GUIDELINES_TOOL_NAMES.has(name)) {
+    if (!anthropic) {
+      return {
+        content: "Brand guidelines tool requires an Anthropic client; none was provided.",
+        is_error: true,
+      };
+    }
+    return executeBrandGuidelinesTool({ name, input, orgId, memberId, serviceClient, anthropic });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };
