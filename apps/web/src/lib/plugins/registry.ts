@@ -45,6 +45,8 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("marketing/draft-content"),
     resolve("marketing/brand-review"),
     resolve("design/design-critique"),
+    resolve("design/canvas-design"),
+    resolve("design/theme-factory"),
   ].filter(Boolean) as string[],
 
   // Remaining archetypes: empty for Sprint 1 — populated in follow-on sprints.
