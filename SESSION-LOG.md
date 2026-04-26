@@ -737,3 +737,12 @@ Prevent broken file pills surfacing in chat when Anthropic container files are n
 ### Test status
 - typecheck: pre-existing environment errors only (broken pnpm virtual store for typescript; no new code errors introduced — confirmed by grepping tsc output for our 4 files, all errors are `Cannot find module 'react'` / JSX implicit-any pre-existing issues)
 - PR: https://github.com/whitmorelabs/edify-os/pull/21
+
+---
+
+### 2026-04-26 — /simplify pass on PR #21 (lopmon-spawned Sonnet)
+
+**Files reviewed:** `run-archetype-turn.ts`, `archetype-prompts.ts`, `file-card.tsx`, `ChatMessages.tsx`
+**Issues found:** 1 — self-evident catch-block comment in `file-card.tsx` (explained WHAT, not WHY; code was already clear)
+**Fixes shipped:** 1 — commit `a33b5b0` — removed `// Network error — surface the same friendly fallback` from `handleFileClick` catch block in `file-card.tsx`
+**Out-of-scope follow-ups noted:** none
