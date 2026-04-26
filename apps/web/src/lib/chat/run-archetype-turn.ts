@@ -144,7 +144,11 @@ export async function runArchetypeTurn({
   // Temporal prefix injected at the top of the user's message (not cached).
   const temporalPrefix = `[Context: Today is ${nowLocal} (${nowUtc.toISOString()} UTC — ${timezone}). When the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.]\n\n`;
 
-  const tools = await resolveArchetypeTools({ archetype, orgId, serviceClient });
+  // Resolve tools and MCP servers in parallel — both are independent DB lookups.
+  const [tools, mcpServers] = await Promise.all([
+    resolveArchetypeTools({ archetype, orgId, serviceClient }),
+    buildMcpServersForOrg(archetype, orgId),
+  ]);
   const serverTools = ARCHETYPE_SERVER_TOOLS[archetype] ?? [];
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];
   const toolAddendums = buildSystemAddendums(tools);
@@ -152,9 +156,6 @@ export async function runArchetypeTurn({
   // E. Plugin skills — uploaded knowledge-work-plugins skill IDs (dynamic, from uploaded-ids.json).
   // These are resolved once before the loop and merged into the container alongside pre-built skills.
   const pluginSkillIds = ARCHETYPE_PLUGIN_SKILLS[archetype] ?? [];
-
-  // F. MCP servers — resolved async (DB lookup in Sprint 2; env-var fallback in Sprint 1).
-  const mcpServers = await buildMcpServersForOrg(archetype, orgId);
 
   // C. Skills-on-demand — attach skills when:
   //   (a) the archetype has pre-built skill IDs AND the message signals doc generation, OR

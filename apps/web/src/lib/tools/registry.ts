@@ -222,7 +222,7 @@ export async function resolveArchetypeTools({
   try {
     const { data, error } = await serviceClient
       .from("mcp_connections")
-      .select("server_name")
+      .select("id")
       .eq("org_id", orgId)
       .eq("server_name", "canva")
       .limit(1)
