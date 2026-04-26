@@ -713,4 +713,4 @@ Consolidate Canva into the unified /dashboard/integrations catalog, delete the r
 
 ### Test status
 - typecheck: clean (only pre-existing TS2688 env errors from broken virtual store — no new code errors; confirmed by filtering error output)
-- PR: pending commit/push
+- PR: https://github.com/whitmorelabs/edify-os/pull/20
