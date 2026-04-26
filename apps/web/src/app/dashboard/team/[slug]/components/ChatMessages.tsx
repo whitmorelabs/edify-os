@@ -165,7 +165,6 @@ function InlineImage({ file, messageTimestamp }: { file: GeneratedFile; messageT
         <img
           src={file.downloadUrl}
           alt={file.name}
-          aria-label={file.name}
           loading="lazy"
           onError={() => setErrored(true)}
           className="block h-auto w-auto max-w-full sm:max-w-[420px] rounded-lg border border-[var(--line-1)]"

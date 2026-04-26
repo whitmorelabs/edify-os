@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Heart,
@@ -600,22 +600,21 @@ function IntegrationsPageInner() {
 
   /* ---------- load Canva connection status ---------- */
 
-  useEffect(() => {
-    async function loadCanvaStatus() {
-      try {
-        const res = await fetch('/api/integrations/canva');
-        if (!res.ok) return;
-        const data = await res.json() as { connected: boolean; email: string | null };
-        if (data.connected) {
-          setConnected((prev) => new Set([...prev, 'canva']));
-          setCanvaEmail(data.email ?? null);
-        }
-      } catch {
-        // Non-fatal — UI degrades to disconnected state
+  const loadCanvaStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/integrations/canva');
+      if (!res.ok) return;
+      const data = await res.json() as { connected: boolean; email: string | null };
+      if (data.connected) {
+        setConnected((prev) => new Set([...prev, 'canva']));
+        setCanvaEmail(data.email ?? null);
       }
+    } catch {
+      // Non-fatal — UI degrades to disconnected state
     }
-    loadCanvaStatus();
   }, []);
+
+  useEffect(() => { loadCanvaStatus(); }, [loadCanvaStatus]);
 
   /* ---------- load Composio (social) connection status ---------- */
 
@@ -686,19 +685,7 @@ function IntegrationsPageInner() {
   useEffect(() => {
     const canvaParam = searchParams.get('canva');
     if (canvaParam === 'connected') {
-      // Refresh Canva status
-      (async () => {
-        try {
-          const res = await fetch('/api/integrations/canva');
-          if (res.ok) {
-            const data = await res.json() as { connected: boolean; email: string | null };
-            if (data.connected) {
-              setConnected((prev) => new Set([...prev, 'canva']));
-              setCanvaEmail(data.email ?? null);
-            }
-          }
-        } catch { /* Non-fatal */ }
-      })();
+      loadCanvaStatus();
       setToast({ message: 'Canva connected successfully!', kind: 'success' });
       router.replace('/dashboard/integrations', { scroll: false });
     } else if (canvaParam === 'denied') {
@@ -710,7 +697,7 @@ function IntegrationsPageInner() {
       });
       router.replace('/dashboard/integrations', { scroll: false });
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, loadCanvaStatus]);
 
   /* ---------- auto-dismiss toast ---------- */
 
@@ -868,7 +855,7 @@ function IntegrationsPageInner() {
           setToast({ message: 'Failed to disconnect Canva. Please try again.', kind: 'error' });
           return;
         }
-        setConnected((prev) => { const next = new Set(prev); next.delete('canva'); return next; });
+        setConnected((prev) => { const next = new Set(prev); next.delete(id); return next; });
         setCanvaEmail(null);
         setExpandedId(null);
         setToast({ message: 'Canva disconnected.', kind: 'success' });
