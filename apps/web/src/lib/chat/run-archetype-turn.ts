@@ -15,7 +15,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ARCHETYPE_PROMPTS, buildCustomNameInstruction } from "@/lib/archetype-prompts";
-import { ARCHETYPE_TOOLS, ARCHETYPE_SERVER_TOOLS, executeTool, buildSystemAddendums } from "@/lib/tools/registry";
+import { ARCHETYPE_SERVER_TOOLS, resolveArchetypeTools, executeTool, buildSystemAddendums } from "@/lib/tools/registry";
 import { getValidGoogleAccessToken } from "@/lib/google";
 import {
   ARCHETYPE_SKILLS,
@@ -144,7 +144,7 @@ export async function runArchetypeTurn({
   // Temporal prefix injected at the top of the user's message (not cached).
   const temporalPrefix = `[Context: Today is ${nowLocal} (${nowUtc.toISOString()} UTC — ${timezone}). When the user refers to "today", "tomorrow", "this week", "next month", etc., interpret relative to this date. Always use ISO 8601 format with the user's timezone offset for calendar operations.]\n\n`;
 
-  const tools = ARCHETYPE_TOOLS[archetype] ?? [];
+  const tools = await resolveArchetypeTools({ archetype, orgId, serviceClient });
   const serverTools = ARCHETYPE_SERVER_TOOLS[archetype] ?? [];
   const archetypeSkillIds = ARCHETYPE_SKILLS[archetype] ?? [];
   const toolAddendums = buildSystemAddendums(tools);
