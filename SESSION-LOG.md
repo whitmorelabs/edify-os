@@ -772,7 +772,8 @@ Fix 3 layered bugs that caused Kida to silently fail a LinkedIn graphic request 
 
 ### Test status
 - typecheck: pre-existing environment failures only (broken pnpm virtual store for `next`, `react`, `lucide-react` — same failure present on `main` before this branch). Zero new errors introduced by these 5 files.
-- PR: pending (see commit below)
+- PR: https://github.com/whitmorelabs/edify-os/pull/26
+- Commit: 3526918 (see commit below)
 
 ---
 
@@ -843,3 +844,63 @@ GET `/api/admin/canva-test` — auth-cookie gated, calls `executeCanvaGenerateTo
 - typecheck: one pre-existing `Cannot find module 'next/server'` error — identical to every other admin route in the codebase; not caused by this file
 - PR: https://github.com/whitmorelabs/edify-os/pull/24
 - Commit: `f51bcf9`
+
+---
+
+## 2026-04-26 — Fix Canva design_type for social formats (lopmon-spawned Sonnet)
+
+### Goal
+Use Canva custom-dimension design_type for social formats since preset names are limited to 4 templates (doc, email, presentation, whiteboard). Canva was returning 400 for every social design_type call.
+
+### Files touched
+- `apps/web/src/lib/tools/canva-generate-design.ts`
+
+### What changed
+- Replaced `DESIGN_TYPE_PRESETS: Record<string, string>` with a typed `CanvaDesignTypeSpec` discriminated union and `DESIGN_TYPE_SPEC: Record<string, CanvaDesignTypeSpec>` map
+- Social formats now send `{ type: "custom", width, height }` with standard platform pixel dimensions
+- `presentation` sends `{ type: "preset", name: "presentation" }` (valid preset)
+- `document` sends `{ type: "preset", name: "doc" }` (valid preset)
+- `flyer` sends `{ type: "custom", width: 2550, height: 3300 }` (US Letter at 300 DPI)
+- Removed silent `?? "instagram_post"` fallback — unknown design_types now return an explicit error
+- Updated `design_type` parameter description to clarify social vs preset routing
+
+### Pixel dimensions
+- instagram_post: 1080×1080
+- instagram_story / story: 1080×1920
+- linkedin_post: 1200×627
+- facebook_post: 1200×630
+- facebook_cover: 820×312
+- twitter_post: 1200×675
+- youtube_thumbnail: 1280×720
+- flyer: 2550×3300
+
+### Test status
+- typecheck: zero new errors introduced; pre-existing `@supabase/supabase-js` module error confirmed on main before this change
+- PR: https://github.com/whitmorelabs/edify-os/pull/25
+- Commit: `fee6a83`
+
+---
+
+## 2026-04-26 — Path A: vendor canvas-design + theme-factory (lopmon-spawned Sonnet)
+
+### Goal
+Add 2 design skills from anthropics/skills to Kida's plugin loadout.
+
+### Files touched
+- `apps/web/plugins/design/canvas-design/` (NEW — 83 files: SKILL.md, LICENSE.txt, canvas-fonts/ with 81 TTF + OFL files)
+- `apps/web/plugins/design/theme-factory/` (NEW — 13 files: SKILL.md, LICENSE.txt, theme-showcase.pdf, themes/ with 10 .md files)
+- `apps/web/src/lib/plugins/registry.ts` (modified — added design/canvas-design + design/theme-factory to marketing_director array)
+- `apps/web/src/lib/archetype-prompts.ts` (modified — added "Advanced design skills" section to MARKETING_DIRECTOR_PROMPT before "Design tool selection")
+
+### Decisions
+- Vendored all upstream files including binary TTF fonts and PDF showcase — the upload script zips the entire skill directory, so all supporting assets must be present for the skill to function at runtime
+- Used `\`` escaping for backticks in the prompt addendum (matching the existing convention in archetype-prompts.ts)
+- Discovery logic in upload-plugin-skills.ts scans PLUGINS_DIR for any subdirectory containing SKILL.md — the two new skills are auto-discovered, no script changes needed
+
+### Open questions / blockers
+- Citlali needs to run `pnpm --filter web upload-plugin-skills` (with ANTHROPIC_API_KEY set in .env.local) after merge to push skills to the Skills API and populate uploaded-ids.json. Until then, registry will silently exclude them at runtime (filter(Boolean) handles the undefined).
+
+### Test status
+- typecheck: zero new errors introduced; all errors are pre-existing environment issues (missing next/server, lucide-react, @supabase/supabase-js) identical to those on main
+- PR: https://github.com/whitmorelabs/edify-os/pull/26
+- Commit: 3526918
