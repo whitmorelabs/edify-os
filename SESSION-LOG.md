@@ -714,3 +714,35 @@ Consolidate Canva into the unified /dashboard/integrations catalog, delete the r
 ### Test status
 - typecheck: clean (only pre-existing TS2688 env errors from broken virtual store — no new code errors; confirmed by filtering error output)
 - PR: https://github.com/whitmorelabs/edify-os/pull/20
+
+---
+
+## 2026-04-26 — Ghost PNG cleanup (lopmon-spawned Sonnet)
+
+### Goal
+Prevent broken file pills surfacing in chat when Anthropic container files are not downloadable.
+
+### Files touched
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — `collectFileOutput`: added `downloadable === false` guard; returns early without pushing to `generatedFiles` when Anthropic flags the file as non-downloadable (code-execution container intermediate). Cast through `{ downloadable?: boolean }` per Anthropic SDK type gap. Strict `=== false` so future API additions don't silently drop files.
+- `apps/web/src/lib/archetype-prompts.ts` — Added "Required inputs before producing a design" section to `MARKETING_DIRECTOR_PROMPT`, above "Design tool selection". Kida must ask for essentials (event date/venue/link, brand colors, CTA) BEFORE generating any design. Softened "Graphics are mandatory" heading to clarify it applies only when inputs are ready.
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — `InlineImage` errored state: wrapped FileCard in a `<div>` and added a `<p className="text-xs text-[var(--fg-3)]">` fallback message ("Preview not available — the design may still be rendering, or this file has expired.") so errored images show a friendly message instead of just reverting silently.
+- `apps/web/src/components/ui/file-card.tsx` — Added `useState` import; added `unavailable` state + `handleFileClick` async handler (HEAD-checks the href before opening; sets `unavailable=true` on non-ok response or network error); wired `onClick={handleFileClick}` on the filename `<a>` tag; shows "Preview not available" in the meta line when `unavailable` is true. Reuses existing `var(--fg-3)` color only.
+
+### Decisions
+- Used `HEAD` fetch (not `GET`) in `handleFileClick` to avoid downloading the full file just to check availability.
+- Strict `=== false` check in `collectFileOutput` to avoid dropping files when Anthropic adds new optional fields.
+- Only placed the friendly fallback in the `meta` line of FileCard (not a modal/toast) to avoid any layout/chrome changes — aesthetic freeze is in effect.
+- `InlineImage` errored state keeps the FileCard fallback (shows badge + filename) and adds the friendly message below — preserves existing design treatment.
+
+### Test status
+- typecheck: pre-existing environment errors only (broken pnpm virtual store for typescript; no new code errors introduced — confirmed by grepping tsc output for our 4 files, all errors are `Cannot find module 'react'` / JSX implicit-any pre-existing issues)
+- PR: https://github.com/whitmorelabs/edify-os/pull/21
+
+---
+
+### 2026-04-26 — /simplify pass on PR #21 (lopmon-spawned Sonnet)
+
+**Files reviewed:** `run-archetype-turn.ts`, `archetype-prompts.ts`, `file-card.tsx`, `ChatMessages.tsx`
+**Issues found:** 1 — self-evident catch-block comment in `file-card.tsx` (explained WHAT, not WHY; code was already clear)
+**Fixes shipped:** 1 — commit `a33b5b0` — removed `// Network error — surface the same friendly fallback` from `handleFileClick` catch block in `file-card.tsx`
+**Out-of-scope follow-ups noted:** none

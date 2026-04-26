@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Download } from "lucide-react";
 import { relativeTime } from "@/lib/utils";
 
@@ -153,6 +154,25 @@ export function FileCard({
   const sizeStr = size && size > 0 ? formatSize(size) : null;
   const meta = sizeStr ? `${sizeStr} · ${relativeTime(createdAt)}` : relativeTime(createdAt);
 
+  // If a file link is clicked and the server responds with a 4xx/5xx (e.g. an
+  // Anthropic container intermediate that slipped through), show a friendly
+  // inline message instead of dumping raw error JSON.
+  const [unavailable, setUnavailable] = useState(false);
+
+  async function handleFileClick(e: React.MouseEvent) {
+    e.preventDefault();
+    try {
+      const res = await fetch(href, { method: "HEAD" });
+      if (res.ok) {
+        window.open(href, "_blank", "noopener,noreferrer");
+      } else {
+        setUnavailable(true);
+      }
+    } catch {
+      setUnavailable(true);
+    }
+  }
+
   return (
     <div
       className={className}
@@ -174,6 +194,7 @@ export function FileCard({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={handleFileClick}
           style={{
             display: "block",
             fontSize: 13,
@@ -196,7 +217,9 @@ export function FileCard({
             marginTop: 2,
           }}
         >
-          {meta}
+          {unavailable
+            ? "Preview not available — the design may still be rendering, or this file has expired."
+            : meta}
         </div>
       </div>
 
