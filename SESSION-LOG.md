@@ -419,3 +419,154 @@ Skills API error 400: {"type":"error","error":{"type":"invalid_request_error",
 - `apps/web/.env.local` confirmed present and gitignored before any operations.
 - pnpm WARNs about `node.exe.EXE` bin creation are benign Windows-only symlink limitations.
 - No architectural decisions made. All blockers escalated.
+
+---
+
+## 2026-04-25 — upload-plugin-skills Bug Fix Agent
+
+**Identity:** Sonnet coding agent (upload-plugin-skills fix)
+**Branch:** `main`
+**Date:** 2026-04-25
+
+### Bug Fixed
+
+- **File:** `scripts/upload-plugin-skills.ts` line 254
+- **Change:** `name="file"` → `name="files[]"` in the multipart form-data Content-Disposition header
+- **Result:** HTTP 400 "No files provided" error resolved
+
+### BLOCKED — Second Bug Discovered
+
+After fixing the field name, the upload attempt revealed a second API validation error:
+
+```
+Skills API error 400: {"type":"error","error":{"type":"invalid_request_error",
+"message":"Zip must contain a top-level folder with all files inside it, including SKILL.md"}}
+```
+
+The `buildZip()` function stores files at the root of the ZIP (e.g., `SKILL.md` at zip root). The Anthropic Skills API requires them inside a named top-level folder (e.g., `content-creation/SKILL.md`).
+
+**Fix needed in `buildZip()`:** prefix `relPath` with the skill folder name, e.g.:
+```ts
+// In buildZip(), change:
+const relPath = path.relative(skillDir, filePath).replace(/\\/g, "/");
+// To:
+const folderName = path.basename(skillDir);
+const relPath = `${folderName}/${path.relative(skillDir, filePath).replace(/\\/g, "/")}`;
+```
+
+This is a second bug beyond the original scope. **Escalating to Lopmon** for direction before proceeding.
+
+### Current State
+
+- `scripts/upload-plugin-skills.ts`: field name fix committed (pending commit — not committed yet, awaiting Lopmon direction)
+- `apps/web/plugins/uploaded-ids.json`: still `{}` (no skill_id obtained)
+- Upload did NOT succeed — smoke-test prerequisites are NOT yet complete
+- Remaining: ZIP structure fix + re-run → then Supabase migration + chat test
+
+---
+
+## 2026-04-25 — upload-plugin-skills Smoke-Test Completion Agent
+
+**Identity:** Sonnet coding agent (smoke-test finisher)
+**Branch:** `main`
+**Commit:** `87312cb`
+**Date:** 2026-04-25
+
+### Bug #2 Fix
+
+- **File:** `scripts/upload-plugin-skills.ts`, `buildZip()` function, line ~136
+- **Location:** Inside the `for (const filePath of files)` loop
+- **Change:** Added `const folderName = path.basename(skillDir);` before the loop, then changed:
+  ```ts
+  // Before:
+  const relPath = path.relative(skillDir, filePath).replace(/\\/g, "/");
+  // After:
+  const relPath = `${folderName}/${path.relative(skillDir, filePath).replace(/\\/g, "/")}`;
+  ```
+- **Reason:** Skills API requires all files wrapped in a top-level folder inside the ZIP (e.g., `content-creation/SKILL.md`), not flat at the ZIP root.
+
+### Upload Result
+
+- **Outcome:** SUCCESS — 1 uploaded, 0 skipped, 0 failed
+- **skill_id:** `skill_017FnZSfMgmdwCvnhhyfUdPD`
+- **Key in uploaded-ids.json:** `"marketing/content-creation"`
+- **File written:** `apps/web/plugins/uploaded-ids.json`
+
+### Commit
+
+- **SHA:** `87312cb`
+- **Message:** `fix(plugins): upload-plugin-skills now matches Skills API runtime contract`
+- **Files changed:** `scripts/upload-plugin-skills.ts`, `apps/web/plugins/uploaded-ids.json`
+- **Pushed:** Yes, to `origin/main`
+
+### Smoke-Test Status
+
+Plugin upload prerequisites are now COMPLETE. Both script bugs are fixed and verified against the live Skills API.
+
+**Remaining for Citlali to unblock:**
+1. Run Supabase migration (schema changes needed for plugin skill_id storage)
+2. Perform live chat test with the content-creation skill to confirm end-to-end plugin pipeline
+
+No architectural decisions were made. All scope was pre-defined by the PRD/handoff instructions.
+
+---
+
+# SESSION-LOG — Sprint 2 Agent 1 (Marketing WOW v2)
+
+**Identity:** Sprint 2 Agent 1 (Sonnet coding agent)
+**Branch:** `main`
+**Date:** 2026-04-26
+**Commit SHA:** `3197a7f`
+
+---
+
+## Skills Vendored
+
+| Upstream path | Local path | skill_id |
+|---|---|---|
+| `marketing/skills/campaign-plan` | `apps/web/plugins/marketing/campaign-plan/SKILL.md` | `skill_01AySa2AtT3ucvkBVBR6oxPq` |
+| `marketing/skills/draft-content` | `apps/web/plugins/marketing/draft-content/SKILL.md` | `skill_019oipj6xZhA48EM1y5Q32vm` |
+| `marketing/skills/brand-review` | `apps/web/plugins/marketing/brand-review/SKILL.md` | `skill_015fDKT5mPCGFCEo78Gnqa24` |
+| `design/skills/design-critique` | `apps/web/plugins/design/design-critique/SKILL.md` | `skill_01GgBnv6RrBvrauGn1Vc4EWC` |
+
+**Idempotency check:** `marketing/content-creation` (Sprint 1, `skill_017FnZSfMgmdwCvnhhyfUdPD`) was correctly SKIPPED — hash matched, no re-upload.
+
+LICENSE files from upstream Apache 2.0 repo placed at:
+- `apps/web/plugins/marketing/LICENSE`
+- `apps/web/plugins/design/LICENSE`
+
+## Registry Update
+
+`apps/web/src/lib/plugins/registry.ts` — `ARCHETYPE_PLUGIN_SKILLS.marketing_director` now includes all 5 skills (content-creation from Sprint 1 + 4 new). The `uploadedIds` type cast was corrected from `string | undefined` to the full `{ skill_id, hash, uploaded_at }` shape, with a `resolve()` helper extracting `skill_id`.
+
+## ENABLE_TIKTOK Feature Flag
+
+- `apps/web/.env.example` — `ENABLE_TIKTOK=false` (with comment)
+- `apps/web/.env.local.example` — `ENABLE_TIKTOK=false` (with comment)
+- `apps/web/.env.local` — `ENABLE_TIKTOK=true` (dev/staging value; gitignored)
+- `apps/web/src/lib/config.ts` — new typed config helper; `ENABLE_TIKTOK` exported as `boolean`
+
+**To enable TikTok in Vercel prod:** add `ENABLE_TIKTOK=true` to Vercel environment variables for the `web` deployment.
+
+## Platform Format Matrix
+
+Added to `MARKETING_DIRECTOR_PROMPT` via a `PLATFORM_FORMAT_MATRIX` constant in `apps/web/src/lib/archetype-prompts.ts`. Covers: Instagram Feed Post, Instagram Story, Facebook Feed Post, LinkedIn Feed Post, YouTube Community Post, and (conditionally) TikTok Drafts mode. TikTok entry is conditionally appended at module load time using the `ENABLE_TIKTOK` boolean from `config.ts`.
+
+## Files Touched
+
+- `apps/web/plugins/marketing/campaign-plan/SKILL.md` (new)
+- `apps/web/plugins/marketing/draft-content/SKILL.md` (new)
+- `apps/web/plugins/marketing/brand-review/SKILL.md` (new)
+- `apps/web/plugins/marketing/LICENSE` (new)
+- `apps/web/plugins/design/design-critique/SKILL.md` (new)
+- `apps/web/plugins/design/LICENSE` (new)
+- `apps/web/plugins/uploaded-ids.json` (updated with 4 new entries)
+- `apps/web/src/lib/plugins/registry.ts` (updated type cast + 4 new skill keys)
+- `apps/web/src/lib/archetype-prompts.ts` (platform matrix + ENABLE_TIKTOK import)
+- `apps/web/src/lib/config.ts` (new — ENABLE_TIKTOK typed config)
+- `apps/web/.env.example` (ENABLE_TIKTOK=false added)
+- `apps/web/.env.local.example` (ENABLE_TIKTOK=false added)
+- `apps/web/.env.local` (ENABLE_TIKTOK=true added; NOT committed — gitignored)
+- `SESSION-LOG.md` (this entry)
+
+**Agent 2 (Canva MCP wiring) is next.**
