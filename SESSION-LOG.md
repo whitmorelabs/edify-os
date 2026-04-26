@@ -825,3 +825,21 @@ Gate render_design + unsplash away from Marketing Director when the org has Canv
 - `Promise.all([resolveArchetypeTools(...), buildMcpServersForOrg(...)])` to parallelize the two independent DB calls
 
 **archetype-prompts.ts:** No issues — prompt text simplification in PR #23 was already clean.
+
+---
+
+## 2026-04-26 — Canva diagnostic endpoint (lopmon-spawned Sonnet)
+
+### Goal
+Surface raw Canva API errors via a temp diagnostic route so we can debug without Vercel logs.
+
+### Files touched
+- `apps/web/src/app/api/admin/canva-test/route.ts` (NEW)
+
+### What it does
+GET `/api/admin/canva-test` — auth-cookie gated, calls `executeCanvaGenerateTool` directly with a hardcoded `instagram_post` input, returns the full executor result as JSON (including `content`, `is_error`, and parsed body). Covers three diagnostic stages: token lookup (`stage: "token"`), execute (`stage: "execute"`), and unhandled throws (`stage: "unhandled"`). No model invocation. No new dependencies.
+
+### Test status
+- typecheck: one pre-existing `Cannot find module 'next/server'` error — identical to every other admin route in the codebase; not caused by this file
+- PR: https://github.com/whitmorelabs/edify-os/pull/24
+- Commit: `f51bcf9`
