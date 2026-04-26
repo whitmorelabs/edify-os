@@ -21,7 +21,22 @@ import {
 // System-prompt addendum when render tool is active.
 // ---------------------------------------------------------------------------
 
-export const RENDER_TOOLS_ADDENDUM = `\nYou have access to an HTML-to-PNG rasterizer via render_design_to_image. Use it AFTER designing a composition with the Frontend Design guidance to produce a social-ready PNG (Instagram square, story, LinkedIn, Twitter, or custom dimensions). The input is an HTML string — inline styles and limited flex/grid layouts work best; complex CSS or external stylesheets do not. Tailwind is partially supported via the experimental \`tw\` attribute on elements. Keep the HTML self-contained (no <script>, no remote fonts unless explicitly needed). The tool returns a file ID and a download URL the user can click to save the image.`;
+export const RENDER_TOOLS_ADDENDUM = `\nYou have access to an HTML-to-PNG rasterizer via render_design_to_image. Use it AFTER designing a composition with the Frontend Design guidance to produce a social-ready PNG (Instagram square, story, LinkedIn, Twitter, or custom dimensions). The input is an HTML string — inline styles and limited flex/grid layouts work best; complex CSS or external stylesheets do not. Tailwind is partially supported via the experimental \`tw\` attribute on elements. Keep the HTML self-contained (no <script>, no remote fonts unless explicitly needed). The tool returns a file ID and a download URL the user can click to save the image.
+
+### Satori HTML constraints (READ CAREFULLY before calling render_design_to_image)
+
+Satori is the engine behind this tool. It is much stricter than a real browser:
+
+1. **Every \`<div>\` with more than ONE child MUST set \`display: flex\` (or \`display: none\`) explicitly.** No exceptions. If you forget this, Satori throws "expected display: flex".
+2. **Default to \`flex-direction: column\`** for vertical stacks, \`flex-direction: row\` for horizontal layouts.
+3. **No \`position: fixed\`. Avoid \`position: absolute\`** unless the parent has \`position: relative\` and explicit width/height.
+4. **No \`display: grid\`, no \`display: block\` for multi-child containers, no \`display: inline\`** beyond text spans.
+5. **No external resources:** no \`<link>\`, \`<script>\`, \`<style>\`, no \`@import\`, no remote \`<img src="https://...">\` URLs without explicit width/height attrs.
+6. **Tailwind via \`tw=""\`** is partially supported. When in doubt, use inline \`style={{...}}\` instead.
+7. **Fonts:** stick to common system fonts (sans-serif, serif). Custom fonts must be explicitly loaded — if you need a font you're not sure about, just use \`font-family: sans-serif\`.
+8. **Always set explicit width and height on the root element** (e.g., \`width: 1200; height: 628\` for LinkedIn). Use \`width: '100%'\` only on children, never the root.
+
+Before submitting HTML to render_design_to_image, mentally walk through every \`<div>\` and confirm it either has \`display: flex\` set or has exactly one child.`;
 
 // ---------------------------------------------------------------------------
 // Tool definition
@@ -31,7 +46,7 @@ export const renderTools: Anthropic.Tool[] = [
   {
     name: "render_design_to_image",
     description:
-      "Rasterize an HTML design composition into a social-ready PNG image. Use AFTER designing a visual composition (with the Frontend Design skill guidance, or on your own) to produce an actual downloadable raster image — for Instagram posts, LinkedIn banners, Twitter cards, event flyers, etc. The HTML should be self-contained: inline styles, flex/grid layouts, and the experimental Tailwind `tw` attribute are supported. No external stylesheets, scripts, or remote fonts. Pick a preset dimension that matches the target platform, or specify a custom width/height. Returns a fileId + downloadUrl the user can click to save the PNG.",
+      "Rasterize an HTML design composition into a social-ready PNG image. Use AFTER designing a visual composition (with the Frontend Design skill guidance, or on your own) to produce an actual downloadable raster image — for Instagram posts, LinkedIn banners, Twitter cards, event flyers, etc. The HTML should be self-contained: inline styles and flex layouts are supported. No external stylesheets, scripts, or remote fonts. Note: every multi-child div MUST set display: flex explicitly (Satori limitation — omitting it causes a render error). Pick a preset dimension that matches the target platform, or specify a custom width/height. Returns a fileId + downloadUrl the user can click to save the PNG.",
     input_schema: {
       type: "object" as const,
       properties: {

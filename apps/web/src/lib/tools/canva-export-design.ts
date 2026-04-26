@@ -178,8 +178,14 @@ export async function executeCanvaExportTool({
     }
   } catch (err) {
     if (err instanceof CanvaApiError) {
+      console.error("[canva-export] Canva API error (create job):", {
+        status: err.status,
+        message: err.message,
+        body: err.rawBody,
+      });
+      const detail = err.rawBody ? ` — Canva said: ${err.rawBody}` : "";
       return {
-        content: `Canva export error (${err.status}): ${err.message}`,
+        content: `Canva export error (${err.status}): ${err.message}${detail}`,
         is_error: true,
       };
     }
@@ -199,8 +205,14 @@ export async function executeCanvaExportTool({
       pollData = await handleCanvaResponse<ExportJobResult>(pollRes);
     } catch (err) {
       if (err instanceof CanvaApiError) {
+        console.error("[canva-export] Canva API error (poll):", {
+          status: err.status,
+          message: err.message,
+          body: err.rawBody,
+        });
+        const detail = err.rawBody ? ` — Canva said: ${err.rawBody}` : "";
         return {
-          content: `Canva export poll error (${err.status}): ${err.message}`,
+          content: `Canva export poll error (${err.status}): ${err.message}${detail}`,
           is_error: true,
         };
       }

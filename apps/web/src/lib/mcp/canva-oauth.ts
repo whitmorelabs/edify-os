@@ -13,7 +13,6 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { encrypt, decryptIfEncrypted } from "@/lib/crypto";
-import { handleJsonResponse } from "@/lib/http";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -55,30 +54,60 @@ export const CRYPTO_LABEL_CANVA_REFRESH_TOKEN = "mcp_connections.canva.refresh_t
 // ---------------------------------------------------------------------------
 
 export class CanvaApiError extends Error {
+  /** The full raw body returned by Canva, JSON-stringified. Populated when the
+   *  response body was parseable JSON. Use this in error messages / logs so the
+   *  next failure is diagnosable without Vercel log access. */
+  public readonly rawBody: string;
+
   constructor(
     public readonly status: number,
-    message: string
+    message: string,
+    rawBody?: string
   ) {
     super(message);
     this.name = "CanvaApiError";
+    this.rawBody = rawBody ?? "";
   }
 }
 
 /**
  * Wraps handleJsonResponse with Canva's error envelope shape:
- *   { "error": { "code": "...", "message": "..." } }
+ *   { "error": { "code": "...", "message": "...", "request_id": "..." } }
+ *
+ * Captures the FULL body in CanvaApiError.rawBody so callers can log and
+ * surface it to the model (see executeCanvaGenerateTool / executeCanvaExportTool).
  */
 export async function handleCanvaResponse<T>(response: Response): Promise<T> {
-  return handleJsonResponse<T>(response, {
-    extractMessage: (body) => {
-      const b = body as Record<string, unknown> | null;
-      const err = b?.error as Record<string, unknown> | undefined;
-      if (typeof err?.message === "string") return err.message;
-      if (typeof err?.code === "string") return err.code;
-      return undefined;
-    },
-    makeError: (status, msg) => new CanvaApiError(status, msg),
-  });
+  if (response.ok) {
+    return response.json() as Promise<T>;
+  }
+
+  // Read body once — we need it for both extraction and the raw capture.
+  let body: unknown = null;
+  let rawBody = "";
+  try {
+    body = await response.json();
+    rawBody = JSON.stringify(body);
+  } catch {
+    // Body wasn't JSON — leave rawBody as empty string.
+    rawBody = await response.text().catch(() => "");
+  }
+
+  const b = body as Record<string, unknown> | null;
+  const errObj = b?.error as Record<string, unknown> | undefined;
+  const errors = b?.errors as unknown[] | undefined;
+
+  // Build a human-readable message from the Canva error envelope.
+  let msg: string = response.statusText || `HTTP ${response.status}`;
+  if (typeof errObj?.message === "string") msg = errObj.message;
+  else if (typeof errObj?.code === "string") msg = errObj.code;
+  else if (Array.isArray(errors) && errors.length > 0) {
+    const first = errors[0] as Record<string, unknown>;
+    if (typeof first?.message === "string") msg = first.message;
+    else if (typeof first?.code === "string") msg = first.code;
+  }
+
+  throw new CanvaApiError(response.status, msg, rawBody);
 }
 
 // ---------------------------------------------------------------------------

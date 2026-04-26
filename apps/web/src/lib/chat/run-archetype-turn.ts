@@ -228,6 +228,12 @@ export async function runArchetypeTurn({
   // Track whether at least one tool was successfully called this turn.
   // If no tools were called, we insert a baseline chat:turn_no_tools event.
   let anyToolCalled = false;
+  // Count tool errors across all loop rounds so we can surface a meaningful
+  // failure notice if the loop hits TOOL_USE_LOOP_MAX without finishing.
+  let toolErrorCount = 0;
+  // Set to true if the for-loop completes all rounds without breaking early
+  // (i.e., every round was tool_use with no final end_turn text).
+  let loopHitCap = true;
   // Accumulate token usage across all loop iterations.
   const tokenUsage: TokenUsage = {
     inputTokens: 0,
@@ -335,6 +341,7 @@ export async function runArchetypeTurn({
       if (toolUseBlocks.length === 0) {
         // Only server-side skill tool calls — no client result needed
         finalAssistantText = textInThisResponse;
+        loopHitCap = false;
         break;
       }
 
@@ -383,7 +390,9 @@ export async function runArchetypeTurn({
             }
             // Fire-and-forget: track successful tool call for hours-saved counter.
             // Event key format: "tool:<tool_name>" matching estimates.ts.
-            if (!result.is_error) {
+            if (result.is_error) {
+              toolErrorCount++;
+            } else {
               anyToolCalled = true;
               void insertActivityEvent(serviceClient, {
                 orgId,
@@ -401,6 +410,7 @@ export async function runArchetypeTurn({
             };
           } catch (err) {
             console.error("[runArchetypeTurn] Tool execution threw", { name: block.name, error: err });
+            toolErrorCount++;
             return {
               type: "tool_result" as const,
               tool_use_id: block.id,
@@ -417,6 +427,7 @@ export async function runArchetypeTurn({
 
     if (response.stop_reason === "refusal") {
       finalAssistantText = "I can't help with that request.";
+      loopHitCap = false;
       break;
     }
 
@@ -426,6 +437,7 @@ export async function runArchetypeTurn({
       response.stop_reason === "stop_sequence"
     ) {
       finalAssistantText = textInThisResponse;
+      loopHitCap = false;
       break;
     }
 
@@ -437,19 +449,40 @@ export async function runArchetypeTurn({
     ) {
       console.warn("[runArchetypeTurn] Skills/beta stop_reason", { stop_reason: response.stop_reason });
       finalAssistantText = textInThisResponse;
+      loopHitCap = false;
       break;
     }
 
     console.warn("[runArchetypeTurn] Unexpected stop_reason", { stop_reason: response.stop_reason });
     finalAssistantText = textInThisResponse;
+    loopHitCap = false;
     break;
   }
 
-  // Loop cap hit — prefer any partial text over a canned fallback
-  if (!finalAssistantText) {
-    finalAssistantText =
-      lastAssistantText ||
-      "I reached the tool-use limit. Try a more specific question.";
+  // Loop cap hit — every round was tool_use with no final end_turn text.
+  // Surface a failure notice rather than silently using an interim assistant sentence.
+  if (loopHitCap) {
+    console.warn("[runArchetypeTurn] Tool-use loop hit TOOL_USE_LOOP_MAX", {
+      toolErrorCount,
+      hadPartialText: !!lastAssistantText,
+    });
+
+    if (lastAssistantText) {
+      // Append failure notice to whatever interim text the model produced.
+      const errorNote = toolErrorCount > 0
+        ? `\n\n(I wasn't able to complete this — I tried multiple approaches and ran into ${toolErrorCount} error${toolErrorCount === 1 ? "" : "s"}. Could you simplify the request, or let me know if you'd like me to try something different?)`
+        : `\n\n(I wasn't able to finish — I reached my tool-use limit. Could you simplify the request or try a different approach?)`;
+      finalAssistantText = lastAssistantText + errorNote;
+    } else {
+      // No partial text at all — produce a standalone failure message.
+      finalAssistantText =
+        toolErrorCount > 0
+          ? `I reached the tool-use limit while trying to complete this (encountered ${toolErrorCount} tool error${toolErrorCount === 1 ? "" : "s"} along the way). Could you simplify the request or try a different approach?`
+          : "I reached the tool-use limit without finishing. Could you simplify the request or try a different approach?";
+    }
+  } else if (!finalAssistantText) {
+    // Non-cap exit but somehow still no text (shouldn't normally happen).
+    finalAssistantText = lastAssistantText || "I reached the tool-use limit. Try a more specific question.";
   }
 
   // Fire-and-forget: if the turn used no tools, record a baseline chat turn.

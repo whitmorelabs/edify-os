@@ -746,3 +746,43 @@ Prevent broken file pills surfacing in chat when Anthropic container files are n
 **Issues found:** 1 — self-evident catch-block comment in `file-card.tsx` (explained WHAT, not WHY; code was already clear)
 **Fixes shipped:** 1 — commit `a33b5b0` — removed `// Network error — surface the same friendly fallback` from `handleFileClick` catch block in `file-card.tsx`
 **Out-of-scope follow-ups noted:** none
+
+---
+
+## 2026-04-26 — Canva error visibility + Satori-safe render guidance + loop-exhaustion UX (lopmon-spawned Sonnet)
+
+### Goal
+Fix 3 layered bugs that caused Kida to silently fail a LinkedIn graphic request (Lights of Hope Gala test): opaque Canva errors, Satori rejecting HTML for missing `display:flex`, and the loop cap leaving an interim "Canva hit a snag..." sentence as the final user-visible reply.
+
+### Files touched
+- `apps/web/src/lib/mcp/canva-oauth.ts` — rewrote `handleCanvaResponse` to capture full response body in `CanvaApiError.rawBody`; removed now-unused `handleJsonResponse` import
+- `apps/web/src/lib/tools/canva-generate-design.ts` — fixed Canva API request schema (`{ design_type: { preset } }` → `{ design_type: { type: "preset", name } }`); catch block now logs + returns full Canva body in `is_error` content
+- `apps/web/src/lib/tools/canva-export-design.ts` — both catch blocks (create job + poll) now log + return full Canva body in `is_error` content
+- `apps/web/src/lib/tools/render.ts` — `RENDER_TOOLS_ADDENDUM` expanded with explicit Satori constraints (8-point list); tool `description` now reminds model that multi-child divs require `display: flex`
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — added `toolErrorCount` + `loopHitCap` tracking; cap-fallback now appends clear failure notice to any interim text, or produces a standalone message with error count when no partial text exists
+
+### Decisions
+- **Canva schema fix confirmed by WebFetch against Canva Connect docs.** The API requires `{ type: "preset", name: "<preset_name>" }` — the old `{ preset: "..." }` discriminated-union shape was rejected. Changed in `canva-generate-design.ts`.
+- **Dropped `handleJsonResponse` dependency in `canva-oauth.ts`.** The generic helper couldn't capture the raw body for re-surfacing. Replaced with inline fetch-and-parse logic that captures `rawBody` before constructing `CanvaApiError`.
+- **Satori addendum is additive prose only** — no changes to the HTML schema or tool parameters, no UI changes.
+- **Loop cap fix is minimal** — no loop refactor, just two counters and a richer fallback string.
+
+### Open questions / blockers
+- **Task D (/members 500):** Not caused by migration 00022 (`mcp_connections`). That migration uses a different trigger function name (`set_updated_at` vs existing `update_updated_at`) and only adds RLS on the new table — no `members`/`orgs` policy changes. The 500 most likely indicates a transient Supabase error OR a PostgREST self-referencing RLS issue on the `orgs` table (its policy queries `members`, which itself has a policy — potential recursion in some PostgREST versions). Requires Citlali to check Supabase logs or run the query in Studio with `set local role anon` to reproduce. No codebase fix attempted — root cause not diagnosable without database access.
+
+### Test status
+- typecheck: pre-existing environment failures only (broken pnpm virtual store for `next`, `react`, `lucide-react` — same failure present on `main` before this branch). Zero new errors introduced by these 5 files.
+- PR: pending (see commit below)
+
+---
+
+### 2026-04-26 — /simplify pass on PR #22 (lopmon-spawned Sonnet)
+
+**Files reviewed:** `run-archetype-turn.ts`, `canva-oauth.ts`, `canva-generate-design.ts`, `canva-export-design.ts`, `render.ts`
+**Issues found:**
+- `run-archetype-turn.ts`: 8-line "Old behavior / New behavior" narrative comment block — change-description prose that belongs in the PR, not source. Trimmed to a 2-line WHY summary.
+- `canva-generate-design.ts`: 2 redundant "what this line does" comments in the CanvaApiError catch block — code was self-explanatory. Removed.
+- All load-bearing changes preserved: schema fix `{ type: "preset", name }`, `rawBody` capture, 8-point Satori list, `loopHitCap`/`toolErrorCount` flags, `handleCanvaResponse` inline (justified — generic helper couldn't capture rawBody before consuming it).
+
+**Fixes shipped:** commit `4ad5033` — 2 files changed, 2 insertions, 12 deletions (comment trimming only)
+**Out-of-scope follow-ups noted:** none
