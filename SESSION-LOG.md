@@ -773,3 +773,16 @@ Fix 3 layered bugs that caused Kida to silently fail a LinkedIn graphic request 
 ### Test status
 - typecheck: pre-existing environment failures only (broken pnpm virtual store for `next`, `react`, `lucide-react` — same failure present on `main` before this branch). Zero new errors introduced by these 5 files.
 - PR: pending (see commit below)
+
+---
+
+### 2026-04-26 — /simplify pass on PR #22 (lopmon-spawned Sonnet)
+
+**Files reviewed:** `run-archetype-turn.ts`, `canva-oauth.ts`, `canva-generate-design.ts`, `canva-export-design.ts`, `render.ts`
+**Issues found:**
+- `run-archetype-turn.ts`: 8-line "Old behavior / New behavior" narrative comment block — change-description prose that belongs in the PR, not source. Trimmed to a 2-line WHY summary.
+- `canva-generate-design.ts`: 2 redundant "what this line does" comments in the CanvaApiError catch block — code was self-explanatory. Removed.
+- All load-bearing changes preserved: schema fix `{ type: "preset", name }`, `rawBody` capture, 8-point Satori list, `loopHitCap`/`toolErrorCount` flags, `handleCanvaResponse` inline (justified — generic helper couldn't capture rawBody before consuming it).
+
+**Fixes shipped:** commit `4ad5033` — 2 files changed, 2 insertions, 12 deletions (comment trimming only)
+**Out-of-scope follow-ups noted:** none
