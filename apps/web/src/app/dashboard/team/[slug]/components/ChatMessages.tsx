@@ -148,14 +148,19 @@ function InlineImage({ file, messageTimestamp }: { file: GeneratedFile; messageT
 
   if (errored) {
     return (
-      <FileCard
-        name={file.name}
-        type={mimeToType(file.mimeType ?? "")}
-        createdAt={messageTimestamp}
-        href={file.downloadUrl}
-        isNew={false}
-        thumbnailUrl={file.downloadUrl}
-      />
+      <div className="mt-2">
+        <FileCard
+          name={file.name}
+          type={mimeToType(file.mimeType ?? "")}
+          createdAt={messageTimestamp}
+          href={file.downloadUrl}
+          isNew={false}
+          thumbnailUrl={file.downloadUrl}
+        />
+        <p className="text-xs text-[var(--fg-3)] mt-1 px-1">
+          Preview not available — the design may still be rendering, or this file has expired.
+        </p>
+      </div>
     );
   }
 

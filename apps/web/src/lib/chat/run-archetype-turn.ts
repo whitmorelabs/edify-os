@@ -492,6 +492,17 @@ async function collectFileOutput(
     const meta = await anthropic.beta.files.retrieveMetadata(fileId, {
       headers: { "anthropic-beta": "files-api-2025-04-14" },
     } as Parameters<typeof anthropic.beta.files.retrieveMetadata>[1]);
+
+    // If Anthropic flags this file as not downloadable (e.g. a code-execution
+    // container intermediate), don't surface it to chat — clicking it would
+    // 4xx via /api/files/[fileId]. The model still sees its tool result; we
+    // just suppress the user-facing artifact pill.
+    // Strict === false: only skip when the API explicitly says false. If
+    // downloadable is true or undefined, keep the existing behavior.
+    if ((meta as { downloadable?: boolean }).downloadable === false) {
+      return;
+    }
+
     if (meta.filename) {
       filename = meta.filename;
       ext = filename.split(".").pop()?.toLowerCase() ?? "";
