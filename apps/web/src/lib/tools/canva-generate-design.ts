@@ -165,7 +165,7 @@ export async function executeCanvaGenerateTool({
         error: "canva_not_connected",
         message:
           "Canva is not connected for this organization. Please visit Settings → Integrations and connect your Canva account before generating designs. Once connected, try this request again.",
-        settings_url: "/dashboard/settings/integrations",
+        settings_url: "/dashboard/integrations",
       }),
       is_error: true,
     };

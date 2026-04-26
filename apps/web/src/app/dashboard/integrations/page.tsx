@@ -9,6 +9,7 @@ import {
   BookOpen,
   Library,
   PartyPopper,
+  Palette,
   CheckCircle,
   ExternalLink,
   X,
@@ -224,6 +225,16 @@ const INTEGRATIONS: IntegrationEntry[] = [
     description: 'Link Constant Contact so your team can manage email marketing and contact lists on your behalf.',
     icon: ConstantContactIcon,
     capabilities: ['Create and send email campaigns', 'Manage contact lists', 'View open and click rates', 'Schedule campaigns'],
+    agentsUsing: [marketing],
+    connectionType: 'oauth',
+  },
+  {
+    id: 'canva',
+    name: 'Canva',
+    category: 'marketing',
+    description: 'Connect Canva so Kida (your Marketing Director) can create, read, and manage designs on your behalf — flyers, social graphics, presentations, and more.',
+    icon: Palette,
+    capabilities: ['Create and edit designs on your behalf', 'Upload brand assets (images, logos)', 'Read existing design metadata'],
     agentsUsing: [marketing],
     connectionType: 'oauth',
   },
@@ -518,6 +529,9 @@ function countByCategory(cat: string) {
 /** Integration types backed by real Google OAuth. */
 const GOOGLE_INTEGRATION_IDS = new Set(['gmail', 'google_calendar', 'google_drive']);
 
+/** Integration types backed by Canva OAuth. */
+const CANVA_INTEGRATION_IDS = new Set(['canva']);
+
 /**
  * Integration ids that are brokered through Composio (OAuth on their end, we
  * just hold the connection reference). Keep in sync with TOOLKIT_SLUG in
@@ -544,11 +558,11 @@ const COMPOSIO_INTEGRATION_TO_PLATFORM: Record<string, string> = {
 
 /**
  * Returns true only for integrations with a real OAuth flow implemented:
- * Google (direct) and social media (Composio-brokered).
+ * Google (direct), social media (Composio-brokered), and Canva.
  * All other OAuth integrations are "coming soon".
  */
 function hasRealOAuthFlow(id: string): boolean {
-  return GOOGLE_INTEGRATION_IDS.has(id) || COMPOSIO_INTEGRATION_IDS.has(id);
+  return GOOGLE_INTEGRATION_IDS.has(id) || COMPOSIO_INTEGRATION_IDS.has(id) || CANVA_INTEGRATION_IDS.has(id);
 }
 
 function IntegrationsPageInner() {
@@ -559,6 +573,7 @@ function IntegrationsPageInner() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [connected, setConnected] = useState<Set<string>>(new Set());
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [canvaEmail, setCanvaEmail] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [oauthModalId, setOauthModalId] = useState<string | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, Record<string, string>>>({});
@@ -581,6 +596,25 @@ function IntegrationsPageInner() {
       }
     }
     loadGoogleStatus();
+  }, []);
+
+  /* ---------- load Canva connection status ---------- */
+
+  useEffect(() => {
+    async function loadCanvaStatus() {
+      try {
+        const res = await fetch('/api/integrations/canva');
+        if (!res.ok) return;
+        const data = await res.json() as { connected: boolean; email: string | null };
+        if (data.connected) {
+          setConnected((prev) => new Set([...prev, 'canva']));
+          setCanvaEmail(data.email ?? null);
+        }
+      } catch {
+        // Non-fatal — UI degrades to disconnected state
+      }
+    }
+    loadCanvaStatus();
   }, []);
 
   /* ---------- load Composio (social) connection status ---------- */
@@ -647,6 +681,37 @@ function IntegrationsPageInner() {
     }
   }, [searchParams, router]);
 
+  /* ---------- handle ?canva=connected / denied toast ---------- */
+
+  useEffect(() => {
+    const canvaParam = searchParams.get('canva');
+    if (canvaParam === 'connected') {
+      // Refresh Canva status
+      (async () => {
+        try {
+          const res = await fetch('/api/integrations/canva');
+          if (res.ok) {
+            const data = await res.json() as { connected: boolean; email: string | null };
+            if (data.connected) {
+              setConnected((prev) => new Set([...prev, 'canva']));
+              setCanvaEmail(data.email ?? null);
+            }
+          }
+        } catch { /* Non-fatal */ }
+      })();
+      setToast({ message: 'Canva connected successfully!', kind: 'success' });
+      router.replace('/dashboard/integrations', { scroll: false });
+    } else if (canvaParam === 'denied') {
+      const rawReason = searchParams.get('reason') ?? 'access_denied';
+      const reason = rawReason.slice(0, 100);
+      setToast({
+        message: `Canva connection was not completed (${reason}). Please try again.`,
+        kind: 'error',
+      });
+      router.replace('/dashboard/integrations', { scroll: false });
+    }
+  }, [searchParams, router]);
+
   /* ---------- auto-dismiss toast ---------- */
 
   useEffect(() => {
@@ -676,6 +741,12 @@ function IntegrationsPageInner() {
     // Google integrations use the real OAuth flow — redirect to initiate route
     if (GOOGLE_INTEGRATION_IDS.has(id)) {
       window.location.href = '/api/integrations/google/connect';
+      return;
+    }
+
+    // Canva integration — redirect to initiate route
+    if (CANVA_INTEGRATION_IDS.has(id)) {
+      window.location.href = '/api/integrations/canva/connect';
       return;
     }
 
@@ -785,6 +856,24 @@ function IntegrationsPageInner() {
         setToast({ message: 'Google Workspace disconnected.', kind: 'success' });
       } catch {
         setToast({ message: 'Failed to disconnect Google. Please try again.', kind: 'error' });
+      }
+      return;
+    }
+
+    // Canva integration: call DELETE endpoint
+    if (CANVA_INTEGRATION_IDS.has(id)) {
+      try {
+        const res = await fetch('/api/integrations/canva/disconnect', { method: 'DELETE' });
+        if (!res.ok) {
+          setToast({ message: 'Failed to disconnect Canva. Please try again.', kind: 'error' });
+          return;
+        }
+        setConnected((prev) => { const next = new Set(prev); next.delete('canva'); return next; });
+        setCanvaEmail(null);
+        setExpandedId(null);
+        setToast({ message: 'Canva disconnected.', kind: 'success' });
+      } catch {
+        setToast({ message: 'Failed to disconnect Canva. Please try again.', kind: 'error' });
       }
       return;
     }
@@ -997,6 +1086,13 @@ function IntegrationsPageInner() {
               {isConnected && GOOGLE_INTEGRATION_IDS.has(i.id) && googleEmail && (
                 <p className="mt-2 text-xs text-fg-4">
                   Connected as <span className="font-medium text-fg-2">{googleEmail}</span>
+                </p>
+              )}
+
+              {/* Canva email badge */}
+              {isConnected && CANVA_INTEGRATION_IDS.has(i.id) && canvaEmail && (
+                <p className="mt-2 text-xs text-fg-4">
+                  Connected as <span className="font-medium text-fg-2">{canvaEmail}</span>
                 </p>
               )}
 

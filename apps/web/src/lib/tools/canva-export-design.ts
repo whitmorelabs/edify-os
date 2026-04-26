@@ -128,7 +128,7 @@ export async function executeCanvaExportTool({
         error: "canva_not_connected",
         message:
           "Canva is not connected. Please visit Settings → Integrations to connect your Canva account.",
-        settings_url: "/dashboard/settings/integrations",
+        settings_url: "/dashboard/integrations",
       }),
       is_error: true,
     };
