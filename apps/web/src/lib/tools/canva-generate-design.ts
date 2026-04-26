@@ -34,22 +34,39 @@ import {
 export { CanvaApiError };
 
 // ---------------------------------------------------------------------------
-// Design type → Canva preset mapping
+// Design type → Canva API design_type spec
 // ---------------------------------------------------------------------------
 
-/** Maps user-facing design_type values to Canva's preset design type strings. */
-const DESIGN_TYPE_PRESETS: Record<string, string> = {
-  instagram_post: "instagram_post",
-  instagram_story: "instagram_story",
-  linkedin_post: "linkedin_post",
-  facebook_post: "facebook_post",
-  facebook_cover: "facebook_cover",
-  story: "instagram_story",
-  twitter_post: "twitter_post",
-  youtube_thumbnail: "youtube_thumbnail",
-  presentation: "presentation_wide",
-  flyer: "a4_document",
-  document: "a4_document",
+/**
+ * Discriminated union matching Canva Connect API's design_type field.
+ *
+ * Canva only accepts 4 preset names: doc, email, presentation, whiteboard.
+ * All social / custom formats must use { type: "custom", width, height }.
+ */
+type CanvaDesignTypeSpec =
+  | { type: "preset"; name: "doc" | "email" | "presentation" | "whiteboard" }
+  | { type: "custom"; width: number; height: number };
+
+/**
+ * Maps user-facing design_type slugs to the correct Canva API design_type spec.
+ * Social formats use standard platform pixel dimensions (custom type).
+ * Document/presentation types use Canva's named presets.
+ */
+const DESIGN_TYPE_SPEC: Record<string, CanvaDesignTypeSpec> = {
+  // Social — preset names not supported; use custom pixel dimensions
+  instagram_post:    { type: "custom", width: 1080, height: 1080 },
+  instagram_story:   { type: "custom", width: 1080, height: 1920 },
+  linkedin_post:     { type: "custom", width: 1200, height: 627 },
+  facebook_post:     { type: "custom", width: 1200, height: 630 },
+  facebook_cover:    { type: "custom", width: 820,  height: 312 },
+  story:             { type: "custom", width: 1080, height: 1920 },
+  twitter_post:      { type: "custom", width: 1200, height: 675 },
+  youtube_thumbnail: { type: "custom", width: 1280, height: 720 },
+
+  // Documents — Canva preset names are supported
+  presentation: { type: "preset", name: "presentation" },
+  document:     { type: "preset", name: "doc" },
+  flyer:        { type: "custom", width: 2550, height: 3300 },
 };
 
 // ---------------------------------------------------------------------------
@@ -95,7 +112,7 @@ export const canvaGenerateTools: Anthropic.Tool[] = [
             "document",
           ],
           description:
-            "The type of design to create. Pick the preset that best matches the target platform (instagram_post = 1080x1080, linkedin_post = 1200x628, instagram_story = 1080x1920, etc.).",
+            "The type of design to create. Maps to Canva's design_type API field — social formats (instagram_post, linkedin_post, etc.) are created at standard pixel dimensions for that platform; document/presentation use Canva's named templates.",
         },
         title: {
           type: "string",
@@ -180,15 +197,23 @@ export async function executeCanvaGenerateTool({
 
   const { accessToken } = tokenResult;
 
-  // --- Resolve preset ---
-  // Canva Connect API uses a discriminated union for design_type.
-  // Correct shape: { type: "preset", name: "<preset_name>" }
-  // The older { preset: "<preset_name>" } shape is NOT accepted by the API.
-  const presetName = DESIGN_TYPE_PRESETS[designType] ?? "instagram_post";
+  // --- Resolve design type spec ---
+  // Canva Connect API uses a discriminated union for design_type:
+  //   { type: "preset", name: "doc"|"email"|"presentation"|"whiteboard" }
+  //   { type: "custom", width: <px>, height: <px> }
+  // Social formats (instagram_post, linkedin_post, etc.) must use "custom" —
+  // they are NOT valid preset names and Canva returns 400 if you try.
+  const designTypeSpec = DESIGN_TYPE_SPEC[designType];
+  if (!designTypeSpec) {
+    return {
+      content: `Unknown design_type: ${designType}. Supported: ${Object.keys(DESIGN_TYPE_SPEC).join(", ")}.`,
+      is_error: true,
+    };
+  }
 
   // --- Call Canva Connect: POST /v1/designs ---
   const requestBody: Record<string, unknown> = {
-    design_type: { type: "preset", name: presetName },
+    design_type: designTypeSpec,
     title: title.trim(),
   };
 
