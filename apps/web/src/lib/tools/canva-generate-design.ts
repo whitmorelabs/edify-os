@@ -181,11 +181,14 @@ export async function executeCanvaGenerateTool({
   const { accessToken } = tokenResult;
 
   // --- Resolve preset ---
-  const preset = DESIGN_TYPE_PRESETS[designType] ?? "instagram_post";
+  // Canva Connect API uses a discriminated union for design_type.
+  // Correct shape: { type: "preset", name: "<preset_name>" }
+  // The older { preset: "<preset_name>" } shape is NOT accepted by the API.
+  const presetName = DESIGN_TYPE_PRESETS[designType] ?? "instagram_post";
 
   // --- Call Canva Connect: POST /v1/designs ---
   const requestBody: Record<string, unknown> = {
-    design_type: { preset },
+    design_type: { type: "preset", name: presetName },
     title: title.trim(),
   };
 
@@ -211,8 +214,17 @@ export async function executeCanvaGenerateTool({
     designData = await handleCanvaResponse<typeof designData>(response);
   } catch (err) {
     if (err instanceof CanvaApiError) {
+      // Log full body to Vercel function logs for diagnosability.
+      console.error("[canva-generate] Canva API error:", {
+        status: err.status,
+        message: err.message,
+        body: err.rawBody,
+      });
+      // Surface the full body to the model so it can relay the actual error
+      // to the user rather than a generic "Canva hit a snag" sentence.
+      const detail = err.rawBody ? ` — Canva said: ${err.rawBody}` : "";
       return {
-        content: `Canva API error (${err.status}): ${err.message}`,
+        content: `Canva API error (${err.status}): ${err.message}${detail}`,
         is_error: true,
       };
     }
