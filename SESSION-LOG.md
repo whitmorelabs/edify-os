@@ -683,3 +683,34 @@ Manual prereqs for end-to-end smoke test:
 4. Run smoke prompts in `SMOKE-TEST-NEXT-STEPS-SPRINT-2-AGENT-3.md`
 
 Note: Lopmon completed Agent 3's commit + push step because the Sonnet agent ran out of turn budget after finishing the /simplify pass. Tools were built + simplified correctly — only the final commit was missing.
+
+---
+
+## 2026-04-26 — Canva consolidation + Kida fixes (lopmon-spawned Sonnet)
+
+### Goal
+Consolidate Canva into the unified /dashboard/integrations catalog, delete the redundant settings page, update Kida's tool preference, and make file artifacts clickable in chat.
+
+### Files touched
+- `apps/web/src/app/dashboard/integrations/page.tsx` — Added Canva entry to catalog; CANVA_INTEGRATION_IDS const; canvaEmail state; loadCanvaStatus useEffect; ?canva=connected/denied handler; handleConnectClick Canva branch; handleDisconnect Canva branch; canvaEmail badge in card UI
+- `apps/web/src/app/dashboard/settings/integrations/page.tsx` — DELETED (redundant MCP-only page)
+- `apps/web/src/components/integrations/CanvaIntegrationCard.tsx` — DELETED (orphan card component)
+- `apps/web/src/app/dashboard/settings/page.tsx` — Updated "Manage Integrations" link from /dashboard/settings/integrations → /dashboard/integrations
+- `apps/web/src/lib/archetype-prompts.ts` — Added "Design tool selection" section to Kida's prompt: prefer canva_generate_design/canva_export_design when connected, render_design_to_image as fallback only
+- `apps/web/src/app/dashboard/team/[slug]/components/ChatMessages.tsx` — Wrapped InlineImage <img> in <a href target="_blank"> so images are clickable
+- `apps/web/src/components/ui/file-card.tsx` — Made filename a clickable <a> link (was a plain <div>); opens in new tab always (not just when isNew)
+- `apps/web/src/lib/tools/canva-generate-design.ts` — Updated stale settings_url: /dashboard/settings/integrations → /dashboard/integrations
+- `apps/web/src/lib/tools/canva-export-design.ts` — Updated stale settings_url: /dashboard/settings/integrations → /dashboard/integrations
+
+### Decisions
+- Used `Palette` (lucide-react) as Canva icon — SiCanva does not exist in react-icons/si; no brand-icons folder exists; per PRD instructions
+- Made FileCard filename always clickable (not just when isNew) since non-new files were completely inert (no link, no interactivity)
+- Updated tool settings_url references in canva-generate-design.ts and canva-export-design.ts to point to /dashboard/integrations — found via grep, not in PRD scope but necessary for consistency
+- tsconfig.tsbuildinfo appears in diff — this is an auto-generated file modified by a prior unrelated change; not touched by this session
+
+### Open questions / blockers
+- none
+
+### Test status
+- typecheck: clean (only pre-existing TS2688 env errors from broken virtual store — no new code errors; confirmed by filtering error output)
+- PR: https://github.com/whitmorelabs/edify-os/pull/20

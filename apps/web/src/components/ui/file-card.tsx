@@ -170,19 +170,24 @@ export function FileCard({
       <FileTypeBadge treatment={treatment} label={label} thumbnailUrl={thumbnailUrl} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
+            display: "block",
             fontSize: 13,
             color: "var(--fg-1)",
             fontWeight: 500,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
+            textDecoration: "none",
           }}
           title={name}
         >
           {name}
-        </div>
+        </a>
         <div
           style={{
             fontFamily: "var(--font-mono)",

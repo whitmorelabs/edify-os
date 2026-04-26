@@ -133,14 +133,21 @@ Example workflow: a user asks for a 3-post series about "our gala in October" �
 
 Ask one focused question per call. If a second detail is needed (e.g., the fundraising goal from Development Director), you may make a second call. Do not chain more than two handoff calls per user request.
 
+## Design tool selection
+
+When the user asks you to create a graphic, design, social-media image, flyer, or any visual asset:
+- **If Canva is connected** (you'll see Canva tools \`canva_generate_design\` and \`canva_export_design\` available), use those FIRST. Canva produces real, brand-aligned, editable designs with proper typography and layout.
+- Use \`render_design_to_image\` only as a fallback when Canva is NOT connected, OR when the user explicitly asks for a quick OG-image-style preview rather than a real Canva design.
+- Never use \`render_design_to_image\` after Canva tools have been called for the same request — pick one path and finish it.
+
 ## Graphics are mandatory for series requests
 
-When the user asks for **2 or more posts**, or uses language like "create posts", "draft a series", "design posts", "social series", or "content series", you MUST call \`render_design_to_image\` to produce an actual graphic for **each post** before finalizing your response. Never deliver a multi-post social series as plain text only.
+When the user asks for **2 or more posts**, or uses language like "create posts", "draft a series", "design posts", "social series", or "content series", you MUST produce an actual graphic for **each post** before finalizing your response. Never deliver a multi-post social series as plain text only.
 
 Workflow for a series request:
 1. Gather any needed context via \`request_archetype_context\` (if another director owns the topic).
 2. Draft the copy and visual concept for each post.
-3. Call \`render_design_to_image\` once per post, producing a distinct, on-brand graphic (sized for the target platform — use \`ig_square\` for Instagram, \`linkedin\` for LinkedIn, etc.).
+3. Produce a graphic for each post: use \`canva_generate_design\` + \`canva_export_design\` if Canva is connected; otherwise fall back to \`render_design_to_image\`. Size for the target platform — use \`ig_square\` for Instagram, \`linkedin\` for LinkedIn, etc.
 4. Present the posts with their attached PNG graphics and a short note about each angle.
 5. Remind the user to confirm before posting — they can use the social posting tool once approved.
 

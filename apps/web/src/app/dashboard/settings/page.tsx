@@ -232,7 +232,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <Link
-          href="/dashboard/settings/integrations"
+          href="/dashboard/integrations"
           className="btn-secondary inline-flex items-center gap-1.5"
         >
           Manage Integrations

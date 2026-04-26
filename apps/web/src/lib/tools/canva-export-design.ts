@@ -35,6 +35,7 @@ import {
 
 const POLL_INTERVAL_MS = 1500;
 const POLL_MAX_ATTEMPTS = 10;
+const VALID_EXPORT_FORMATS = ["png", "pdf", "jpg"] as const;
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum (merged into CANVA_GENERATE_TOOLS_ADDENDUM in practice;
@@ -114,9 +115,8 @@ export async function executeCanvaExportTool({
     return { content: "design_id is required.", is_error: true };
   }
 
-  const validFormats = ["png", "pdf", "jpg"];
-  if (!validFormats.includes(format)) {
-    return { content: `format must be one of: ${validFormats.join(", ")}`, is_error: true };
+  if (!(VALID_EXPORT_FORMATS as readonly string[]).includes(format)) {
+    return { content: `format must be one of: ${VALID_EXPORT_FORMATS.join(", ")}`, is_error: true };
   }
 
   // --- Resolve Canva token ---
@@ -128,7 +128,7 @@ export async function executeCanvaExportTool({
         error: "canva_not_connected",
         message:
           "Canva is not connected. Please visit Settings → Integrations to connect your Canva account.",
-        settings_url: "/dashboard/settings/integrations",
+        settings_url: "/dashboard/integrations",
       }),
       is_error: true,
     };

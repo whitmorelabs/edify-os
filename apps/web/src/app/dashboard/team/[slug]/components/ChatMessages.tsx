@@ -161,14 +161,15 @@ function InlineImage({ file, messageTimestamp }: { file: GeneratedFile; messageT
 
   return (
     <figure className="mt-2 inline-block max-w-full">
-      <img
-        src={file.downloadUrl}
-        alt={file.name}
-        aria-label={file.name}
-        loading="lazy"
-        onError={() => setErrored(true)}
-        className="block h-auto w-auto max-w-full sm:max-w-[420px] rounded-lg border border-[var(--line-1)]"
-      />
+      <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer">
+        <img
+          src={file.downloadUrl}
+          alt={file.name}
+          loading="lazy"
+          onError={() => setErrored(true)}
+          className="block h-auto w-auto max-w-full sm:max-w-[420px] rounded-lg border border-[var(--line-1)]"
+        />
+      </a>
       <figcaption className="mt-1.5">
         <a
           href={file.downloadUrl}
