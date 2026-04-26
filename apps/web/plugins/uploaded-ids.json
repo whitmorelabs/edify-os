@@ -23,5 +23,15 @@
     "skill_id": "skill_019oipj6xZhA48EM1y5Q32vm",
     "hash": "0387c1d6dece2236",
     "uploaded_at": "2026-04-26T00:49:26.432Z"
+  },
+  "design/canvas-design": {
+    "skill_id": "skill_01UcqvvnwBti9WYF5BTyopAb",
+    "hash": "e7634e2c3420f69d",
+    "uploaded_at": "2026-04-26T23:12:11.947Z"
+  },
+  "design/theme-factory": {
+    "skill_id": "skill_01Vj5Chja2ajdTBSNi2LCEeq",
+    "hash": "52372d8aaf9b5818",
+    "uploaded_at": "2026-04-26T23:12:13.177Z"
   }
 }
