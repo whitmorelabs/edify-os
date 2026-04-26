@@ -772,7 +772,8 @@ Fix 3 layered bugs that caused Kida to silently fail a LinkedIn graphic request 
 
 ### Test status
 - typecheck: pre-existing environment failures only (broken pnpm virtual store for `next`, `react`, `lucide-react` — same failure present on `main` before this branch). Zero new errors introduced by these 5 files.
-- PR: pending (see commit below)
+- PR: https://github.com/whitmorelabs/edify-os/pull/26
+- Commit: 3526918 (see commit below)
 
 ---
 
@@ -901,4 +902,5 @@ Add 2 design skills from anthropics/skills to Kida's plugin loadout.
 
 ### Test status
 - typecheck: zero new errors introduced; all errors are pre-existing environment issues (missing next/server, lucide-react, @supabase/supabase-js) identical to those on main
-- PR: pending
+- PR: https://github.com/whitmorelabs/edify-os/pull/26
+- Commit: 3526918
