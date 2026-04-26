@@ -10,15 +10,27 @@
  *   - Marketing Director gets Slack for smoke testing.
  *   - All other archetypes are empty.
  *   - Token sourcing: env var fallback (SLACK_MCP_OAUTH_TOKEN) — no OAuth UI yet.
- *     The OAuth UI and the mcp_connections table are wired up in Sprint 2.
  *
- * Sprint 2 will add:
- *   - Per-org token lookup from the mcp_connections Supabase table.
- *   - An admin UI where users connect their own Slack/Notion/etc accounts.
- *   - Additional archetypes (events_director → Google Calendar MCP, etc.).
+ * Sprint 2 (this update):
+ *   - Canva added to Marketing Director MCP config.
+ *   - buildMcpServersForOrg() now performs per-org DB lookup from mcp_connections
+ *     for Canva (with auto-refresh via canva-oauth.ts). Slack retains env-var fallback.
+ *   - Graceful degradation: if an org has no Canva connection, the MCP server entry
+ *     is omitted from the API call — Kida still works, just without Canva tools.
+ *
+ * NOTE — Canva MCP server URL:
+ *   Canva's production MCP SSE endpoint for third-party apps is not yet publicly
+ *   documented as of Sprint 2 (2026-04-25). The CANVA_MCP_URL env var is a
+ *   placeholder for when Canva ships a stable MCP endpoint. The OAuth infrastructure
+ *   (token storage, refresh, UI) is fully wired now so enabling it requires only
+ *   setting CANVA_MCP_URL in the environment. The Canva AI Connector (canva.com/help/
+ *   mcp-agent-setup) is a developer-tooling server, not a production API endpoint.
+ *   See SMOKE-TEST-NEXT-STEPS-SPRINT-2-AGENT-2.md for follow-up steps.
  */
 
 import type { ArchetypeSlug } from "@/lib/archetypes";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getValidCanvaAccessToken, CANVA_SERVER_NAME } from "@/lib/mcp/canva-oauth";
 
 /** Shape of one MCP server config passed to the Anthropic API. */
 export interface MCPServerConfig {
@@ -33,6 +45,11 @@ export interface MCPServerConfig {
    * is excluded from the API call to avoid passing blank tokens.
    */
   oauthTokenEnv?: string;
+  /**
+   * When true, the token for this server is looked up per-org from mcp_connections
+   * (with auto-refresh) rather than from an env var.
+   */
+  useOrgToken?: boolean;
 }
 
 /**
@@ -41,7 +58,7 @@ export interface MCPServerConfig {
  * IMPORTANT: This is the STATIC config — URLs and server names only.
  * Actual tokens are resolved at call time by buildMcpServersForOrg()
  * below, which looks up per-org tokens from the mcp_connections table
- * (Sprint 2) or falls back to env vars (Sprint 1).
+ * (Sprint 2 DB path) or falls back to env vars (Sprint 1 / Slack path).
  */
 const ARCHETYPE_MCP_CONFIG: Record<ArchetypeSlug, MCPServerConfig[]> = {
   marketing_director: [
@@ -51,6 +68,15 @@ const ARCHETYPE_MCP_CONFIG: Record<ArchetypeSlug, MCPServerConfig[]> = {
       // See: https://github.com/anthropics/knowledge-work-plugins for the MCP URL list.
       url: "https://mcp.slack.com/sse",
       oauthTokenEnv: "SLACK_MCP_OAUTH_TOKEN",
+    },
+    {
+      // Canva MCP — per-org OAuth token stored in mcp_connections.
+      // URL is read from CANVA_MCP_URL env var. If unset, this entry is skipped
+      // (Canva has not yet published a stable production MCP SSE endpoint as of Sprint 2).
+      // Set CANVA_MCP_URL once Canva publishes a stable production MCP SSE endpoint.
+      name: CANVA_SERVER_NAME,
+      url: process.env.CANVA_MCP_URL ?? "",
+      useOrgToken: true,
     },
   ],
 
@@ -78,21 +104,20 @@ export interface ResolvedMCPServer {
 /**
  * Build the resolved MCP server list for a given archetype + org.
  *
- * Sprint 1 strategy:
- *   1. Try to fetch token from the mcp_connections table for this org + server_name.
- *   2. Fall back to the environment variable named in oauthTokenEnv.
- *   3. Exclude the server entirely if no token is found (prevents sending blank auth).
- *
- * Sprint 2 will replace step 1 with a real DB lookup once the mcp_connections
- * migration is applied and the OAuth UI is wired up.
+ * Resolution strategy per server entry:
+ *   1. If useOrgToken=true: look up per-org token from mcp_connections (with auto-refresh).
+ *      If the org has no connection for this server, skip gracefully.
+ *   2. Otherwise: fall back to the environment variable named in oauthTokenEnv.
+ *   3. If no URL is configured (e.g. CANVA_MCP_URL not set), skip the server.
+ *   4. Exclude the server entirely if no token is found (prevents blank auth headers).
  *
  * @param archetype  The archetype slug for this chat turn.
- * @param _orgId     The org UUID (unused in Sprint 1; will query mcp_connections in Sprint 2).
+ * @param orgId      The org UUID — used for per-org mcp_connections lookups.
  * @returns          Array of resolved server configs ready for the API call.
  */
 export async function buildMcpServersForOrg(
   archetype: ArchetypeSlug,
-  _orgId: string,
+  orgId: string,
 ): Promise<ResolvedMCPServer[]> {
   const configs = ARCHETYPE_MCP_CONFIG[archetype] ?? [];
   if (configs.length === 0) return [];
@@ -100,19 +125,32 @@ export async function buildMcpServersForOrg(
   const resolved: ResolvedMCPServer[] = [];
 
   for (const cfg of configs) {
+    // Skip entries with no URL configured (e.g. CANVA_MCP_URL not yet set in env)
+    if (!cfg.url) continue;
+
     let token: string | undefined;
 
-    // Sprint 2: replace this block with a Supabase lookup:
-    //   const { data } = await serviceClient
-    //     .from("mcp_connections")
-    //     .select("access_token")
-    //     .eq("org_id", orgId)
-    //     .eq("server_name", cfg.name)
-    //     .maybeSingle();
-    //   token = data?.access_token ?? undefined;
-
-    // Sprint 1 fallback: read from environment variable.
-    if (!token && cfg.oauthTokenEnv) {
+    if (cfg.useOrgToken) {
+      // Per-org token lookup from mcp_connections (Sprint 2 DB path)
+      const serviceClient = createServiceRoleClient();
+      if (serviceClient) {
+        const result = await getValidCanvaAccessToken(serviceClient, orgId);
+        if ("accessToken" in result) {
+          token = result.accessToken;
+        } else if ("notConnected" in result) {
+          // Org has not connected Canva — skip gracefully.
+          // Kida still functions; she just won't have Canva MCP tools available.
+          continue;
+        } else {
+          // Token error (expired with no refresh token, DB error, etc.) — log and skip.
+          console.warn(
+            `[mcp/registry] ${cfg.name} token error for org ${orgId}: ${result.error}`
+          );
+          continue;
+        }
+      }
+    } else if (cfg.oauthTokenEnv) {
+      // Env-var fallback (Sprint 1 path for Slack)
       token = process.env[cfg.oauthTokenEnv] ?? undefined;
     }
 
