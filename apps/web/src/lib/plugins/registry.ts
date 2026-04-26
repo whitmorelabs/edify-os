@@ -18,8 +18,17 @@
 import type { ArchetypeSlug } from "@/lib/archetypes";
 // Cast to Record so we can look up arbitrary plugin keys (e.g. "marketing/content-creation")
 // without TypeScript complaining about missing properties on the initially-empty JSON.
+// Each entry is an object { skill_id, hash, uploaded_at } — use .skill_id to extract the ID.
 import uploadedIdsRaw from "../../../plugins/uploaded-ids.json";
-const uploadedIds = uploadedIdsRaw as Record<string, string | undefined>;
+const uploadedIds = uploadedIdsRaw as Record<
+  string,
+  { skill_id: string; hash: string; uploaded_at: string } | undefined
+>;
+
+/** Resolve a plugin key → skill_id string (or undefined if not yet uploaded). */
+function resolve(key: string): string | undefined {
+  return uploadedIds[key]?.skill_id;
+}
 
 /**
  * Archetype → uploaded plugin skill_ids.
@@ -30,7 +39,13 @@ const uploadedIds = uploadedIdsRaw as Record<string, string | undefined>;
  * Follow-on sprints populate the other archetypes.
  */
 export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
-  marketing_director: [uploadedIds["marketing/content-creation"]].filter(Boolean) as string[],
+  marketing_director: [
+    resolve("marketing/content-creation"),
+    resolve("marketing/campaign-plan"),
+    resolve("marketing/draft-content"),
+    resolve("marketing/brand-review"),
+    resolve("design/design-critique"),
+  ].filter(Boolean) as string[],
 
   // Remaining archetypes: empty for Sprint 1 — populated in follow-on sprints.
   executive_assistant: [],

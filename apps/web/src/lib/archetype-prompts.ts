@@ -2,6 +2,8 @@
 // These are read from services/agents/src/prompts/primary/*.md at build time
 // and included here verbatim so they work in a static export.
 
+import { ENABLE_TIKTOK } from "@/lib/config";
+
 const COMMUNICATION_RULES = `## Communication Rules
 - Never compliment or flatter the user. No "Great question!", "That's a wonderful idea!", or any sycophantic language.
 - Be direct, honest, and constructive. If an idea has problems, say so clearly.
@@ -373,10 +375,31 @@ const MEMORY_POSTFIX = `
 ## Organizational memory
 When the user shares a FACT about the organization (program name, policy, staff member, historical event, values, key partner), call \`save_to_memory\` to persist it. Examples worth saving: "Our CINEMA program serves 40 students", "We do not accept anonymous donations", "Maya is our board chair". Do NOT save chit-chat, temporary context, or the user's personal preferences — only durable organizational facts.`;
 
+// ---------------------------------------------------------------------------
+// Platform Format Matrix — injected into Marketing Director's prompt.
+// TikTok section is conditionally included based on the ENABLE_TIKTOK flag.
+// ---------------------------------------------------------------------------
+
+const TIKTOK_PLATFORM_ENTRY = `- **TikTok (Drafts mode):** 9:16 vertical (1080x1920) for video, square 1080x1080 for image carousel. Caption ≤2,200 chars. Hashtags 3-5 ideal, niche > generic. Posts go to the user's TikTok drafts inbox — user reviews and posts manually.`;
+
+const PLATFORM_FORMAT_MATRIX = `
+
+## Platform Format Matrix
+
+When drafting cross-platform content, respect these constraints:
+
+- **Instagram (Feed Post):** 1080x1080 square or 1080x1350 portrait. Caption ≤2,200 chars (first 125 chars visible before "more"). 30 hashtags max, 5-10 ideal.
+- **Instagram (Story):** 1080x1920 vertical. ≤24h ephemeral.
+- **Facebook (Feed Post):** 1200x630 landscape preferred. Caption no hard limit but ≤80 words performs best. Hashtags optional, 1-2 max.
+- **LinkedIn (Feed Post):** 1200x1200 square or 1200x627 landscape. Caption ≤3,000 chars but 1,300 chars is the "see more" cutoff. Hashtags 3-5 ideal.
+- **YouTube (Community Post):** Image 1080x1080. Description ≤700 chars before truncation.${ENABLE_TIKTOK ? `\n${TIKTOK_PLATFORM_ENTRY}` : ""}
+
+When offering platform options to the user, only list the platforms above that are enabled.`;
+
 // Map of slug -> system prompt
 export const ARCHETYPE_PROMPTS: Record<string, string> = {
   development_director: DEVELOPMENT_DIRECTOR_PROMPT + MEMORY_POSTFIX,
-  marketing_director: MARKETING_DIRECTOR_PROMPT + MEMORY_POSTFIX,
+  marketing_director: MARKETING_DIRECTOR_PROMPT + PLATFORM_FORMAT_MATRIX + MEMORY_POSTFIX,
   executive_assistant: EXECUTIVE_ASSISTANT_PROMPT + MEMORY_POSTFIX,
   programs_director: PROGRAMS_DIRECTOR_PROMPT + MEMORY_POSTFIX,
   hr_volunteer_coordinator: HR_VOLUNTEER_COORDINATOR_PROMPT + MEMORY_POSTFIX,

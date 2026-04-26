@@ -3,5 +3,25 @@
     "skill_id": "skill_017FnZSfMgmdwCvnhhyfUdPD",
     "hash": "79400b9649ad6974",
     "uploaded_at": "2026-04-25T18:06:00.000Z"
+  },
+  "design/design-critique": {
+    "skill_id": "skill_01GgBnv6RrBvrauGn1Vc4EWC",
+    "hash": "55100e100ac27891",
+    "uploaded_at": "2026-04-26T00:49:21.105Z"
+  },
+  "marketing/brand-review": {
+    "skill_id": "skill_015fDKT5mPCGFCEo78Gnqa24",
+    "hash": "266e6795caefed69",
+    "uploaded_at": "2026-04-26T00:49:23.963Z"
+  },
+  "marketing/campaign-plan": {
+    "skill_id": "skill_01AySa2AtT3ucvkBVBR6oxPq",
+    "hash": "2335b5e87cc366b7",
+    "uploaded_at": "2026-04-26T00:49:25.123Z"
+  },
+  "marketing/draft-content": {
+    "skill_id": "skill_019oipj6xZhA48EM1y5Q32vm",
+    "hash": "0387c1d6dece2236",
+    "uploaded_at": "2026-04-26T00:49:26.432Z"
   }
 }
