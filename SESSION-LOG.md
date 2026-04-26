@@ -786,3 +786,42 @@ Fix 3 layered bugs that caused Kida to silently fail a LinkedIn graphic request 
 
 **Fixes shipped:** commit `4ad5033` — 2 files changed, 2 insertions, 12 deletions (comment trimming only)
 **Out-of-scope follow-ups noted:** none
+
+---
+
+## 2026-04-26 — Canva-only when connected (lopmon-spawned Sonnet)
+
+### Goal
+Gate render_design + unsplash away from Marketing Director when the org has Canva connected, so tool description weighting can't override prompt-level "prefer Canva" rules.
+
+### Files touched
+- `apps/web/src/lib/tools/registry.ts` — new `resolveArchetypeTools()` async resolver (alongside intact `ARCHETYPE_TOOLS` static export)
+- `apps/web/src/lib/chat/run-archetype-turn.ts` — replaced `ARCHETYPE_TOOLS[archetype]` static lookup with `await resolveArchetypeTools(...)` call
+- `apps/web/src/lib/archetype-prompts.ts` — simplified "Design tool selection" section; removed conditional Canva-vs-render branching language; updated series workflow step 3
+
+### Decisions
+- DB query: `.select("server_name").eq("org_id",...).eq("server_name","canva").limit(1).maybeSingle()` — fast existence check, no full row fetch
+- Graceful fallback on DB error — logs warning, returns static tool set, never fails the turn
+- `ARCHETYPE_TOOLS` static export left intact — other importers still work unchanged
+- Events Director unsplash access untouched — gate is marketing_director-specific only
+
+### Test status
+- typecheck: PASS (zero new errors introduced; pre-existing `@supabase/supabase-js` module resolution errors on main are unchanged)
+- PR: https://github.com/whitmorelabs/edify-os/pull/23
+- Commit: e908734
+
+---
+
+### 2026-04-26 — /simplify pass on PR #23 (lopmon-spawned Sonnet)
+
+**Files reviewed:** `apps/web/src/lib/tools/registry.ts`, `apps/web/src/lib/chat/run-archetype-turn.ts`, `apps/web/src/lib/archetype-prompts.ts`
+
+**Issues found:**
+- `registry.ts`: `.select("server_name")` in the mcp_connections existence check selects a column whose value is already known (we filtered by it); `.select("id")` communicates intent correctly
+- `run-archetype-turn.ts`: `resolveArchetypeTools` and `buildMcpServersForOrg` were two sequential awaits despite being fully independent DB lookups — unnecessary serial latency on every chat turn
+
+**Fixes shipped:** commit `9223350`
+- `select("id")` instead of `select("server_name")` in the Canva existence query
+- `Promise.all([resolveArchetypeTools(...), buildMcpServersForOrg(...)])` to parallelize the two independent DB calls
+
+**archetype-prompts.ts:** No issues — prompt text simplification in PR #23 was already clean.
