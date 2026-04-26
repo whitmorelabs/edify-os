@@ -192,6 +192,62 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   hr_volunteer_coordinator: [...driveTools, ...memoryTools],
 };
 
+/**
+ * Dynamically resolve the tool list for an archetype, accounting for org-level
+ * integration state. Currently only Marketing Director is gated:
+ *
+ * - Canva connected (row in `mcp_connections` for the org) → return Marketing
+ *   Director's tools WITHOUT render_design + unsplash. Kida must use Canva.
+ * - Canva NOT connected → return the static set unchanged (render + unsplash
+ *   serve as the fallback design path).
+ *
+ * All other archetypes return their static tool list immediately (no DB hit).
+ *
+ * On DB error, falls back to the static set and logs — never fails the turn.
+ */
+export async function resolveArchetypeTools({
+  archetype,
+  orgId,
+  serviceClient,
+}: {
+  archetype: ArchetypeSlug;
+  orgId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serviceClient: SupabaseClient<any>;
+}): Promise<Anthropic.Tool[]> {
+  if (archetype !== "marketing_director") {
+    return ARCHETYPE_TOOLS[archetype] ?? [];
+  }
+
+  try {
+    const { data, error } = await serviceClient
+      .from("mcp_connections")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("server_name", "canva")
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("[resolveArchetypeTools] mcp_connections query failed, using static fallback:", error.message);
+      return ARCHETYPE_TOOLS.marketing_director;
+    }
+
+    if (data) {
+      // Canva is connected — hide render + unsplash so Kida can't fall back to them.
+      return ARCHETYPE_TOOLS.marketing_director.filter(
+        (t) => !RENDER_TOOL_NAMES.has(t.name) && !UNSPLASH_TOOL_NAMES.has(t.name),
+      );
+    }
+
+    // Canva not connected — use full static set (render + unsplash as fallback path).
+    return ARCHETYPE_TOOLS.marketing_director;
+  } catch (err) {
+    console.warn("[resolveArchetypeTools] Unexpected error, using static fallback:", err);
+    return ARCHETYPE_TOOLS.marketing_director;
+  }
+}
+
 /** All directors get Claude's native web_search server tool */
 export const ARCHETYPE_SERVER_TOOLS: Record<ArchetypeSlug, unknown[]> = {
   executive_assistant: [webSearchServerTool],
