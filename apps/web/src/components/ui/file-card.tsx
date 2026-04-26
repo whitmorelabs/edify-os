@@ -169,7 +169,6 @@ export function FileCard({
         setUnavailable(true);
       }
     } catch {
-      // Network error — surface the same friendly fallback
       setUnavailable(true);
     }
   }
