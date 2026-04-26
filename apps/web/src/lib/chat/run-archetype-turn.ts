@@ -459,15 +459,8 @@ export async function runArchetypeTurn({
     break;
   }
 
-  // Loop cap hit — the loop exhausted all TOOL_USE_LOOP_MAX rounds without
-  // reaching an end_turn. This means the model kept calling tools every round
-  // and never produced a final text response.
-  //
-  // Old behavior: silently use lastAssistantText (an interim sentence like
-  // "Canva hit a snag, let me render directly..."), which looks like success.
-  //
-  // New behavior: when the cap was hit AND there were tool errors, append a
-  // clear failure notice so the user knows something went wrong.
+  // Loop cap hit — every round was tool_use with no final end_turn text.
+  // Surface a failure notice rather than silently using an interim assistant sentence.
   if (loopHitCap) {
     console.warn("[runArchetypeTurn] Tool-use loop hit TOOL_USE_LOOP_MAX", {
       toolErrorCount,

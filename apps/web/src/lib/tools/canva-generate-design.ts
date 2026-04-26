@@ -214,14 +214,11 @@ export async function executeCanvaGenerateTool({
     designData = await handleCanvaResponse<typeof designData>(response);
   } catch (err) {
     if (err instanceof CanvaApiError) {
-      // Log full body to Vercel function logs for diagnosability.
       console.error("[canva-generate] Canva API error:", {
         status: err.status,
         message: err.message,
         body: err.rawBody,
       });
-      // Surface the full body to the model so it can relay the actual error
-      // to the user rather than a generic "Canva hit a snag" sentence.
       const detail = err.rawBody ? ` — Canva said: ${err.rawBody}` : "";
       return {
         content: `Canva API error (${err.status}): ${err.message}${detail}`,
