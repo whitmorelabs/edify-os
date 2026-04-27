@@ -9,10 +9,32 @@ export const metadata = {
   description: "A guided walkthrough of the Edify OS nonprofit user portal. See the dashboard, meet your team, and understand how the whole thing works.",
 };
 
+/**
+ * ScreenshotArea — placeholder for real Edify-OS dashboard screenshots.
+ * These slots need actual screenshots captured from /dashboard at desktop width.
+ * ACTION REQUIRED: Citlali to capture each screenshot and add to apps/web/public/demo/.
+ * See PR description for the full list of files needed.
+ */
 function ScreenshotArea({ label }: { label: string }) {
   return (
-    <div className="w-full aspect-[16/9] bg-bg-3 shadow-elev-1 rounded-xl flex items-center justify-center">
-      <div className="text-fg-4 text-sm font-medium">{label}</div>
+    // REAL DASHBOARD SCREENSHOT TO BE ADDED — Citlali to provide.
+    // Capture from /dashboard at 1440px wide and save to apps/web/public/demo/.
+    // Replace this component with <img src="/demo/..." alt="..." /> once available.
+    <div
+      className="w-full aspect-[16/9] rounded-xl flex flex-col items-center justify-center gap-2"
+      style={{
+        background: "var(--bg-3)",
+        border: "1px dashed var(--line-purple)",
+        boxShadow: "var(--elev-1)",
+      }}
+    >
+      <div
+        className="font-mono text-center"
+        style={{ fontSize: 10, color: "var(--brand-purple)", letterSpacing: "0.1em" }}
+      >
+        SCREENSHOT COMING SOON
+      </div>
+      <div className="text-fg-3 text-sm font-medium text-center px-4">{label}</div>
     </div>
   );
 }

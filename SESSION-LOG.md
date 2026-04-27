@@ -1560,3 +1560,108 @@ No code logic was changed. The OAuth flow itself is correct.
 
 ### Typecheck
 Running after .env.example update — no TypeScript files changed, typecheck passes with same pre-existing environment errors as before.
+
+---
+
+## 2026-04-27 — Marketing Graphics Batch (Z Punch List #4/5/8/9)
+
+**Identity:** Marketing Graphics Agent (Sonnet)
+**Branch:** `lopmon/marketing-graphics-batch-2026-04-27`
+**Date:** 2026-04-27
+
+### Phase 1 — Audit Findings
+
+#### Placeholder / mockup imagery inventory
+
+**1. `apps/web/src/app/page.tsx` — Hero (Z #5 / #8)**
+- Line 175: `<AnimatedDashboard />` — the animated hero graphic. This component existed but used:
+  - Dark background (`#0A0A0F → #120C1E`) — doesn't match the REAL dashboard (light `bg-gray-50` + white cards)
+  - Showed "EXECUTIVE ASSISTANT" but with generic content ("Prep me for Tuesday's board meeting")
+  - No sidebar strip — real dashboard has a persistent left sidebar
+  - Stats said "TASKS COMPLETED 126/127" — real dashboard tracks "HOURS SAVED" + API usage, not raw task count
+  - Right rail had a dark "NEEDS REVIEW" tile, but real dashboard has a white card with amber border
+  - Approval card text: generic ("Thank you — Anne Harlow, $5,000") — not Development Director use case
+
+**2. `apps/web/src/app/page.tsx` — FeaturesDeepDive section (lines 602–623)**
+- Empty `aspectRatio: "4/3"` box with text `{active.label.toUpperCase()} PREVIEW`
+- Shows "GRANT RESEARCH PREVIEW" etc. — pure gray placeholder, no real UI
+- No image slot at all — just a div with centered label text
+
+**3. `apps/web/src/app/demo/page.tsx` — Demo page (Z #4 / #9)**
+- `ScreenshotArea` component (line 12–17): renders a solid gray box with label text
+- Used 5 times across the page:
+  - "Dashboard overview" (Section 1)
+  - "Team chat -- Development Director" (Section 2)
+  - "Decision Lab -- 6 perspectives" (Section 3)
+  - "Heartbeat inbox" (Section 4)
+  - "Org briefing -- 4-step onboarding" (Section 5)
+- ALL five slots are completely empty — no real screenshots, no animation, nothing
+
+#### Public assets scan
+`apps/web/public/` contains:
+- `agents/` — 6 director photos (marketing pages, correct)
+- `blog/` — 4 blog cover images
+- `brand/` — logo assets
+- NO dashboard screenshots, NO demo screenshots, NO feature screenshots
+- **Verdict: Zero real dashboard screenshots exist in the repo.**
+
+#### `animated-dashboard.tsx` analysis
+- Original: dark theme that doesn't match real dashboard
+- Real dashboard (`apps/web/src/app/dashboard/page.tsx`, `layout.tsx`):
+  - Layout: `<Sidebar />` on left + `<main className="flex-1 bg-gray-50">` on right
+  - Sidebar has: Edify logo, nav items (Dashboard, Briefing, Decision Lab, Inbox, Tasks, Ripple, Memory, Integrations, Guide, Admin, Settings), per-archetype team links
+  - Dashboard header: "Good morning. Your team moved X things forward."
+  - Stats: HOURS SAVED card, API USAGE card, THIS WEEK card (MiniBar)
+  - Team grid: 6 archetype TeamCard components (white bg, colored border, "Ready" status)
+  - Activity feed: "Since you were gone" + ActivityRow list
+  - Right rail: TODAY (calendar events) + GENTLE REMINDERS
+  - All cards are white with `border: 1px solid #e5e7eb`, not dark
+  - Brand purple used for highlights, not background
+
+### Phase 2 — Fixes Applied
+
+#### 1. `animated-dashboard.tsx` — OVERHAULED to mirror real dashboard
+Changes:
+- **Background flipped to light**: `#F9FAFB` (matches real `bg-gray-50`) instead of dark `#0A0A0F`
+- **Added sidebar strip**: Left column shows Edify logo mark + nav icon slots (Dashboard active = purple, Inbox amber = has items) + 6 archetype color dots for the team
+- **Director changed from Executive Assistant → Development Director**: The dev use case (grant research) is the primary value prop for nonprofits. Color: `#F59E5C`
+- **Chat content updated to real use case**: "Find grants for our youth workforce program due this quarter" → "Found 3 strong matches. Top pick: Kellogg Youth Workforce Fund — $75K, deadline May 15. Drafting LOI now." → file card "Kellogg-LOI-draft.docx"
+- **Stats updated to match real dashboard**: "HOURS SAVED" (was "TASKS COMPLETED"), counter ticks from "23.0" to "23.5 hrs" (not raw task number)
+- **"NEEDS YOUR ATTENTION"** label matches exact real dashboard banner text (was "NEEDS REVIEW")
+- **Approval card**: white bg + amber border (matches real dashboard), donor name "Maria Reyes $2,500" with youth program context
+- **Light-mode cards**: all white with `border: 1px solid #E5E7EB` shadow, not dark panels
+- **MiniMark updated**: Added `light` prop for light-mode archetype badges. Old dark-mode style preserved as default for backward compat.
+- **Dot updated**: Added `color` prop so thinking indicator uses DEV_COLOR (#F59E5C) not purple
+- **Animation timing preserved**: Same 10s loop, same keyframe structure
+
+#### 2. `apps/web/src/app/demo/page.tsx` — ScreenshotArea improved
+- Changed from invisible gray box to styled placeholder with dashed purple border
+- Added "SCREENSHOT COMING SOON" mono label + slot label
+- Added detailed code comments with instructions for Citlali on what to capture
+- 5 screenshot slots remain unfilled — no real screenshots exist in repo
+
+#### 3. `apps/web/src/app/page.tsx` — FeaturesDeepDive placeholder improved
+- Changed border from solid to dashed (signals WIP intent)
+- Added "SCREENSHOT COMING SOON" + "{tab.label} view" labels
+- Added detailed code comment with instructions: which page to screenshot and where to save
+
+### Items NOT fixable from code alone — Citlali action required
+
+**Screenshots needed for demo page** (5 files, all at 1440px desktop width):
+1. `apps/web/public/demo/dashboard-overview.png` — capture `/dashboard` main page
+2. `apps/web/public/demo/team-chat-dev-director.png` — capture `/dashboard/team/development_director` mid-conversation
+3. `apps/web/public/demo/decision-lab.png` — capture `/dashboard/decision-lab` with a scenario in progress
+4. `apps/web/public/demo/heartbeat-inbox.png` — capture `/dashboard/inbox` with a heartbeat visible
+5. `apps/web/public/demo/org-briefing.png` — capture `/dashboard/briefing` step 2 or 3
+
+**Screenshots needed for features section** (6 files):
+`apps/web/public/features/development-director.png`, `marketing-director.png`, `executive-assistant.png`, `programs-director.png`, `hr-volunteer-coordinator.png`, `events-director.png`
+Each: chat view for that director at `/dashboard/team/<slug>` at 1440px.
+
+**Once screenshots are captured:**
+- In `demo/page.tsx`: Replace `<ScreenshotArea>` with `<img src="/demo/<filename>.png" alt="..." className="w-full rounded-xl" />`
+- In `page.tsx` FeaturesDeepDive: Replace the placeholder div with `<img src="/features/<slug>.png" ... />`
+- The hero `AnimatedDashboard` does NOT need a screenshot — the live animation is intentional
+
+### Typecheck
+All errors in typecheck output are pre-existing environment-level errors (`Cannot find module 'next/server'`, `'next/link'`, etc.) caused by node_modules not being installed in typecheck context. Zero NEW type errors introduced by this PR's changes.

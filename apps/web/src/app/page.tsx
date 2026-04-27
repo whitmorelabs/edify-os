@@ -599,26 +599,32 @@ function FeaturesDeepDive() {
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+          {/* REAL DASHBOARD SCREENSHOT TO BE ADDED — Citlali to provide.
+               Capture the relevant director's chat view at /dashboard/team/<slug>
+               at 1440px desktop width and save to apps/web/public/features/<slug>.png.
+               Then replace this block with:
+                 <img src="/features/<slug>.png" alt="..." className="w-full h-full object-cover rounded-[20px]" /> */}
           <div
-            className="relative rounded-[20px] overflow-hidden"
+            className="relative rounded-[20px] overflow-hidden flex flex-col items-center justify-center gap-2"
             style={{
               background:
-                "linear-gradient(135deg, rgba(159,78,243,0.12), rgba(124,58,237,0.06))",
+                "linear-gradient(135deg, rgba(159,78,243,0.10), rgba(124,58,237,0.05))",
               aspectRatio: "4 / 3",
               boxShadow: "var(--elev-1)",
-              border: "1px solid var(--line-purple)",
+              border: "1px dashed var(--line-purple)",
             }}
           >
             <div
-              aria-hidden
-              className="absolute inset-0 flex items-center justify-center font-mono"
-              style={{
-                fontSize: 14,
-                color: "var(--fg-4)",
-                letterSpacing: "0.1em",
-              }}
+              className="font-mono text-center"
+              style={{ fontSize: 11, color: "var(--brand-purple)", letterSpacing: "0.1em" }}
             >
-              {active.label.toUpperCase()} PREVIEW
+              SCREENSHOT COMING SOON
+            </div>
+            <div
+              className="font-mono text-center"
+              style={{ fontSize: 12, color: "var(--fg-3)" }}
+            >
+              {active.label} view
             </div>
           </div>
         </div>
