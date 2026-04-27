@@ -29,18 +29,18 @@ import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 export type AnthropicSkillId = "xlsx" | "pptx" | "docx" | "pdf";
 
 /**
- * Archetype → skills mapping.
- * MAX 1 skill per archetype — Anthropic API expands each pre-built skill
- * into ~5 internal sub-components. The API limit is 8 after expansion.
- * 1 skill ≈ 5 sub-components (safe). 2 skills ≈ 10 (over limit).
+ * Archetype → eligible skills (full list of formats each archetype CAN use).
+ * At runtime, only 1 skill is attached per API call based on user message intent.
+ * Anthropic API expands each pre-built skill into ~5 internal sub-components,
+ * so the 8-item limit only allows 1 skill per call.
  */
 export const ARCHETYPE_SKILLS: Record<ArchetypeSlug, AnthropicSkillId[]> = {
-  executive_assistant: ["docx"],
-  events_director: ["pptx"],
-  development_director: ["docx"],
-  marketing_director: ["pptx"],
-  programs_director: ["docx"],
-  hr_volunteer_coordinator: ["docx"],
+  executive_assistant: ["docx", "xlsx", "pdf"],
+  events_director: ["pptx", "xlsx", "pdf"],
+  development_director: ["docx", "xlsx", "pdf"],
+  marketing_director: ["pptx", "docx", "pdf"],
+  programs_director: ["docx", "xlsx", "pdf"],
+  hr_volunteer_coordinator: ["docx", "xlsx", "pdf"],
 };
 
 // Exhaust-check: TypeScript errors here if ARCHETYPE_SLUGS drifts from this map.
@@ -108,18 +108,67 @@ export function shouldAttachSkills(userMessage: string): boolean {
   return SKILLS_TRIGGER_PATTERNS.some((re) => re.test(userMessage));
 }
 
+/** Format detection patterns -- matched against user message to pick the right skill. */
+const FORMAT_PATTERNS: { skill: AnthropicSkillId; patterns: RegExp[] }[] = [
+  {
+    skill: "xlsx",
+    patterns: [
+      /\b(spreadsheet|excel|xlsx|\.xlsx|workbook|csv)\b/i,
+      /\b(budget|financ|ledger|invoice|expense|revenue|forecast|tracker|tracking)\b.*\b(sheet|table|report)\b/i,
+    ],
+  },
+  {
+    skill: "pptx",
+    patterns: [
+      /\b(presentation|powerpoint|pptx|\.pptx|slide|slides|deck)\b/i,
+      /\b(pitch deck|board presentation|keynote)\b/i,
+    ],
+  },
+  {
+    skill: "pdf",
+    patterns: [
+      /\b(pdf|\.pdf)\b/i,
+      /\b(as a pdf|save.*pdf|export.*pdf|convert.*pdf)\b/i,
+    ],
+  },
+  {
+    skill: "docx",
+    patterns: [
+      /\b(doc|document|docx|\.docx|word|letter|memo|proposal|report|policy|newsletter|grant)\b/i,
+    ],
+  },
+];
+
+/**
+ * Detect the single best skill to attach based on the user's message.
+ * Returns the most relevant format from the archetype's eligible skills,
+ * or the archetype's first skill as fallback.
+ */
+export function detectSkillForMessage(
+  userMessage: string,
+  eligibleSkills: AnthropicSkillId[]
+): AnthropicSkillId {
+  for (const { skill, patterns } of FORMAT_PATTERNS) {
+    if (!eligibleSkills.includes(skill)) continue;
+    if (patterns.some((re) => re.test(userMessage))) return skill;
+  }
+  // Fallback: first eligible skill (docx or pptx depending on archetype)
+  return eligibleSkills[0];
+}
+
 /**
  * Build the `container` parameter for `client.beta.messages.create()`.
- * Returns undefined when the archetype has no skills (avoids sending empty container).
+ * Always sends exactly 1 skill to stay under the API's 8-item expansion limit.
+ * Returns undefined when no skills provided.
  */
 export function buildContainer(
   skillIds: AnthropicSkillId[]
 ): { skills: Array<{ type: "anthropic"; skill_id: string; version: string }> } | undefined {
   if (skillIds.length === 0) return undefined;
-  // Cap at 1 skill -- API expands each into ~5 sub-components, 2+ exceeds 8-item limit
-  const capped = skillIds.slice(0, 1);
+  // Only 1 skill per call -- API expands each into ~5 sub-components
+  const selected = skillIds.slice(0, 1);
   return {
-    skills: capped.map((id) => ({
+    skills: selected.map((id) => ({
       type: "anthropic" as const,
       skill_id: id,
       version: "latest",
