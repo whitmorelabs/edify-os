@@ -173,5 +173,30 @@
     "skill_id": "skill_01FThmnAVPbrcgra8b4iD1BR",
     "hash": "8e8818c3341f320f",
     "uploaded_at": "2026-04-27T04:48:24.866Z"
+  },
+  "data/build-dashboard": {
+    "skill_id": "skill_01VPp6PE73PhQq2L7FnQJwQq",
+    "hash": "94955d0c40cd7e91",
+    "uploaded_at": "2026-04-27T05:11:34.747Z"
+  },
+  "operations/process-doc": {
+    "skill_id": "skill_01D6SjGKdLjdorSrd34Vphbx",
+    "hash": "43abbe654e09f3ed",
+    "uploaded_at": "2026-04-27T05:11:35.891Z"
+  },
+  "programs/grant_outcome_report": {
+    "skill_id": "skill_01J4v66XC5RoijgWCXZJRAAk",
+    "hash": "5eb43d3ebffa2091",
+    "uploaded_at": "2026-04-27T05:11:36.886Z"
+  },
+  "programs/logic_model_builder": {
+    "skill_id": "skill_01GvfwBXNKvqA611soaY88rN",
+    "hash": "48f499b99fac9e53",
+    "uploaded_at": "2026-04-27T05:11:38.007Z"
+  },
+  "programs/participant_survey": {
+    "skill_id": "skill_012kdu555NXm5m3tmScUp1MA",
+    "hash": "3db37af9e85e816c",
+    "uploaded_at": "2026-04-27T05:11:39.170Z"
   }
 }
