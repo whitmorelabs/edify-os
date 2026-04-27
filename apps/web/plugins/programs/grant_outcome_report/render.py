@@ -75,12 +75,6 @@ def _heading1(doc: Document, text: str) -> None:
         h.runs[0].font.color.rgb = _FOREST
 
 
-def _heading2(doc: Document, text: str) -> None:
-    h = doc.add_heading(text, level=2)
-    if h.runs:
-        h.runs[0].font.color.rgb = _TEAL
-
-
 def _para(doc: Document, text: str, italic: bool = False, size: Optional[int] = None) -> None:
     p = doc.add_paragraph(text)
     if p.runs:
@@ -198,18 +192,18 @@ def _build_executive_summary(
 ) -> None:
     _heading1(doc, "Executive Summary")
 
-    # Auto-generate a summary from deliverables
     total = len(deliverable_targets)
-    on_target = sum(
-        1 for d in deliverable_targets
-        if d.get("target_value", 0) > 0 and
-        d.get("actual_value", 0) / d["target_value"] >= 1.0
-    )
-    approaching = sum(
-        1 for d in deliverable_targets
-        if d.get("target_value", 0) > 0 and
-        0.75 <= d.get("actual_value", 0) / d["target_value"] < 1.0
-    )
+    on_target = 0
+    approaching = 0
+    for d in deliverable_targets:
+        t = d.get("target_value", 0)
+        if t <= 0:
+            continue
+        pct = d.get("actual_value", 0) / t
+        if pct >= 1.0:
+            on_target += 1
+        elif pct >= 0.75:
+            approaching += 1
     below = total - on_target - approaching
 
     status_phrase = (
@@ -246,7 +240,6 @@ def _build_deliverables_table(
         for row in table.rows:
             row.cells[i].width = w
 
-    # Header row
     hdr_row = table.rows[0]
     for i, h in enumerate(headers):
         cell = hdr_row.cells[i]
@@ -258,7 +251,6 @@ def _build_deliverables_table(
         run.font.color.rgb = _WHITE_TEXT
         run.font.size = Pt(9)
 
-    # Data rows
     for row_idx, d in enumerate(deliverable_targets):
         deliverable = str(d.get("deliverable", "[Deliverable]"))
         target_val = d.get("target_value", 0)
@@ -271,24 +263,20 @@ def _build_deliverables_table(
 
         table_row = table.rows[row_idx + 1]
 
-        # Deliverable
         table_row.cells[0].text = deliverable
         if table_row.cells[0].paragraphs[0].runs:
             table_row.cells[0].paragraphs[0].runs[0].font.size = Pt(9)
 
-        # Target
         cell_t = table_row.cells[1]
         cell_t.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         run_t = cell_t.paragraphs[0].add_run(str(target_val))
         run_t.font.size = Pt(9)
 
-        # Actual
         cell_a = table_row.cells[2]
         cell_a.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         run_a = cell_a.paragraphs[0].add_run(str(actual_val))
         run_a.font.size = Pt(9)
 
-        # % of Target
         cell_pct = table_row.cells[3]
         _shade_cell(cell_pct, fill_hex)
         cell_pct.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -297,7 +285,6 @@ def _build_deliverables_table(
         run_pct.font.size = Pt(9)
         run_pct.font.color.rgb = text_color
 
-        # Status
         cell_s = table_row.cells[4]
         _shade_cell(cell_s, fill_hex)
         cell_s.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -305,14 +292,12 @@ def _build_deliverables_table(
         run_s.font.size = Pt(9)
         run_s.font.color.rgb = text_color
 
-        # Notes
         table_row.cells[5].text = narrative
         if table_row.cells[5].paragraphs[0].runs:
             table_row.cells[5].paragraphs[0].runs[0].font.size = Pt(9)
 
     doc.add_paragraph()
 
-    # Color key
     key_para = doc.add_paragraph()
     key_para.add_run("Color key: ").bold = True
     green_run = key_para.add_run("Green = On/Above Target (≥100%)  ")
@@ -353,7 +338,6 @@ def _build_participant_story(doc: Document, participant_story: Optional[str]) ->
     )
     doc.add_paragraph()
 
-    # Format as a pull-quote block with indentation
     quote_para = doc.add_paragraph()
     quote_para.paragraph_format.left_indent = Inches(0.5)
     quote_para.paragraph_format.right_indent = Inches(0.5)

@@ -65,12 +65,6 @@ def _heading1(doc: Document, text: str) -> None:
         h.runs[0].font.color.rgb = _FOREST
 
 
-def _heading2(doc: Document, text: str) -> None:
-    h = doc.add_heading(text, level=2)
-    if h.runs:
-        h.runs[0].font.color.rgb = _TEAL
-
-
 def _para(doc: Document, text: str, italic: bool = False) -> None:
     p = doc.add_paragraph(text)
     if italic and p.runs:
@@ -151,7 +145,6 @@ def _build_theory_of_change(
 ) -> None:
     _heading1(doc, "Theory of Change")
 
-    # Build a coherent paragraph from structured inputs
     inputs_summary = ", ".join(program_inputs[:3])
     if len(program_inputs) > 3:
         inputs_summary += f", and {len(program_inputs) - 3} additional resource(s)"
@@ -201,7 +194,6 @@ def _build_logic_model_table(
         for cell in row.cells:
             cell.width = col_width
 
-    # Header row
     hdr_row = table.rows[0]
     for i, col_name in enumerate(columns):
         cell = hdr_row.cells[i]
@@ -213,7 +205,6 @@ def _build_logic_model_table(
         run.font.color.rgb = _WHITE_TEXT
         run.font.size = Pt(9)
 
-    # Data rows
     for row_idx in range(max_rows):
         table_row = table.rows[row_idx + 1]
         for col_idx, col_items in enumerate(col_data):
@@ -240,11 +231,10 @@ def _build_indicators_table(
         "Update the 'Data Source' column with your organization's actual data collection tools.",
     )
 
-    # Combine all outcomes
     all_outcomes = [("Short-Term", o) for o in short_term_outcomes] + \
                    [("Long-Term", o) for o in long_term_outcomes]
 
-    rows = len(all_outcomes) + 1  # +1 header
+    rows = len(all_outcomes) + 1  # +1 for header row
     table = doc.add_table(rows=rows, cols=3)
     table.style = "Table Grid"
 
@@ -253,7 +243,6 @@ def _build_indicators_table(
         for i, cell in enumerate(row.cells):
             cell.width = widths[i]
 
-    # Header
     headers = ["Outcome", "Indicator", "Data Source"]
     hdr_row = table.rows[0]
     for i, h in enumerate(headers):
@@ -265,13 +254,11 @@ def _build_indicators_table(
         run.font.color.rgb = _WHITE_TEXT
         run.font.size = Pt(9)
 
-    # Data rows
     for i, (term_type, outcome) in enumerate(all_outcomes):
         row = table.rows[i + 1]
         row.cells[0].text = f"[{term_type}] {outcome}"
         row.cells[0].paragraphs[0].runs[0].font.size = Pt(9)
 
-        # Pull matching indicator if provided
         if i < len(measurement_indicators):
             row.cells[1].text = measurement_indicators[i]
         else:

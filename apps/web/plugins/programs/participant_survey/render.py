@@ -375,7 +375,6 @@ def _render_question(
     doc: Document,
     q_num: int,
     question: dict,
-    language_level: str = "plain",
 ) -> None:
     """Render a single question with its appropriate format."""
     q_text = question["text"]
@@ -416,10 +415,8 @@ def _build_survey_sections(
     doc: Document,
     questions: list,
     additional_topics: list,
-    language_level: str,
 ) -> None:
     """Group questions by section and render them."""
-    # Group by section
     sections = {}
     section_order = []
     for q in questions:
@@ -433,10 +430,9 @@ def _build_survey_sections(
     for sec in section_order:
         _heading2(doc, sec)
         for q in sections[sec]:
-            _render_question(doc, q_num, q, language_level)
+            _render_question(doc, q_num, q)
             q_num += 1
 
-    # Append additional topic questions as open-ended in a new section
     if additional_topics:
         _heading2(doc, "Additional Questions")
         for topic in additional_topics:
@@ -445,7 +441,7 @@ def _build_survey_sections(
                 "text": f"Please share any thoughts or experiences related to {topic}:",
                 "q_type": "open",
             }
-            _render_question(doc, q_num, q, language_level)
+            _render_question(doc, q_num, q)
             q_num += 1
 
 
@@ -560,7 +556,7 @@ def render(
     doc.add_page_break()
 
     questions = list(_QUESTION_BANKS[survey_type])
-    _build_survey_sections(doc, questions, additional_topics, language_level)
+    _build_survey_sections(doc, questions, additional_topics)
 
     _build_scoring_guide(doc, survey_type)
 
