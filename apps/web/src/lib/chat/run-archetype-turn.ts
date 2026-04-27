@@ -202,28 +202,18 @@ export async function runArchetypeTurn({
   // SDK shape: container.skills[] where each entry is { type, skill_id, version? }
   //   - Pre-built (docx/xlsx/pptx/pdf): type = "anthropic"
   //   - Uploaded knowledge-work-plugins: type = "custom"
-  // Anthropic API limit: max 8 skills after internal expansion.
-  // Pre-built skills (docx/xlsx/pptx/pdf) expand to ~5 sub-components each.
-  // Custom/plugin skills count as 1 each.
-  // Strategy: pick 1 pre-built skill dynamically + fill remaining slots with plugin skills.
+  // Anthropic API limit: max 8 skills in container.skills.
+  // Plugin skills (custom uploaded) already include document generators
+  // (document/docx, document/xlsx, document/pptx), so pre-built skills are
+  // redundant. Only send plugin skills, capped at 8.
   const containerParam = attachSkills
     ? (() => {
-        const prebuiltSkills = attachPrebuiltSkills
-          ? (() => {
-              const bestSkill = detectSkillForMessage(userMessage, archetypeSkillIds);
-              return buildContainer([bestSkill])?.skills ?? [];
-            })()
-          : [];
         const pluginSkills = pluginSkillIds.map((id) => ({
           type: "custom" as const,
           skill_id: id,
         }));
-        // Pre-built skills expand to ~5 internally, so budget = 8 - 5 = 3 plugin slots
-        // If no pre-built, all 8 slots available for plugins
-        const pluginBudget = prebuiltSkills.length > 0 ? 3 : 8;
-        const cappedPlugins = pluginSkills.slice(0, pluginBudget);
-        const allSkills = [...prebuiltSkills, ...cappedPlugins];
-        return allSkills.length > 0 ? { skills: allSkills } : undefined;
+        const capped = pluginSkills.slice(0, 8);
+        return capped.length > 0 ? { skills: capped } : undefined;
       })()
     : undefined;
 
