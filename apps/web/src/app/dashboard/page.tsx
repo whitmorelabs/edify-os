@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Info } from "lucide-react";
+import { Info, MessageCircle } from "lucide-react";
 import type { DashboardSummary } from "@/app/api/dashboard/summary/route";
 import type { HoursSavedResponse } from "@/app/api/stats/hours-saved/route";
 import type { TodayEventsResponse } from "@/app/api/integrations/google/today-events/route";
@@ -44,6 +44,66 @@ const KEY_TO_SLUG: Record<ArchetypeKey, AgentRoleSlug> = {
   programs: "programs_director",
   hr: "hr_volunteer_coordinator",
 };
+
+/* --------------------------------------------------------------------- */
+/* Capabilities per archetype (shown on team cards)                        */
+/* --------------------------------------------------------------------- */
+
+const CAPABILITIES: Record<AgentRoleSlug, string> = {
+  executive_assistant: "Calendar, email, task management",
+  events_director: "Event planning, vendor management, run of show",
+  development_director: "Grant research, donor stewardship, proposals",
+  marketing_director: "Content creation, social media, design",
+  programs_director: "Program evaluation, grant reporting, surveys",
+  hr_volunteer_coordinator: "Onboarding, volunteer management, policies",
+};
+
+/* --------------------------------------------------------------------- */
+/* Skeleton loader component                                               */
+/* --------------------------------------------------------------------- */
+
+function Skeleton({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <div
+      className={`animate-pulse bg-gray-700/10 rounded ${className}`}
+      style={style}
+    />
+  );
+}
+
+function CardSkeleton() {
+  return (
+    <div className="py-2 flex flex-col gap-2">
+      <Skeleton className="h-4 w-3/4 rounded" />
+      <Skeleton className="h-3 w-1/2 rounded" />
+    </div>
+  );
+}
+
+function StatSkeleton({ large = false }: { large?: boolean }) {
+  return (
+    <div className="py-2 flex flex-col gap-2">
+      <Skeleton className={`rounded ${large ? "h-10 w-32" : "h-6 w-20"}`} />
+      <Skeleton className="h-3 w-24 rounded" />
+    </div>
+  );
+}
+
+function ActivitySkeleton() {
+  return (
+    <div className="flex flex-col gap-3 py-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+          <div className="flex-1 flex flex-col gap-1.5">
+            <Skeleton className="h-3.5 w-3/4 rounded" />
+            <Skeleton className="h-3 w-1/3 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /* --------------------------------------------------------------------- */
 /* Helpers                                                                 */
@@ -254,9 +314,7 @@ function HoursSavedCard({
           </button>
         </div>
         {loading ? (
-          <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
-            Loading…
-          </div>
+          <StatSkeleton />
         ) : !data || data.hours_saved_total === 0 ? (
           <div className="text-[13px] py-1 leading-[1.55]" style={{ color: "#6b7280" }}>
             Start chatting with your team to see hours saved. Estimates update in real time.
@@ -288,34 +346,34 @@ function TeamCard({ arc, index, name }: { arc: Archetype; index: number; name?: 
   const delay = Math.min(index, 6) * 0.06 + 0.1;
   const slug = KEY_TO_SLUG[arc.key];
   return (
-    <Link href={`/dashboard/team/${slug}`} className="block no-underline">
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: DURATION.slow, ease: EASE.entrance, delay }}
-        className="relative overflow-hidden rounded-[14px] cursor-pointer group transition-transform hover:-translate-y-[2px]"
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: DURATION.slow, ease: EASE.entrance, delay }}
+      className="relative overflow-hidden rounded-[14px] group transition-transform hover:-translate-y-[2px]"
+      style={{
+        background: "rgba(255,255,255,0.85)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)",
+        border: "1px solid rgba(229,231,235,0.6)",
+        minHeight: 130,
+        padding: 18,
+      }}
+    >
+      <div
+        aria-hidden
+        className="absolute pointer-events-none"
         style={{
-          background: "rgba(255,255,255,0.85)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)",
-          border: "1px solid rgba(229,231,235,0.6)",
-          minHeight: 130,
-          padding: 18,
+          top: -30,
+          right: -30,
+          width: 110,
+          height: 110,
+          background: `radial-gradient(circle, ${arc.color}22, transparent 70%)`,
+          animation: `blob-a ${5 + index * 0.4}s ease-in-out infinite`,
         }}
-      >
-        <div
-          aria-hidden
-          className="absolute pointer-events-none"
-          style={{
-            top: -30,
-            right: -30,
-            width: 110,
-            height: 110,
-            background: `radial-gradient(circle, ${arc.color}22, transparent 70%)`,
-            animation: `blob-a ${5 + index * 0.4}s ease-in-out infinite`,
-          }}
-        />
+      />
+      <Link href={`/dashboard/team/${slug}`} className="block no-underline">
         <div className="relative flex flex-col gap-2.5">
           <ArchetypeMark arc={arc} size={36} />
           <div>
@@ -328,25 +386,45 @@ function TeamCard({ arc, index, name }: { arc: Archetype; index: number; name?: 
             <div className="text-[14px] font-medium mt-0.5" style={{ color: "var(--fg-2)" }}>
               <NameSlot name={name} />
             </div>
+            <div
+              className="text-[11px] mt-1 leading-[1.4]"
+              style={{ color: "var(--fg-4)" }}
+            >
+              {CAPABILITIES[slug]}
+            </div>
           </div>
-          <div
-            className="mt-auto flex items-center gap-1.5 text-[12px]"
-            style={{ color: "var(--fg-3)" }}
-          >
-            <span
-              className="inline-block rounded-full"
-              style={{
-                width: 4,
-                height: 4,
-                background: arc.color,
-                boxShadow: `0 0 6px ${arc.color}`,
-              }}
-            />
-            <span>idle</span>
+          <div className="flex items-center justify-between mt-auto">
+            <div
+              className="flex items-center gap-1.5 text-[12px]"
+              style={{ color: "var(--fg-3)" }}
+            >
+              <span
+                className="inline-block rounded-full"
+                style={{
+                  width: 6,
+                  height: 6,
+                  background: "#22c55e",
+                  boxShadow: "0 0 6px #22c55e",
+                }}
+              />
+              <span style={{ color: "#22c55e" }}>Ready</span>
+            </div>
           </div>
         </div>
-      </motion.div>
-    </Link>
+      </Link>
+      <Link
+        href={`/dashboard/team/${slug}`}
+        className="relative inline-flex items-center gap-1.5 no-underline mt-3 px-3 py-1.5 rounded-full text-[11px] font-medium transition-opacity hover:opacity-80"
+        style={{
+          background: `${arc.color}18`,
+          color: arc.color,
+          border: `1px solid ${arc.color}40`,
+        }}
+      >
+        <MessageCircle size={12} />
+        Chat with {arc.short}
+      </Link>
+    </motion.div>
   );
 }
 
@@ -466,6 +544,60 @@ export default function DashboardHome() {
           <span style={{ color: "#6b7280" }}> things forward.</span>
         </h1>
 
+        {/* ————— PENDING APPROVALS (top of dashboard) ————— */}
+        {!loading && pendingApprovals > 0 && (
+          <Link href="/dashboard/inbox" className="block no-underline mb-8">
+            <Card
+              elevation={1}
+              className="relative overflow-hidden p-6 cursor-pointer group transition-transform hover:-translate-y-[1px]"
+              style={{
+                background: "#ffffff",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(245,181,68,0.4)",
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <div
+                aria-hidden
+                className="absolute pointer-events-none"
+                style={{
+                  top: 0,
+                  right: 0,
+                  width: 240,
+                  height: "100%",
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(245,181,68,0.08))",
+                  animation: "amber-shift 4s ease-in-out infinite",
+                  opacity: 0.6,
+                }}
+              />
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span
+                    className="font-mono font-medium leading-none tracking-[-0.03em]"
+                    style={{ fontSize: 36, color: "#111827" }}
+                  >
+                    {pendingApprovals}
+                  </span>
+                  <div>
+                    <span className="eyebrow" style={{ color: "var(--warn)" }}>
+                      NEEDS YOUR ATTENTION
+                    </span>
+                    <div className="text-[14px] mt-0.5" style={{ color: "#6b7280" }}>
+                      {pendingApprovals === 1 ? "1 approval pending" : `${pendingApprovals} approvals pending`}
+                    </div>
+                  </div>
+                </div>
+                <span
+                  className="text-[13px] font-medium"
+                  style={{ color: "var(--warn)" }}
+                >
+                  Review now →
+                </span>
+              </div>
+            </Card>
+          </Link>
+        )}
+
         {/* ————— HERO STATS ————— */}
         <div
           className="grid gap-5 mt-14 mb-20"
@@ -483,8 +615,13 @@ export default function DashboardHome() {
           >
             <span className="eyebrow">API USAGE</span>
             {tokenUsageLoading ? (
-              <div className="text-[13px] py-2 mt-2" style={{ color: "#6b7280" }}>
-                Loading…
+              <div className="mt-2">
+                <StatSkeleton large />
+                <div className="flex flex-col gap-2 mt-4">
+                  <Skeleton className="h-3 w-full rounded" />
+                  <Skeleton className="h-3 w-3/4 rounded" />
+                  <Skeleton className="h-3 w-2/3 rounded" />
+                </div>
               </div>
             ) : !tokenUsage ? (
               <div className="py-2 mt-2">
@@ -579,64 +716,13 @@ export default function DashboardHome() {
             )}
           </Card>
 
-          {/* Right: 3 smaller cards stacked */}
+          {/* Right: 2 smaller cards stacked */}
           <div className="flex flex-col gap-5">
-            <Link href="/dashboard/inbox" className="block no-underline flex-1">
-              <Card
-                elevation={1}
-                className="relative overflow-hidden p-6 cursor-pointer group transition-transform hover:-translate-y-[1px] h-full"
-                style={{
-                  background: "#ffffff",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(245,181,68,0.4)",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <div
-                  aria-hidden
-                  className="absolute pointer-events-none"
-                  style={{
-                    top: 0,
-                    right: 0,
-                    width: 160,
-                    height: "100%",
-                    background:
-                      "linear-gradient(90deg, transparent, rgba(245,181,68,0.08))",
-                    animation: "amber-shift 4s ease-in-out infinite",
-                    opacity: 0.6,
-                  }}
-                />
-                <div className="relative">
-                  <span className="eyebrow" style={{ color: "var(--warn)" }}>
-                    NEEDS YOU
-                  </span>
-                  <div className="flex items-baseline gap-3 mt-1.5">
-                    <span
-                      className="font-mono font-medium leading-[0.9] tracking-[-0.03em]"
-                      style={{ fontSize: 52, color: "#111827" }}
-                    >
-                      {loading ? "—" : pendingApprovals}
-                    </span>
-                    <span style={{ color: "#6b7280", fontSize: 15 }}>
-                      approvals pending
-                    </span>
-                  </div>
-                  <div
-                    className="mt-2.5 text-[13px]"
-                    style={{ color: "#9ca3af" }}
-                  >
-                    <span style={{ color: "var(--warn)" }}>Review now →</span>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-
             <Card elevation={0} className="p-5 flex-1" style={{ background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <span className="eyebrow">THIS WEEK</span>
               <div className="mt-3.5 flex flex-col gap-2.5">
                 {loading ? (
-                  <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
-                    Loading…
-                  </div>
+                  <CardSkeleton />
                 ) : tasksCompleted === 0 ? (
                   <div className="text-[13px] py-2" style={{ color: "#6b7280" }}>
                     No activity yet — start a conversation to kick things off.
@@ -666,7 +752,7 @@ export default function DashboardHome() {
               Your team
             </h2>
             <span className="font-mono text-[12px]" style={{ color: "#6b7280" }}>
-              {otherDirectors.length} directors · idle but ready
+              {otherDirectors.length} directors · all ready
             </span>
           </div>
         </div>
@@ -707,24 +793,28 @@ export default function DashboardHome() {
             </div>
             <div className="flex flex-col">
               {loading ? (
-                <div
-                  className="text-[14px] py-8"
-                  style={{ color: "var(--fg-3)" }}
-                >
-                  Loading activity…
-                </div>
+                <ActivitySkeleton />
               ) : !summary || summary.recentActivity.length === 0 ? (
                 <Card elevation={0} className="p-8">
-                  <div className="text-[14px]" style={{ color: "var(--fg-3)" }}>
-                    Your team hasn&apos;t done anything yet.{" "}
-                    <Link
-                      href="/dashboard/team"
-                      className="font-medium"
-                      style={{ color: "var(--brand-tint)" }}
-                    >
-                      Start a conversation to kick things off.
-                    </Link>
+                  <div className="text-[15px] font-medium mb-2" style={{ color: "var(--fg-2)" }}>
+                    Ready to get started?
                   </div>
+                  <div className="text-[14px] leading-[1.55]" style={{ color: "var(--fg-3)" }}>
+                    Chat with your Development Director about upcoming grant deadlines,
+                    or kick off a project with any team member.
+                  </div>
+                  <Link
+                    href="/dashboard/team/development_director"
+                    className="inline-flex items-center gap-1.5 no-underline mt-4 px-4 py-2 rounded-full text-[13px] font-medium transition-opacity hover:opacity-80"
+                    style={{
+                      background: `${ARCHETYPES.dev.color}18`,
+                      color: ARCHETYPES.dev.color,
+                      border: `1px solid ${ARCHETYPES.dev.color}40`,
+                    }}
+                  >
+                    <MessageCircle size={14} />
+                    Chat with Development Director
+                  </Link>
                 </Card>
               ) : (
                 summary.recentActivity.map((item, i) => {
@@ -757,8 +847,10 @@ export default function DashboardHome() {
             <span className="eyebrow">TODAY</span>
             <div className="mt-3.5 flex flex-col gap-1">
               {todayLoading ? (
-                <div className="py-4 text-[13px]" style={{ color: "var(--fg-3)" }}>
-                  Loading…
+                <div className="py-4 flex flex-col gap-2">
+                  <Skeleton className="h-3 w-full rounded" />
+                  <Skeleton className="h-3 w-2/3 rounded" />
+                  <Skeleton className="h-3 w-3/4 rounded" />
                 </div>
               ) : !todayEvents || (!todayEvents.connected && !todayEvents.authError) ? (
                 <div className="py-4 text-[13px]" style={{ color: "var(--fg-3)" }}>
