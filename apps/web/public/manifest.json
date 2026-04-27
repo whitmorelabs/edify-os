@@ -2,7 +2,7 @@
   "name": "Edify OS",
   "short_name": "Edify",
   "description": "Your nonprofit, run by a team you name.",
-  "start_url": "/dashboard",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
