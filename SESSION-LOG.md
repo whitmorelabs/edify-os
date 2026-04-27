@@ -904,3 +904,68 @@ Add 2 design skills from anthropics/skills to Kida's plugin loadout.
 - typecheck: zero new errors introduced; all errors are pre-existing environment issues (missing next/server, lucide-react, @supabase/supabase-js) identical to those on main
 - PR: https://github.com/whitmorelabs/edify-os/pull/26
 - Commit: 3526918
+
+---
+
+## 2026-04-26 — Path B: 4 Edify-native design skills (lopmon-spawned Sonnet)
+
+### Goal
+Author 4 nonprofit-tailored design skills using ReportLab + pdf2image and wire them into Kida's plugin loadout.
+
+### Skills authored
+- `design/social_card` — 1080×1080 PNG social media graphic
+- `design/flyer` — US Letter portrait 2550×3300 at 300 DPI print-ready flyer
+- `design/donor_thank_you` — 5×7 portrait 1500×2100 at 300 DPI warm stewardship card
+- `design/gala_invite` — 1080×1080 (square) or 1500×2100 (portrait) formal event invite
+
+### Files touched
+- `apps/web/plugins/design/social_card/` (NEW — SKILL.md, render.py, LICENSE.txt)
+- `apps/web/plugins/design/flyer/` (NEW — SKILL.md, render.py, LICENSE.txt)
+- `apps/web/plugins/design/donor_thank_you/` (NEW — SKILL.md, render.py, LICENSE.txt)
+- `apps/web/plugins/design/gala_invite/` (NEW — SKILL.md, render.py, LICENSE.txt)
+- `apps/web/src/lib/plugins/registry.ts` (modified — 4 new entries in marketing_director array)
+- `apps/web/src/lib/archetype-prompts.ts` (modified — added "Edify-native design templates" section to Kida's prompt)
+
+### Decisions
+- Font strategy: system fonts only (Helvetica, Helvetica-Bold, Times-Roman, Times-Italic, Times-Bold, Times-BoldItalic). ReportLab has these built-in — zero files to bundle. Each skill ZIP is 24–32 KB total, far under the 5 MB limit.
+- Why ReportLab + pdf2image: confirmed pre-installed in sandbox. ReportLab produces a PDF buffer; pdf2image.convert_from_bytes() rasterizes to PNG at the target DPI. This gives better anti-aliasing and typography than Pillow drawText.
+- DPI strategy per skill: social_card uses 72 DPI on a 1080×1080 pt canvas (1:1 pt-to-px); flyer + donor_thank_you + gala_invite (portrait) use 300 DPI on inch-based pages for print-quality output; gala_invite square uses same 72 DPI / 1080 pt approach as social_card.
+- gala_invite supports format="square" (default) and format="portrait" via a single render() entrypoint.
+- All render.py functions handle the 'time' kwarg edge case (Python reserves 'time' as a module name) via **kwargs passthrough.
+
+### Test status
+- typecheck: zero new errors; all 28 errors are identical pre-existing environment issues (framer-motion, @vercel/og, @supabase/ssr, next/server, next/headers)
+- PR: https://github.com/whitmorelabs/edify-os/pull/27
+- Commit: 2b16f6f
+
+### Open questions / blockers
+- Citlali needs to run `pnpm --filter web upload-plugin-skills` (with ANTHROPIC_API_KEY set) after merge. Until then registry silently excludes unuploaded skills via filter(Boolean).
+
+---
+
+## 2026-04-26 — PWA conversion (lopmon-spawned Sonnet)
+
+### Goal
+Make Edify-OS installable as a home-screen app on iPhone and Android via PWA (manifest + icons + service worker + iOS meta tags).
+
+### Files touched
+- `apps/web/public/manifest.json` (NEW) — name, short_name, icons, theme_color #9F4EF3, standalone display, start_url /dashboard
+- `apps/web/public/icon-192.png` (NEW) — 192×192 E-mark icon, 0.8 KB
+- `apps/web/public/icon-512.png` (NEW) — 512×512 E-mark icon, 2.4 KB
+- `apps/web/public/icon-512-maskable.png` (NEW) — 512×512 with 12% safe-zone padding for Android adaptive icons, 2.3 KB
+- `apps/web/public/apple-touch-icon.png` (NEW) — 180×180 for iOS home screen, 0.7 KB
+- `apps/web/public/sw.js` (NEW) — manual service worker: cache-first static, network-first API, stale-while-revalidate HTML
+- `apps/web/src/components/pwa/RegisterServiceWorker.tsx` (NEW) — client component that registers /sw.js on mount
+- `apps/web/src/app/layout.tsx` (MODIFIED) — added manifest link, Viewport export with themeColor, appleWebApp metadata, icon declarations, format-detection meta
+- `apps/web/scripts/generate-pwa-icons.py` (NEW) — Pillow script that draws the E-mark icon at all 4 required sizes; run once to generate static assets
+
+### Decisions
+- Service worker approach: Option 1 (manual minimal) — simpler, no new dependencies, easier cache invalidation control
+- Icon source: generated from scratch using Pillow, faithfully reproducing the edify-mark.svg geometry (3-bar E-mark, purple #9F4EF3 background, white bars). The existing brand SVG is 64×64 vector-only; rasterizing at 512px via Pillow was cleaner than adding a headless browser or cairosvg dependency.
+- maximumScale: 1 added to viewport — prevents iOS double-tap zoom on input focus in standalone PWA mode
+- start_url: /dashboard — confirmed as the correct post-auth landing (dashboard page exists at apps/web/src/app/dashboard/page.tsx)
+- No new npm dependencies added
+
+### Test status
+- typecheck: pre-existing environment failures only (broken pnpm virtual store for next/react/lucide-react — same failures present on main; zero new errors introduced by PWA files)
+- PR: (see below)
