@@ -44,6 +44,18 @@ import {
   executeBrandGuidelinesTool,
   BRAND_GUIDELINES_TOOLS_ADDENDUM,
 } from "@/lib/tools/brand-guidelines-from-url";
+import {
+  reportEventTools,
+  executeReportEventTool,
+  REPORT_EVENT_TOOLS_ADDENDUM,
+} from "@/lib/tools/report-event";
+import {
+  impactDataTools,
+  impactDataWriteTools,
+  impactDataReadTools,
+  executeImpactDataTool,
+  IMPACT_DATA_TOOLS_ADDENDUM,
+} from "@/lib/tools/impact-data";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
@@ -65,6 +77,8 @@ export {
   CANVA_EXPORT_TOOLS_ADDENDUM,
   REPURPOSE_TOOLS_ADDENDUM,
   BRAND_GUIDELINES_TOOLS_ADDENDUM,
+  REPORT_EVENT_TOOLS_ADDENDUM,
+  IMPACT_DATA_TOOLS_ADDENDUM,
 };
 export type { RenderToolGeneratedFile };
 
@@ -81,6 +95,8 @@ const CANVA_GENERATE_TOOL_NAMES = new Set(canvaGenerateTools.map((t) => t.name))
 const CANVA_EXPORT_TOOL_NAMES = new Set(canvaExportTools.map((t) => t.name));
 const REPURPOSE_TOOL_NAMES = new Set(repurposeTools.map((t) => t.name));
 const BRAND_GUIDELINES_TOOL_NAMES = new Set(brandGuidelinesTools.map((t) => t.name));
+const REPORT_EVENT_TOOL_NAMES = new Set(reportEventTools.map((t) => t.name));
+const IMPACT_DATA_TOOL_NAMES = new Set(impactDataTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -136,6 +152,14 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("brand_guidelines");
       continue;
     }
+    if (REPORT_EVENT_TOOL_NAMES.has(t.name)) {
+      families.add("report_event");
+      continue;
+    }
+    if (IMPACT_DATA_TOOL_NAMES.has(t.name)) {
+      families.add("impact_data");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -164,6 +188,8 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("canva_export")) parts.push(CANVA_EXPORT_TOOLS_ADDENDUM);
   if (families.has("repurpose")) parts.push(REPURPOSE_TOOLS_ADDENDUM);
   if (families.has("brand_guidelines")) parts.push(BRAND_GUIDELINES_TOOLS_ADDENDUM);
+  if (families.has("report_event")) parts.push(REPORT_EVENT_TOOLS_ADDENDUM);
+  if (families.has("impact_data")) parts.push(IMPACT_DATA_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -173,9 +199,9 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 // ---------------------------------------------------------------------------
 
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
-  executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools],
-  events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools],
-  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools],
+  executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
+  events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
+  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
   marketing_director: [
     ...driveTools,
     ...unsplashTools,
@@ -187,9 +213,11 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
     ...canvaExportTools,
     ...repurposeTools,
     ...brandGuidelinesTools,
+    ...reportEventTools,
+    ...impactDataReadTools,
   ],
-  programs_director: [...grantsTools, ...driveTools, ...memoryTools],
-  hr_volunteer_coordinator: [...driveTools, ...memoryTools],
+  programs_director: [...grantsTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataWriteTools, ...impactDataReadTools],
+  hr_volunteer_coordinator: [...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
 };
 
 /**
@@ -419,6 +447,20 @@ export async function executeTool({
       };
     }
     return executeBrandGuidelinesTool({ name, input, orgId, memberId, serviceClient, anthropic });
+  }
+
+  if (REPORT_EVENT_TOOL_NAMES.has(name)) {
+    return executeReportEventTool({
+      name,
+      input,
+      orgId,
+      sourceAgent: archetypeSlug ?? "unknown",
+      serviceClient,
+    });
+  }
+
+  if (IMPACT_DATA_TOOL_NAMES.has(name)) {
+    return executeImpactDataTool({ name, input, orgId, serviceClient, archetypeSlug });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };

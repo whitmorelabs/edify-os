@@ -17,6 +17,9 @@ import {
   Shield,
   Menu,
   X,
+  Sunrise,
+  Waves,
+  Sparkles,
 } from 'lucide-react';
 import { AGENT_COLORS, AGENT_SLUGS } from '@/lib/agent-colors';
 import { cn } from '@/lib/utils';
@@ -29,6 +32,9 @@ import type { EnabledAgentsMap } from '@/app/api/team/enabled/route';
 import type { InboxItem } from '@/app/api/inbox/pending/route';
 
 const navLinks = [
+  { href: '/dashboard/briefing/today', label: 'Briefing', icon: Sunrise },
+  { href: '/dashboard/ripple', label: 'Ripple', icon: Waves },
+  { href: '/dashboard/story-builder', label: 'Story Builder', icon: Sparkles },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/team', label: 'Team', icon: Users },
   { href: '/dashboard/decision-lab', label: 'Advisory Board', icon: FlaskConical },
@@ -51,6 +57,10 @@ export function Sidebar() {
   const [enabledAgents, setEnabledAgents] = useState<EnabledAgentsMap | null>(null);
   /** Pending approvals count for the Inbox badge. Refreshes on route change. */
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  /** True when today's morning briefing exists but hasn't been viewed yet. */
+  const [briefingReady, setBriefingReady] = useState(false);
+  /** Pending ripple actions count for the Ripple badge. Refreshes on route change. */
+  const [pendingRippleCount, setPendingRippleCount] = useState(0);
 
   useEffect(() => {
     fetch('/api/team/enabled')
@@ -68,6 +78,13 @@ export function Sidebar() {
         setPendingApprovalsCount(count);
       })
       .catch(() => setPendingApprovalsCount(0));
+  }, [pathname]);
+
+  useEffect(() => {
+    fetch('/api/ripple/pending-count', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : { count: 0 }))
+      .then((data: { count: number }) => setPendingRippleCount(data.count))
+      .catch(() => setPendingRippleCount(0));
   }, [pathname]);
 
   const displayName: string = (() => {
@@ -90,6 +107,31 @@ export function Sidebar() {
       setBriefingComplete(true);
     }
   }, []);
+
+  // Check if today's morning briefing exists but hasn't been viewed
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const viewedKey = `edify_briefing_viewed_${today}`;
+    const alreadyViewed = localStorage.getItem(viewedKey) === 'true';
+
+    if (pathname.startsWith('/dashboard/briefing/today')) {
+      localStorage.setItem(viewedKey, 'true');
+      setBriefingReady(false);
+      return;
+    }
+
+    if (alreadyViewed) {
+      setBriefingReady(false);
+      return;
+    }
+
+    // Check if a briefing exists for today
+    fetch('/api/briefing/generate', { cache: 'no-store' })
+      .then((res) => {
+        if (res.ok) setBriefingReady(true);
+      })
+      .catch(() => {});
+  }, [pathname]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -128,6 +170,15 @@ export function Sidebar() {
           // Notification badge: red pill on the Inbox row for unread notifications
           const showNotificationBadge = isInbox && unreadCount > 0 && !showApprovalsBadge;
 
+          // Briefing notification dot: shown when today's briefing is ready but not viewed
+          const isBriefing = href === '/dashboard/briefing/today';
+          const showBriefingDot = isBriefing && briefingReady;
+
+          // Ripple badge: brand pill on the Ripple row when pending actions exist
+          const isRipple = href === '/dashboard/ripple';
+          const rippleBadgeCount = isRipple ? pendingRippleCount : 0;
+          const showRippleBadge = rippleBadgeCount > 0;
+
           return (
             <Link
               key={href}
@@ -158,6 +209,17 @@ export function Sidebar() {
               {showNotificationBadge && (
                 <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
                   {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+              {showBriefingDot && (
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: '#9F4EF3', boxShadow: '0 0 6px rgba(159,78,243,0.6)' }}
+                />
+              )}
+              {showRippleBadge && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-brand-500 text-white text-[10px] font-bold leading-none">
+                  {rippleBadgeCount >= 100 ? '99+' : rippleBadgeCount}
                 </span>
               )}
             </Link>
