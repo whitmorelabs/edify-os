@@ -108,7 +108,7 @@ function validateResponse(obj: unknown): AgentBriefingResponse | null {
     needsInput: Array.isArray(data.needsInput)
       ? data.needsInput
           .filter(
-            (x): x is { title: string; type: string; context: string } =>
+            (x): x is { title: string; type: "approve" | "review" | "decide"; context: string } =>
               typeof x === "object" &&
               x !== null &&
               typeof (x as Record<string, unknown>).title === "string"
