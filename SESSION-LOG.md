@@ -1093,3 +1093,72 @@ Author 3 self-contained, nonprofit-specific HR skills using pre-installed sandbo
 - Run `pnpm --filter web upload-plugin-skills` after merge to push all 3 new skills to Skills API (the existing 7 from PR #31 may already be uploaded; the script should skip them if hash unchanged)
 - 3 new skills + 7 from PR #31 = 10 total for hr_volunteer_coordinator (plus document/docx and document/xlsx)
 - volunteer_handbook_section topics that are most legally sensitive: mandatory_reporting and boundaries_with_youth — Citlali should have these reviewed by HR/legal counsel before using in a real client context
+
+---
+
+## 2026-04-26/27 — Dev PR A (Development Director T1+T2 Skills)
+
+**Identity:** Coding Agent (Sonnet)
+**Branch:** `lopmon/dev-skills-vendor-2026-04-26`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/33
+**Commit:** `4a391f9`
+
+### What was done
+
+Vendored 4 T1 skills from `anthropics/knowledge-work-plugins` and 1 new T2 skill from `anthropics/skills`. Wired 7 total skills to `development_director` in `ARCHETYPE_PLUGIN_SKILLS`.
+
+**T1 (knowledge-work-plugins):**
+- `apps/web/plugins/sales/account-research/SKILL.md`
+- `apps/web/plugins/sales/call-prep/SKILL.md`
+- `apps/web/plugins/data/analyze/SKILL.md`
+- `apps/web/plugins/operations/status-report/SKILL.md`
+
+**T2 (anthropics/skills — new):**
+- `apps/web/plugins/document/pptx/` — full runtime: SKILL.md, editing.md, pptxgenjs.md, LICENSE.txt, scripts/ (add_slide.py, clean.py, thumbnail.py, office/pack.py, soffice.py, unpack.py, validate.py, validators/, helpers/, schemas/)
+
+**T2 (reused — already vendored in PR #31):**
+- `document/docx`, `document/xlsx` — wired only
+
+**Registry:** `ARCHETYPE_PLUGIN_SKILLS.development_director` now has 7 entries
+
+**Prompt:** `DEVELOPMENT_DIRECTOR_PROMPT` updated with `### Skills available` addendum listing all 7 skills
+
+### Skipped
+None — all 4 T1 targets confirmed present in upstream repo.
+
+### Typecheck
+Pre-existing 383 environment errors (next/server, lucide-react, supabase). Zero new errors introduced by this PR.
+
+### Notes for Lopmon
+- Run `pnpm --filter web upload-plugin-skills` after merge — 5 new skill_ids needed (4 T1 + pptx)
+
+---
+
+## 2026-04-26 — Development Director Native Skills PR B
+
+**Identity:** Coding Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/dev-native-skills-2026-04-26`
+**Date:** 2026-04-26
+
+### What Was Built
+
+Three Edify-native fundraising skills for the Development Director archetype, each as `SKILL.md + render.py + LICENSE.txt`:
+
+1. **`development/grant_proposal_writer`** — Generates a full grant proposal (9 sections: cover, exec summary, statement of need, program description, goals, evaluation plan, org capacity, budget justification, sustainability) or condensed LOI. Uses `python-docx`. Saves to `/mnt/user-data/outputs/grant_proposal_<funder>_<timestamp>.docx`.
+
+2. **`development/donor_stewardship_sequence`** — Generates a 3-touch stewardship package: (1) formal acknowledgement letter with IRS boilerplate, (2) thank-you call script with talking points, (3) impact update email with subject line options and photo placeholder. Uses `python-docx`. Saves to `/mnt/user-data/outputs/donor_stewardship_<donor>_<timestamp>.docx`.
+
+3. **`development/impact_report`** — Generates a funder report or annual report variant: cover, leadership letter placeholder, mission recap, outcomes table (program | target | actual | narrative), impact story, financial summary with auto-computed net, acknowledgements, and looking ahead section. Uses `python-docx`. Saves to `/mnt/user-data/outputs/impact_report_<period>_<timestamp>.docx`.
+
+### Wiring
+
+- **`apps/web/src/lib/plugins/registry.ts`** — Appended 3 new `resolve()` calls to `ARCHETYPE_PLUGIN_SKILLS.development_director` (total 10 entries)
+- **`apps/web/src/lib/archetype-prompts.ts`** — Added `### Edify-native fundraising templates` subsection to `DEVELOPMENT_DIRECTOR_PROMPT` listing all 3 skills with 1-line usage guidance each
+
+### Typecheck
+
+Pre-existing environment errors (next/server, lucide-react, supabase). Zero new errors introduced. My changed TS files (`src/lib/plugins/registry.ts`, `src/lib/archetype-prompts.ts`) are clean.
+
+### Notes for Lopmon
+- Run `pnpm --filter web upload-plugin-skills` after merge — 3 new skill_ids needed (grant_proposal_writer, donor_stewardship_sequence, impact_report)
+- docx/xlsx already uploaded for HR; upload script should skip if hash unchanged

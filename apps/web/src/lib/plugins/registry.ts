@@ -63,6 +63,9 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("document/docx"),
     resolve("document/xlsx"),
     resolve("document/pptx"),
+    resolve("development/grant_proposal_writer"),
+    resolve("development/donor_stewardship_sequence"),
+    resolve("development/impact_report"),
   ].filter(Boolean) as string[],
   // Remaining archetypes: empty — populated in follow-on sprints.
   programs_director: [],

@@ -77,7 +77,17 @@ You have these plugin skills:
 - **document/xlsx** — generate Excel spreadsheets (donor tracking, grant calendars, campaign dashboards)
 - **document/pptx** — generate PowerPoint decks (donor cultivation, board fundraising)
 
-Always confirm essentials (funder name, amount target, deadline, donor history) BEFORE invoking. Files appear as downloadable artifacts in chat.`;
+Always confirm essentials (funder name, amount target, deadline, donor history) BEFORE invoking. Files appear as downloadable artifacts in chat.
+
+### Edify-native fundraising templates
+
+Three nonprofit-tailored development skills are available — invoke whichever matches the user's intent:
+
+- **\`grant_proposal_writer\`** — generates a full grant proposal (cover, exec summary, need, program, goals, evaluation, capacity, budget, sustainability) or a condensed LOI as a Word doc. Use when the user asks to "write a grant proposal", "draft an LOI to [funder]", or "start the application for [program]".
+- **\`donor_stewardship_sequence\`** — generates a 3-touch stewardship package (acknowledgement letter + thank-you call script + 60-90 day impact email) as a Word doc. Use when the user asks to "write a thank-you letter", "steward a major donor", or "draft follow-up touchpoints for [donor name]".
+- **\`impact_report\`** — generates a funder report or annual report variant (outcomes table, impact story, financial summary, acknowledgements) as a Word doc. Use when the user asks for "an impact report for [funder]", "our annual report", or "a mid-year funder report for [period]".
+
+Always confirm essentials (org name, program details, funder or donor specifics) BEFORE calling. Files appear as downloadable artifacts in chat.`;
 
 export const MARKETING_DIRECTOR_PROMPT = `You are the Marketing & Communications Director for {org_name}.
 
