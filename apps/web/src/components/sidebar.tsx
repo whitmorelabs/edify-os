@@ -32,14 +32,13 @@ import type { EnabledAgentsMap } from '@/app/api/team/enabled/route';
 import type { InboxItem } from '@/app/api/inbox/pending/route';
 
 const navLinks = [
-  { href: '/dashboard/briefing/today', label: 'Briefing', icon: Sunrise },
-  { href: '/dashboard/ripple', label: 'Ripple', icon: Waves },
-  { href: '/dashboard/story-builder', label: 'Story Builder', icon: Sparkles },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/team', label: 'Team', icon: Users },
+  { href: '/dashboard/briefing/today', label: 'Briefing', icon: Sunrise },
   { href: '/dashboard/decision-lab', label: 'Decision Lab', icon: FlaskConical },
   { href: '/dashboard/inbox', label: 'Inbox', icon: Inbox },
   { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
+  { href: '/dashboard/ripple', label: 'Ripple', icon: Waves },
+  { href: '/dashboard/story-builder', label: 'Story Builder', icon: Sparkles },
   { href: '/dashboard/memory', label: 'Knowledge Base', icon: Brain },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/dashboard/guide', label: 'Help Center', icon: BookOpen },
