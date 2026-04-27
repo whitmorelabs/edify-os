@@ -16,6 +16,12 @@ interface ChatMessagesProps {
   isTyping: boolean;
   /** ID of the assistant message currently being streamed — shows a blinking cursor. */
   streamingId?: string | null;
+  /**
+   * Smooth-revealed text for the currently streaming message.
+   * When set, this overrides msg.content for the streaming bubble so the
+   * animation buffer (not the raw accumulated chunks) drives what's shown.
+   */
+  streamingContent?: string;
   slug: ArchetypeSlug;
   /** Called when the user clicks a quick-reply chip below an assistant message. */
   onQuickReply?: (text: string) => void;
@@ -315,7 +321,7 @@ function FileChips({ files, messageTimestamp, isNew }: FileChipsProps) {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-export function ChatMessages({ messages, isTyping, streamingId, slug, onQuickReply }: ChatMessagesProps) {
+export function ChatMessages({ messages, isTyping, streamingId, streamingContent, slug, onQuickReply }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Resolve the UI archetype object for ChatBubble + TypingIndicator
@@ -358,6 +364,11 @@ export function ChatMessages({ messages, isTyping, streamingId, slug, onQuickRep
         // Assistant message — use ChatBubble primitive with archetype arc
         const fileIsNew = msg.id === justArrivedId;
         const isStreaming = msg.id === streamingId;
+        // For the streaming bubble, show the smoothly-revealed text from the
+        // animation buffer; for all others fall back to the stored content.
+        const visibleContent = isStreaming && streamingContent !== undefined
+          ? streamingContent
+          : msg.content;
         // Quick replies: only show on the last assistant message when not streaming
         const isLastAssistant = msg.id === lastAssistantMsg?.id;
         const quickReplies =
@@ -385,8 +396,8 @@ export function ChatMessages({ messages, isTyping, streamingId, slug, onQuickRep
                   </>
                 }
               >
-                {msg.content ? (
-                  <AssistantMarkdown content={msg.content} />
+                {visibleContent ? (
+                  <AssistantMarkdown content={visibleContent} />
                 ) : (
                   // Waiting for first chunk — show typing dots
                   <span className="inline-flex items-center gap-1 text-sm opacity-50">
@@ -395,7 +406,7 @@ export function ChatMessages({ messages, isTyping, streamingId, slug, onQuickRep
                     <span className="inline-block h-2 w-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "300ms" }} />
                   </span>
                 )}
-                {isStreaming && msg.content && (
+                {isStreaming && visibleContent && (
                   <span
                     aria-hidden="true"
                     className="inline-block w-0.5 h-4 bg-current opacity-60 ml-0.5 align-text-bottom animate-[blink_1s_step-end_infinite]"
@@ -408,7 +419,7 @@ export function ChatMessages({ messages, isTyping, streamingId, slug, onQuickRep
                 className="max-w-[70%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] leading-[1.55] text-[var(--fg-1)]"
                 style={{ background: "var(--bg-3)", boxShadow: "inset 0 0 0 1px var(--line-2)" }}
               >
-                <AssistantMarkdown content={msg.content} />
+                <AssistantMarkdown content={visibleContent} />
                 {msg.files && msg.files.length > 0 && (
                   <FileChips
                     files={msg.files}

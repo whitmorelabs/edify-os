@@ -28,6 +28,69 @@ import { SuggestionChip } from "@/components/ui";
 import type { EnabledAgentsMap } from "@/app/api/team/enabled/route";
 
 // ---------------------------------------------------------------------------
+// useStreamBuffer — smooth character-by-character reveal of streamed text
+// ---------------------------------------------------------------------------
+function useStreamBuffer(isStreaming: boolean) {
+  const bufferRef = useRef("");       // Full text received so far
+  const displayedRef = useRef("");    // Text currently shown to user
+  const [displayText, setDisplayText] = useState("");
+  const rafRef = useRef<number | undefined>(undefined);
+
+  const addChunk = useCallback((chunk: string) => {
+    bufferRef.current += chunk;
+  }, []);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      // When streaming ends, show all remaining buffered text immediately
+      if (bufferRef.current !== displayedRef.current) {
+        setDisplayText(bufferRef.current);
+        displayedRef.current = bufferRef.current;
+      }
+      if (rafRef.current !== undefined) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = undefined;
+      }
+      return;
+    }
+
+    // ~3 chars/frame at 60fps ≈ 180 chars/sec — smooth natural reading speed
+    const CHARS_PER_FRAME = 3;
+
+    function animate() {
+      const buffer = bufferRef.current;
+      const displayed = displayedRef.current;
+
+      if (displayed.length < buffer.length) {
+        const nextLen = Math.min(displayed.length + CHARS_PER_FRAME, buffer.length);
+        const nextText = buffer.slice(0, nextLen);
+        displayedRef.current = nextText;
+        setDisplayText(nextText);
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    }
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current !== undefined) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = undefined;
+      }
+    };
+  }, [isStreaming]);
+
+  const reset = useCallback(() => {
+    bufferRef.current = "";
+    displayedRef.current = "";
+    setDisplayText("");
+  }, []);
+
+  return { displayText, addChunk, reset };
+}
+
+// ---------------------------------------------------------------------------
 // Suggested prompts per archetype
 // ---------------------------------------------------------------------------
 const SUGGESTED_PROMPTS: Record<string, string[]> = {
@@ -162,6 +225,11 @@ export default function TeamChatClient({
   // streamingId: ID of the assistant message currently being streamed in.
   // The UI uses this to find-and-update the partial message in place.
   const [streamingId, setStreamingId] = useState<string | null>(null);
+
+  // Smooth character-by-character animation buffer — isStreaming is true while
+  // streamingId is set. displayText drives what ChatMessages renders for the
+  // active streaming bubble instead of the raw accumulated chunk content.
+  const { displayText: streamingDisplayText, addChunk, reset: resetStreamBuffer } = useStreamBuffer(streamingId !== null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
@@ -292,20 +360,17 @@ export default function TeamChatClient({
           slug,
           content,
           activeConversation?.id,
-          // onDelta: append each chunk to the placeholder message in real time
+          // onDelta: feed chunk into the animation buffer instead of directly
+          // updating message state — the RAF loop in useStreamBuffer reveals it
+          // character-by-character at ~180 chars/sec.
           (chunk: string) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === placeholderId
-                  ? { ...m, content: m.content + chunk }
-                  : m
-              )
-            );
+            addChunk(chunk);
           },
           controller.signal
         );
 
         setStreamingId(null);
+        resetStreamBuffer();
         abortControllerRef.current = null;
 
         const serverConvId = response.conversationId;
@@ -357,6 +422,7 @@ export default function TeamChatClient({
         saveMessage(serverConvId, assistantMsg);
       } catch (err) {
         setStreamingId(null);
+        resetStreamBuffer();
         abortControllerRef.current = null;
         // If aborted due to unmount, don't show an error — the cleanup effect handles it.
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -381,7 +447,7 @@ export default function TeamChatClient({
         setIsTyping(false);
       }
     },
-    [activeConversation, slug]
+    [activeConversation, slug, addChunk, resetStreamBuffer]
   );
 
   // ---------------------------------------------------------------------------
@@ -563,6 +629,7 @@ export default function TeamChatClient({
             messages={messages}
             isTyping={showTypingIndicator}
             streamingId={streamingId}
+            streamingContent={streamingDisplayText}
             slug={archetypeSlug}
             onQuickReply={handleSend}
           />
