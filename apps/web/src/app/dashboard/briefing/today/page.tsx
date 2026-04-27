@@ -295,7 +295,7 @@ export default function BriefingTodayPage() {
   }
 
   return (
-    <div className="mx-auto px-6 lg:px-10 pb-20 min-h-screen" style={{ maxWidth: 860, background: 'var(--bg-1, #0A0A0F)' }}>
+    <div className="mx-auto px-6 lg:px-10 pb-20 min-h-screen" style={{ maxWidth: 860, background: '#0A0A0F', color: '#FFFFFF' }}>
       {/* Error banner */}
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm flex items-center gap-2">
