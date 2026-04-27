@@ -1404,3 +1404,159 @@ No-op — 2 added lines are static string content in a module-level constant. Al
 
 ### Typecheck
 Pre-existing environment errors (`next/server`, `lucide-react` module resolution) unrelated to this change. Zero errors in `archetype-prompts.ts`.
+
+---
+
+## Session: Dynamic Skill Selection (2026-04-27)
+
+**Identity:** Coding Agent (Sonnet)
+**Branch:** `lopmon/dynamic-skill-selection-2026-04-27`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/44 (DRAFT)
+**Commits:** `5cb8e02` (feat) → `1fb226a` (simplify)
+
+### Problem
+Anthropic Skills API hard-caps `container.skills` at 8 items (confirmed via PR #41 diagnostic). Six archetypes had 9–11 plugin skills — the trailing skills were silently dropped via `.slice(0, 8)`, making those skills permanently unreachable. Z reported chat was "unusable."
+
+### What Was Built
+
+**NEW: `apps/web/src/lib/plugins/intent-detection.ts`**
+- `VENDOR_INTENT_PATTERNS` — 9 intent categories, each with regex arrays
+- `VENDOR_TO_CATEGORY` — maps 27 vendored plugin keys to their intent category
+- `EDIFY_NATIVE_SKILL_KEYS` — Set of 19 CLM Studios-authored plugin keys (always pinned)
+- `IntentCategory` — named type for intent category keys
+- `SKILL_CAP = 8` — the confirmed API limit
+- `detectIntentCategories(userMessage)` — returns matched Set<IntentCategory>
+
+**MODIFIED: `apps/web/src/lib/plugins/registry.ts`**
+- Added `skillIdToKey` reverse lookup (skill_id → plugin key), built at module load
+- Added `selectSkillsForMessage(archetype, userMessage, cap)`:
+  - Pins Edify-native skill_ids (always sent)
+  - Scores vendored skills: 2 if category matched, 1 if no match at all, 0 otherwise
+  - Stable-sorts by score desc, original array order for ties
+  - Returns up to `cap` skill_ids
+
+**MODIFIED: `apps/web/src/lib/chat/run-archetype-turn.ts`**
+- Replaced `pluginSkillIds.slice(0, 8)` with `selectSkillsForMessage(archetype, userMessage, SKILL_CAP)`
+
+### Mental Trace: 3 Test Cases
+
+**Test A — Marketing: "make me a flyer for our gala"**
+- 11 eligible skills; 4 native pinned: `social_card`, `flyer`, `donor_thank_you`, `gala_invite`
+- Detected: `marketing` (matches "flyer", "gala"), `events` (matches "gala")
+- Vendored: 7 marketing-category skills all score 2; take top 4 by array order
+- Result: `social_card`, `flyer`, `donor_thank_you`, `gala_invite` + `content-creation`, `campaign-plan`, `draft-content`, `brand-review` = **8** ✅
+- `flyer` (previously dropped) is now always reachable as a native pin
+
+**Test B — Development: "research the Hope Foundation before our pitch"**
+- 10 eligible skills; 3 native pinned: `grant_proposal_writer`, `donor_stewardship_sequence`, `impact_report`
+- Detected: `sales_donor` (matches "Foundation", "pitch"), `data` (matches "research" prefix of "analy"? — no. "research" doesn't hit data pattern. Only `sales_donor` matches.)
+- Vendored 7: `account-research` → sales_donor (score 2), `call-prep` → sales_donor (score 2), `data/analyze` → data (score 0), `operations/status-report` → operations (score 0), `docx` → document (score 0), `xlsx` → document (score 0), `pptx` → document (score 0)
+- Take top 5: `account-research` (2), `call-prep` (2), then 3 score-0 in array order: `data/analyze`, `operations/status-report`, `docx`
+- Result: 3 native + 5 vendored = **8** ✅ — `account-research` and `call-prep` correctly prioritized
+
+**Test C — HR: "draft a volunteer agreement for our youth mentors"**
+- 10 eligible skills; 3 native pinned: `volunteer_recruitment_kit`, `recognition_program`, `volunteer_handbook_section`
+- Detected: `document` (matches "draft" + "agreement"), `hr` (matches "volunteer")
+- Vendored 7: `onboarding` hr (2), `interview-prep` hr (2), `performance-review` hr (2), `policy-lookup` hr (2), `comp-analysis` hr (2), `docx` document (2), `xlsx` document (2)
+- 7 vendored all score 2; take top 5 by array order: `onboarding`, `interview-prep`, `performance-review`, `policy-lookup`, `comp-analysis`
+- Result: 3 native + 5 vendored = **8** ✅ — `docx` is slot 6 and gets dropped this turn (but reachable when user asks for a document explicitly and no HR-category message competes)
+
+### /simplify Findings Fixed
+- Exported `IntentCategory` named type (was `keyof typeof VENDOR_INTENT_PATTERNS` repeated)
+- Dropped dead `key` field from `VendoredEntry` struct (was stored but never read after partition)
+- Fixed associated type lie (`key: string` should have been `string | undefined`)
+- Collapsed score ternary and sort comparator to single expressions
+- Removed redundant narrating comments
+
+### Typecheck
+Pre-existing environment errors (`@supabase/supabase-js`, `next/server`, `lucide-react`) unrelated to this change. Zero new errors from our 3 files.
+
+---
+
+## 2026-04-26 — Auth Audit (lopmon/auth-audit-2026-04-27)
+
+Spawned by Lopmon to audit two auth-related issues Z reported on 2026-04-27.
+
+### Phase 1 — Google Auth Investigation
+
+**Files in the OAuth flow:**
+1. `apps/web/src/app/api/integrations/google/connect/route.ts` — initiates OAuth, builds auth URL, sets CSRF cookie
+2. `apps/web/src/app/api/integrations/google/callback/route.ts` — receives code, exchanges tokens, upserts 3 DB rows (gmail / google_calendar / google_drive)
+3. `apps/web/src/lib/google.ts` — `getAppOrigin()` helper, token refresh logic, `getValidGoogleAccessToken()`
+4. `apps/web/src/lib/google-calendar.ts`, `google-gmail.ts`, `google-drive.ts` — service callers using stored tokens
+5. `apps/web/src/app/dashboard/integrations/page.tsx` — frontend status fetch + connect button (redirects to `/api/integrations/google/connect`)
+
+**Redirect URI construction:**
+Both connect and callback routes call `getAppOrigin()` and append `/api/integrations/google/callback`. Priority order:
+1. `NEXT_PUBLIC_APP_URL` — preferred, explicitly set in Vercel
+2. `VERCEL_URL` — Vercel auto-set, no protocol (gets `https://` prepended)
+3. `http://localhost:3000` — local dev fallback
+
+**Environment variables:**
+- `GOOGLE_OAUTH_CLIENT_ID` — present locally in `.env.local` ✓
+- `GOOGLE_OAUTH_CLIENT_SECRET` — present locally in `.env.local` ✓
+- `NEXT_PUBLIC_APP_URL` — **NOT present in `.env.local`** and **NOT in `.env.example`** ✗
+- The `.env.example` has no Google OAuth vars at all (they exist only in `.env.local`)
+
+**Root cause analysis:**
+
+The `getAppOrigin()` function has a comment: "ACTION REQUIRED for Citlali: Set NEXT_PUBLIC_APP_URL=https://edifyos.vercel.app in the Vercel project environment variables (Production + Preview)."
+
+**Critical finding:** If `NEXT_PUBLIC_APP_URL` is not set in Vercel production, `getAppOrigin()` falls back to `VERCEL_URL`. Vercel auto-sets `VERCEL_URL` to the deployment URL (e.g., `edify-os-abc123.vercel.app`), NOT the production domain (`edifyos.vercel.app`). This means:
+- The redirect URI used in the OAuth flow could be `https://edify-os-abc123.vercel.app/api/integrations/google/callback` (preview URL)
+- But the redirect URI registered in Google Cloud Console is likely `https://edifyos.vercel.app/api/integrations/google/callback`
+- This mismatch causes Google to reject the OAuth flow with `redirect_uri_mismatch`
+
+**Code is correct.** The OAuth flow code itself is well-written with CSRF protection, token refresh dedup, AES-256-GCM encryption, and proper error routing. The issue is purely configuration.
+
+**Suspected root cause:** `NEXT_PUBLIC_APP_URL` is not set in Vercel production environment variables. The fallback to `VERCEL_URL` produces an incorrect redirect URI that doesn't match what's registered in Google Cloud Console.
+
+**Fix required (external — Citlali action):**
+1. In Vercel project settings → Environment Variables, add: `NEXT_PUBLIC_APP_URL=https://edifyos.vercel.app` for Production environment
+2. Confirm Google Cloud Console → OAuth 2.0 Client → Authorized redirect URIs includes: `https://edifyos.vercel.app/api/integrations/google/callback`
+3. Redeploy after setting the env var
+
+**Code fix applied:** Added `NEXT_PUBLIC_APP_URL` and `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` to `.env.example` so future developers know they're required.
+
+---
+
+### Phase 1 — Auth Routing Investigation
+
+**"Request Early Access" / "Get Started" button targets:**
+- Hero section (landing page, line 114): `<Link href="/signup">` → routes to `/signup`
+- Hero CTA section (line 924): `<Link href="/signup">` → routes to `/signup`
+- SpialNavbar desktop (line 94): `<Link href="/signup">` → routes to `/signup`
+- SpialNavbar mobile (line 155): `<Link href="/signup">` → routes to `/signup`
+
+All CTA buttons route to `/signup`, not `/dashboard`.
+
+**Middleware behavior for unauthenticated users:**
+`PROTECTED_PREFIXES = ["/dashboard", "/onboarding"]`
+- `/signup` is NOT in `PROTECTED_PREFIXES` — it's in `AUTH_PATHS` alongside `/login`
+- Unauthenticated user → `/signup` → middleware passes through → user sees signup form ✓
+- Authenticated user → `/signup` → middleware redirects to `/dashboard` ✓
+
+**Why Z saw dashboard instead of signup:**
+Z was already logged in as edifysaas. The middleware correctly redirected them from `/signup` to `/dashboard` (line 55-57 of middleware.ts: `if (session && AUTH_PATHS.includes(pathname))` → redirect to dashboard). This is **expected, correct behavior**, not a bug.
+
+**Security verdict — NO SESSION LEAK:**
+- Dashboard (`/dashboard`) is protected by middleware — unauthenticated users are redirected to `/login` with `?redirectTo=/dashboard`
+- The `dashboard/layout.tsx` has no client-side auth — it relies correctly on middleware
+- No route in the codebase directly serves dashboard content to unauthenticated users
+- The org-id scoping in all API routes (via `getAuthContext()`) ensures data isolation per org
+
+**No code fix needed for Issue #2.** Z's concern is unfounded — they were just already signed in. A new user clicking "Get Started" is sent to `/signup` and will see the signup form.
+
+---
+
+### Phase 2 — Fix Applied
+
+**Fix:** Added missing env vars to `.env.example`:
+- `NEXT_PUBLIC_APP_URL` — critical for Google OAuth redirect URI construction in production
+- `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` — were absent from .env.example entirely
+- Added setup instructions linking to Google Cloud Console
+
+No code logic was changed. The OAuth flow itself is correct.
+
+### Typecheck
+Running after .env.example update — no TypeScript files changed, typecheck passes with same pre-existing environment errors as before.
