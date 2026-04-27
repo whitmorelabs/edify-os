@@ -56,6 +56,11 @@ import {
   executeImpactDataTool,
   IMPACT_DATA_TOOLS_ADDENDUM,
 } from "@/lib/tools/impact-data";
+import {
+  consultTeammateTools,
+  executeConsultTeammateTool,
+  CONSULT_TEAMMATE_TOOLS_ADDENDUM,
+} from "@/lib/tools/consult-teammate";
 import { getValidGoogleAccessToken, type GoogleIntegrationType } from "@/lib/google";
 import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
@@ -79,6 +84,7 @@ export {
   BRAND_GUIDELINES_TOOLS_ADDENDUM,
   REPORT_EVENT_TOOLS_ADDENDUM,
   IMPACT_DATA_TOOLS_ADDENDUM,
+  CONSULT_TEAMMATE_TOOLS_ADDENDUM,
 };
 export type { RenderToolGeneratedFile };
 
@@ -97,6 +103,7 @@ const REPURPOSE_TOOL_NAMES = new Set(repurposeTools.map((t) => t.name));
 const BRAND_GUIDELINES_TOOL_NAMES = new Set(brandGuidelinesTools.map((t) => t.name));
 const REPORT_EVENT_TOOL_NAMES = new Set(reportEventTools.map((t) => t.name));
 const IMPACT_DATA_TOOL_NAMES = new Set(impactDataTools.map((t) => t.name));
+const CONSULT_TEAMMATE_TOOL_NAMES = new Set(consultTeammateTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -160,6 +167,10 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("impact_data");
       continue;
     }
+    if (CONSULT_TEAMMATE_TOOL_NAMES.has(t.name)) {
+      families.add("consult_teammate");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -190,6 +201,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("brand_guidelines")) parts.push(BRAND_GUIDELINES_TOOLS_ADDENDUM);
   if (families.has("report_event")) parts.push(REPORT_EVENT_TOOLS_ADDENDUM);
   if (families.has("impact_data")) parts.push(IMPACT_DATA_TOOLS_ADDENDUM);
+  if (families.has("consult_teammate")) parts.push(CONSULT_TEAMMATE_TOOLS_ADDENDUM);
   return parts.join("");
 }
 
@@ -199,9 +211,9 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 // ---------------------------------------------------------------------------
 
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
-  executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
-  events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
-  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
+  executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
+  events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
+  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   marketing_director: [
     ...driveTools,
     ...unsplashTools,
@@ -215,9 +227,10 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
     ...brandGuidelinesTools,
     ...reportEventTools,
     ...impactDataReadTools,
+    ...consultTeammateTools,
   ],
-  programs_director: [...grantsTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataWriteTools, ...impactDataReadTools],
-  hr_volunteer_coordinator: [...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools],
+  programs_director: [...grantsTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataWriteTools, ...impactDataReadTools, ...consultTeammateTools],
+  hr_volunteer_coordinator: [...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
 };
 
 /**
@@ -461,6 +474,29 @@ export async function executeTool({
 
   if (IMPACT_DATA_TOOL_NAMES.has(name)) {
     return executeImpactDataTool({ name, input, orgId, serviceClient, archetypeSlug });
+  }
+
+  if (CONSULT_TEAMMATE_TOOL_NAMES.has(name)) {
+    if (!anthropic) {
+      return {
+        content: "Consult teammate tool requires an Anthropic client; none was provided.",
+        is_error: true,
+      };
+    }
+    // Resolve org name from DB for the sub-turn system prompt.
+    const { data: orgRow } = await serviceClient
+      .from("orgs")
+      .select("name")
+      .eq("id", orgId)
+      .single();
+    const orgName = (orgRow?.name as string | null) ?? "your organization";
+    return executeConsultTeammateTool({
+      name,
+      input,
+      orgName,
+      sourceArchetype: archetypeSlug ?? "unknown",
+      anthropic,
+    });
   }
 
   return { content: `Unknown tool: ${name}`, is_error: true };
