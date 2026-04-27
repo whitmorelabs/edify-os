@@ -1300,3 +1300,54 @@ Added `### Skills available` section to `PROGRAMS_DIRECTOR_PROMPT` listing all 6
 ### Typecheck
 Pre-existing environment errors (missing `next/server`, `lucide-react`, `@supabase/supabase-js`) on main — not caused by this PR. Zero new errors introduced by my changes.
 
+
+---
+
+## Session: EA Skills Vendor (PR A) — 2026-04-26
+
+**Identity:** Coding Agent (Sonnet)
+**Branch:** `lopmon/ea-skills-vendor-2026-04-26`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/39
+**Commit:** `6de8fe8`
+
+### Task
+Vendor T1+T2 plugin skills for the Executive Assistant archetype (5th and final archetype). First PR of the EA sprint.
+
+### Skills Vendored (3 new)
+- `productivity/task-management` → `apps/web/plugins/productivity/task-management/` (from `anthropics/knowledge-work-plugins`) — confirmed upstream, SKILL.md vendored
+- `sales/daily-briefing` → `apps/web/plugins/sales/daily-briefing/` (from `anthropics/knowledge-work-plugins`) — confirmed upstream, SKILL.md vendored
+- `document/internal-comms` → `apps/web/plugins/document/internal-comms/` (from `anthropics/skills`) — confirmed upstream, SKILL.md + LICENSE.txt + 4 example files vendored
+
+### Skills Reused (already vendored)
+- `operations/status-report`, `operations/process-doc`, `document/docx`, `document/pptx`
+
+### Registry Wired
+`ARCHETYPE_PLUGIN_SKILLS.executive_assistant` populated with 7 entries in `apps/web/src/lib/plugins/registry.ts`.
+
+### Prompt Updated
+Added `### Skills available` section to `EXECUTIVE_ASSISTANT_PROMPT` in `apps/web/src/lib/archetype-prompts.ts` with 7 skills and 1-line guidance each (mirrors Dev/Events/Programs style).
+
+### Typecheck
+Pre-existing environment errors (missing `next/server`, `lucide-react`, `@supabase/supabase-js`) on main — not caused by this PR. Zero new errors introduced by my changes.
+
+---
+
+## Session: EA Native Skills (PR B) — 2026-04-26
+
+**Identity:** Coding Agent (Sonnet)
+**Branch:** `lopmon/ea-native-skills-2026-04-26`
+**Task:** Author 3 nonprofit-specific Edify-native Executive Assistant skills (final PR of overnight archetype sprint).
+
+### Skills Authored
+
+- **`executive_assistant/board_meeting_packet`** — Generates a full nonprofit board meeting packet Word doc. Sections: cover, agenda table (color-coded by item type: decision/discussion/informational/consent), consent calendar with recommended motion, action item tracker (R/Y/G status badges), committee reports, executive summary, appendix placeholder.
+
+- **`executive_assistant/executive_brief`** — Generates a compact 1-page briefing note for the ED's external meetings. 0.7" margins, tight paragraph spacing. Sections: title bar, attendees table, background, key decisions needed, stakeholder positions, recommended stance, risks.
+
+- **`executive_assistant/action_item_extractor`** — Heuristically parses freeform meeting notes into structured Word doc. Sections: cover with summary counts, action items table (# | Action | Owner | Deadline | Priority | Notes), decisions captured, open questions. Parsing: keyword regex classification, owner extraction (5 patterns), deadline resolution (ISO dates, month-day, relative weekday/period), priority detection. Explicitly marked DRAFT. Uses `dateutil` with graceful fallback.
+
+### Registry + Prompt Updated
+3 entries appended to `ARCHETYPE_PLUGIN_SKILLS.executive_assistant` in registry.ts. `### Edify-native EA templates` section added to EXECUTIVE_ASSISTANT_PROMPT in archetype-prompts.ts.
+
+### Typecheck
+Pre-existing environment errors on main — not caused by this PR. Zero new errors in my modified files.
