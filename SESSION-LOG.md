@@ -1351,3 +1351,56 @@ Pre-existing environment errors (missing `next/server`, `lucide-react`, `@supaba
 
 ### Typecheck
 Pre-existing environment errors on main — not caused by this PR. Zero new errors in my modified files.
+
+---
+
+## 2026-04-27 — Skill Cap Diagnostic
+
+**Identity:** Coding Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/skill-cap-diagnostic-2026-04-27`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/41 (DRAFT — do not merge)
+**Commit:** `4b12a5c`
+
+### Goal
+Determine whether the Anthropic Skills API 8-item cap (settled by Z+Milo during pre-built-skill debugging) also applies to custom-uploaded plugin skills (which are 1:1, no sub-component expansion). Marketing Director has 11 plugin skills; 3 of 4 native design skills (`flyer`, `donor_thank_you`, `gala_invite`) are currently silently dropped by the `.slice(0, 8)` cap.
+
+### What Was Built
+
+**`apps/web/src/app/api/admin/skill-cap-test/route.ts`** (NEW — single file, additive only)
+- Auth-gated GET endpoint using `getAuthContext()` + `getAnthropicClientForOrg()`
+- Reads all 47 skill_ids from `plugins/uploaded-ids.json`
+- Probes sizes `[1, 4, 8, 12, 16, 20, 24, 32]` sequentially via `anthropic.beta.messages.create()` with `container.skills`
+- Uses `claude-haiku-4-5-20251001`, `max_tokens: 16`, trivial prompt — no skill execution, just container.skills validation
+- 30s per-attempt timeout via `Promise.race()`
+- Stops after first API failure; reports `max_supported`, `first_failing_size`, per-size results + interpretation string
+- Same beta headers as `run-archetype-turn.ts` (`code-execution-2025-08-25`, `skills-2025-10-02`, `files-api-2025-04-14`)
+
+### Typecheck
+One pre-existing `Cannot find module 'next/server'` error (same error present in 56 other route files on main). Zero logic-specific errors in the new file.
+
+### Next Step
+Citlali or Z visits `https://edifyos.vercel.app/api/admin/skill-cap-test` while logged in after deploy. If `max_supported >= 11`: raise the cap in `run-archetype-turn.ts` line 222, skip dynamic-selection sprint. If `max_supported = 8`: proceed with priority-based dynamic selection sprint.
+
+---
+
+## 2026-04-27 — Programs Prompt Fix (process-doc + build-dashboard)
+
+**Identity:** Coding Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/programs-prompt-fix-2026-04-27`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/42 (DRAFT — do not merge)
+**Commit:** `ef72de3`
+
+### Goal
+Re-add 2 skill bullet lines to Programs Director's `### Skills available` prompt section that were incorrectly removed by /simplify during PR #37. Both skills (`operations/process-doc`, `data/build-dashboard`) are uploaded and wired in the registry; only the prompt mention was missing.
+
+### What Was Done
+- Added `operations/process-doc` bullet after `operations/status-report` in `PROGRAMS_DIRECTOR_PROMPT`
+- Added `data/build-dashboard` bullet after `data/analyze` in `PROGRAMS_DIRECTOR_PROMPT`
+- Both bullets use consistent 1-line guidance style matching the existing 4 entries
+- No other files touched
+
+### /simplify
+No-op — 2 added lines are static string content in a module-level constant. All three review agents (reuse, quality, efficiency) returned clean.
+
+### Typecheck
+Pre-existing environment errors (`next/server`, `lucide-react` module resolution) unrelated to this change. Zero errors in `archetype-prompts.ts`.
