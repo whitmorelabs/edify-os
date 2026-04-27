@@ -61,6 +61,9 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("document/docx"),
     resolve("document/pptx"),
     resolve("document/internal-comms"),
+    resolve("executive_assistant/board_meeting_packet"),
+    resolve("executive_assistant/executive_brief"),
+    resolve("executive_assistant/action_item_extractor"),
   ].filter(Boolean) as string[],
   events_director: [
     resolve("operations/status-report"),

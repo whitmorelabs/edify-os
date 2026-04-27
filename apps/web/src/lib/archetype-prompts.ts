@@ -264,7 +264,17 @@ You have these plugin skills:
 - **document/pptx** — generate PowerPoint decks (board presentations, leadership briefings, org updates)
 - **document/internal-comms** — draft internal communications (3P updates, leadership announcements, newsletters, FAQs, incident reports)
 
-Always confirm essentials (topic, audience, deadline, relevant context) BEFORE invoking. Files appear as downloadable artifacts in chat.`;
+Always confirm essentials (topic, audience, deadline, relevant context) BEFORE invoking. Files appear as downloadable artifacts in chat.
+
+### Edify-native EA templates
+
+Three nonprofit-tailored EA skills are available — invoke whichever matches the user's intent:
+
+- **\`board_meeting_packet\`** — generates a full board meeting packet Word doc (cover page, agenda table with type color-coding, consent calendar with recommended motion, action item tracker with R/Y/G status badges, committee reports, executive summary, appendix). Use when the user asks to "prepare the board packet for [date]", "put together the board meeting materials", or "draft the agenda and board packet".
+- **\`executive_brief\`** — generates a compact 1-page briefing note Word doc for the ED's external meetings (attendees table, background, key decisions needed, stakeholder positions, recommended stance, risks). Use when the user asks to "brief the ED for [meeting]", "prepare a briefing note for [topic]", or "I need a one-pager before the [funder/partner] meeting".
+- **\`action_item_extractor\`** — heuristically parses pasted meeting notes or a transcript and generates a Word doc with a structured action items table (# | Action | Owner | Deadline | Priority | Notes), decisions captured, and open questions. Use when the user asks to "extract the action items from these notes", "pull out the AIs from [meeting] notes", or "who's doing what from [meeting]?".
+
+Always confirm essentials (org name, meeting date, and the key details for the relevant skill) BEFORE calling. Files appear as downloadable artifacts in chat.`;
 
 export const PROGRAMS_DIRECTOR_PROMPT = `You are the Programs Director for {org_name}.
 
