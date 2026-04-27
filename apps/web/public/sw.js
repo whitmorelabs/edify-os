@@ -10,7 +10,7 @@
  * No offline form submission or background sync — out of scope for v1.
  */
 
-const CACHE_VERSION = "edify-pwa-v1";
+const CACHE_VERSION = "edify-pwa-v2";
 
 const APP_SHELL = [
   "/",
@@ -102,18 +102,25 @@ async function cacheFirst(request) {
 /**
  * Stale-while-revalidate: return cached response immediately,
  * then fetch fresh copy in background and update cache.
+ *
+ * Uses redirect: "manual" so that any server-side redirect produces an
+ * opaqueredirect Response, which the browser handles as a real navigation
+ * redirect. Returning a redirected Response directly to a navigation
+ * FetchEvent causes Chrome to throw ERR_FAILED (well-known SW gotcha).
+ * opaqueredirect responses are not cacheable — the Cache API rejects them —
+ * so we skip caching them and let the browser follow the redirect natively.
  */
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_VERSION);
   const cached = await cache.match(request);
 
-  // Always kick off a background revalidation. Suppress rejections when we
-  // already have a cached response — a network error on a bg refresh is not
-  // fatal. If there is no cached response, let the rejection surface so the
-  // browser shows a real error rather than a silent hang.
-  const fetchPromise = fetch(request)
+  // Use redirect: "manual" so a redirected navigation produces an opaque-redirect
+  // response that the browser handles natively. Returning a redirected response
+  // from a SW to a navigation FetchEvent causes Chrome to throw ERR_FAILED.
+  const fetchPromise = fetch(request, { redirect: "manual" })
     .then((response) => {
-      if (response.ok) {
+      // Only cache successful, non-opaque responses (opaqueredirect can't be cached)
+      if (response.ok && response.type !== "opaqueredirect") {
         cache.put(request, response.clone());
       }
       return response;
