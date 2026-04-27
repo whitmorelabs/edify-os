@@ -1229,3 +1229,74 @@ Pre-existing environment errors (next/server, lucide-react, supabase). Zero new 
 ### Notes for Lopmon
 - Run `pnpm --filter web upload-plugin-skills` after merge — 3 new skill_ids needed (run_of_show, sponsor_package, post_event_report)
 - Existing events skills (status-report, risk-assessment, vendor-review, draft-outreach, pptx, xlsx) are already uploaded; upload script should skip unchanged hashes
+
+---
+
+## Session: Programs Director Native Skills PR B — 2026-04-26
+
+**Identity:** Coding Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/programs-native-skills-2026-04-26`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/38
+**Commit:** `f12b3ef`
+
+### What Was Built
+
+Three Edify-native Programs Director skills, each as `SKILL.md + render.py + LICENSE.txt` in `apps/web/plugins/programs/`:
+
+1. **`programs/logic_model_builder`** — Generates a Word doc (python-docx) with: cover page (program name, org, date), theory of change narrative (1 coherent paragraph synthesized from inputs), 5-column logic model table (Inputs | Activities | Outputs | Short-Term Outcomes | Long-Term Outcomes) with shaded green header and equal column widths, measurement indicators table (Outcome | Indicator | Data Source), numbered assumptions list, and numbered external factors list. Saves to `/mnt/user-data/outputs/logic_model_<program>_<timestamp>.docx`.
+
+2. **`programs/participant_survey`** — Generates a print-ready Word survey instrument (python-docx) for 4 survey types (intake / satisfaction / outcome / exit). Each type has 10-15 hardcoded nonprofit-standard questions across 3-5 thematic sections, with mixed question types: Likert 5-point scale (rendered as a 2-row table with anchors), multiple choice with ☐ checkboxes, open-ended (3 blank underlines), rank-order. Includes cover page with org logo placeholder, intro paragraph, and privacy/voluntary statement. Outcome surveys include a scoring guide (staff-only) with an average-score interpretation table. Extra topics from `additional_topics` are appended as open-ended questions. Saves to `/mnt/user-data/outputs/survey_<type>_<program>_<timestamp>.docx`.
+
+3. **`programs/grant_outcome_report`** — Generates a funder-ready Word doc (python-docx) with: cover page, auto-generated executive summary (counts on/approaching/below target deliverables), performance-against-deliverables table (auto-computed % = actual/target × 100; color-coded status column: green ≥100%, amber 75-99%, red <75% with fill and text color), program narrative, anonymized participant story as indented pull-quote, challenges and adaptations bullet list, next period plan, and compliance footer. Saves to `/mnt/user-data/outputs/grant_outcome_report_<grant>_<timestamp>.docx`.
+
+### Wiring
+
+- **`apps/web/src/lib/plugins/registry.ts`** — Appended 3 new `resolve()` calls to `ARCHETYPE_PLUGIN_SKILLS.programs_director` (`programs/logic_model_builder`, `programs/participant_survey`, `programs/grant_outcome_report`)
+- **`apps/web/src/lib/archetype-prompts.ts`** — Added `### Edify-native program templates` subsection to `PROGRAMS_DIRECTOR_PROMPT` listing all 3 skills with usage triggers (mirrors Dev/Events/HR archetype style)
+
+### Typecheck
+
+Pre-existing environment errors (missing `next/server`, `lucide-react`, `@supabase/supabase-js`) confirmed present on both main and this branch — not caused by these changes. Zero new errors introduced.
+
+### Notes for Lopmon
+
+- Run `pnpm --filter web upload-plugin-skills` after merge — 3 new skill_ids needed (logic_model_builder, participant_survey, grant_outcome_report)
+- Existing programs skills already uploaded; upload script skips unchanged hashes
+
+---
+
+## Session: Programs Director Plugin Skills — 2026-04-26
+
+**Identity:** Coding Agent (Sonnet)
+**Branch:** `lopmon/programs-skills-vendor-2026-04-26`
+**PR:** https://github.com/whitmorelabs/edify-os/pull/37
+**Commit:** `220e98a`
+
+### What Was Done
+
+**T1 — Vendored 2 new skills from `anthropics/knowledge-work-plugins`:**
+- `apps/web/plugins/operations/process-doc/` (SKILL.md + LICENSE)
+- `apps/web/plugins/data/build-dashboard/` (SKILL.md + LICENSE)
+
+Both fetched via GitHub API (`gh api repos/anthropics/knowledge-work-plugins/...`). Raw SKILL.md content pulled via raw.githubusercontent.com. LICENSE preserved (Apache 2.0).
+
+**Skipped:** None. Both target skills exist in the upstream repo.
+
+**Registry wired** (`apps/web/src/lib/plugins/registry.ts`):
+```
+programs_director: [
+  "operations/process-doc",
+  "operations/status-report",
+  "data/analyze",
+  "data/build-dashboard",
+  "document/docx",
+  "document/xlsx",
+]
+```
+
+**Prompt updated** (`apps/web/src/lib/archetype-prompts.ts`):
+Added `### Skills available` section to `PROGRAMS_DIRECTOR_PROMPT` listing all 6 skills with 1-line guidance each (mirrors Dev/Events archetype style).
+
+### Typecheck
+Pre-existing environment errors (missing `next/server`, `lucide-react`, `@supabase/supabase-js`) on main — not caused by this PR. Zero new errors introduced by my changes.
+
