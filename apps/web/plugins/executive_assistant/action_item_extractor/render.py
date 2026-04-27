@@ -32,7 +32,6 @@ All libraries are pre-installed in Anthropic's code-execution sandbox.
 import datetime
 import os
 import re
-import time
 from typing import Optional, Tuple
 
 from docx import Document
@@ -49,7 +48,6 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 
 try:
     from dateutil import parser as dateutil_parser
-    from dateutil.relativedelta import relativedelta
     _DATEUTIL_AVAILABLE = True
 except ImportError:
     _DATEUTIL_AVAILABLE = False
@@ -159,32 +157,6 @@ _OWNER_PATTERNS = [
     re.compile(r"^([A-Z][a-z]+(?: [A-Z][a-z]+)?) (?:will|to) ", re.IGNORECASE),
     # Bracketed names: [Name] or (Name)
     re.compile(r"[\[\(]([A-Z][a-z]+(?: [A-Z][a-z]+)?)[\]\)]"),
-]
-
-# Absolute date patterns
-_DATE_PATTERNS = [
-    # ISO: 2026-04-26
-    re.compile(r"\b(\d{4}-\d{2}-\d{2})\b"),
-    # Month Day Year: April 26, 2026 / Apr 26 2026
-    re.compile(
-        r"\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
-        r"Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|"
-        r"Dec(?:ember)?)\s+\d{1,2}(?:,?\s*\d{4})?",
-        re.IGNORECASE
-    ),
-    # "by Friday", "by Monday", etc.
-    re.compile(
-        r"\bby\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b",
-        re.IGNORECASE
-    ),
-    # "by end of week/month/quarter"
-    re.compile(r"\bby\s+end\s+of\s+(week|month|quarter|year)\b", re.IGNORECASE),
-    # "next week", "next month"
-    re.compile(r"\bnext\s+(week|month|quarter)\b", re.IGNORECASE),
-    # "due [date phrase]"
-    re.compile(r"\bdue\s+(\S+(?:\s+\S+)?)", re.IGNORECASE),
-    # "deadline: [date]"
-    re.compile(r"\bdeadline[:\s]+(\S+(?:\s+\S+)?)", re.IGNORECASE),
 ]
 
 # Relative weekday offsets from current date
@@ -363,14 +335,10 @@ def _parse_notes(
             deadline = _extract_date(stripped)
             priority = "High" if _HIGH_PRIORITY_RE.search(stripped) else "Normal"
 
-            # Build notes: capture any extra context (e.g., if it's a long sentence)
             notes = ""
-            # If the cleaned line contains a colon after an action label, the "notes"
-            # are the part after the colon
             colon_split = re.split(r":\s+", cleaned, maxsplit=1)
             if len(colon_split) == 2 and len(colon_split[0]) < 30:
                 cleaned = colon_split[1]
-            # Truncate if very long — keep first ~120 chars as action, rest as notes
             if len(cleaned) > 140:
                 notes = cleaned[140:].strip()
                 cleaned = cleaned[:140].strip() + "..."
@@ -473,8 +441,7 @@ def _build_cover(
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r_label = p.add_run(f"{label}: ")
         r_label.bold = True
-        r_value = p.add_run(value)
-        _ = r_value
+        p.add_run(value)
 
     doc.add_paragraph()
 
@@ -553,7 +520,6 @@ def _build_action_table(doc: Document, actions: list) -> None:
             for ci in range(6):
                 _shade_cell(table_row.cells[ci], _ALT_ROW_FILL)
 
-        # Number
         table_row.cells[0].width = col_widths[0]
         _set_cell_margins(table_row.cells[0])
         p_num = table_row.cells[0].paragraphs[0]
@@ -561,20 +527,17 @@ def _build_action_table(doc: Document, actions: list) -> None:
         r_num = p_num.add_run(str(row_idx + 1))
         r_num.font.size = Pt(9)
 
-        # Action
         table_row.cells[1].width = col_widths[1]
         _set_cell_margins(table_row.cells[1])
         r_action = table_row.cells[1].paragraphs[0].add_run(action_text)
         r_action.font.size = Pt(9)
 
-        # Owner
         table_row.cells[2].width = col_widths[2]
         _set_cell_margins(table_row.cells[2])
         r_owner = table_row.cells[2].paragraphs[0].add_run(owner)
         r_owner.font.size = Pt(9)
         r_owner.bold = True
 
-        # Deadline
         table_row.cells[3].width = col_widths[3]
         _set_cell_margins(table_row.cells[3])
         p_dl = table_row.cells[3].paragraphs[0]
@@ -582,7 +545,6 @@ def _build_action_table(doc: Document, actions: list) -> None:
         r_dl = p_dl.add_run(deadline or "—")
         r_dl.font.size = Pt(9)
 
-        # Priority
         table_row.cells[4].width = col_widths[4]
         _set_cell_margins(table_row.cells[4])
         p_pri = table_row.cells[4].paragraphs[0]
@@ -592,7 +554,6 @@ def _build_action_table(doc: Document, actions: list) -> None:
         r_pri.bold = True
         r_pri.font.color.rgb = _HIGH_PRI_TEXT if is_high else _NORMAL_PRI_TEXT
 
-        # Notes
         table_row.cells[5].width = col_widths[5]
         _set_cell_margins(table_row.cells[5])
         r_notes = table_row.cells[5].paragraphs[0].add_run(notes)

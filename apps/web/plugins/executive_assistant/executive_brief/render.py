@@ -22,7 +22,6 @@ All libraries are pre-installed in Anthropic's code-execution sandbox.
 import datetime
 import os
 import re
-import time
 from typing import Optional
 
 from docx import Document
@@ -87,8 +86,6 @@ def _compact_para(doc: Document, text: str, bold: bool = False, italic: bool = F
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(space_before)
     p.paragraph_format.space_after = Pt(space_after)
-    if text and p.runs:
-        pass  # run added below
     run = p.add_run(text)
     run.font.size = Pt(size)
     if bold:
@@ -108,14 +105,12 @@ def _section_heading(doc: Document, text: str) -> None:
     run.bold = True
     run.font.size = Pt(8)
     run.font.color.rgb = _WHITE_TEXT
-    # Apply background via paragraph shading using XML
     pPr = p._p.get_or_add_pPr()
     shd = OxmlElement("w:shd")
     shd.set(qn("w:val"), "clear")
     shd.set(qn("w:color"), "auto")
     shd.set(qn("w:fill"), _SECTION_BAR_FILL)
     pPr.append(shd)
-    # Add left indent for padding
     pFmt = p.paragraph_format
     pFmt.left_indent = Inches(0.1)
     pFmt.right_indent = Inches(0.1)
@@ -245,7 +240,7 @@ def _build_key_decisions(doc: Document, decisions: list) -> None:
         _numbered_compact(doc, str(decision))
 
 
-def _build_stakeholder_positions(doc: Document, positions: list, org_name: str) -> None:
+def _build_stakeholder_positions(doc: Document, positions: list) -> None:
     if not positions:
         return
     _section_heading(doc, "Stakeholder Positions")
@@ -407,7 +402,7 @@ def render(
     _build_header_block(doc, org_name, meeting_topic, meeting_date, attendees)
     _build_background(doc, background)
     _build_key_decisions(doc, key_decisions_needed)
-    _build_stakeholder_positions(doc, stakeholder_positions, org_name)
+    _build_stakeholder_positions(doc, stakeholder_positions)
     _build_recommended_stance(doc, recommended_stance)
     _build_risks(doc, risks)
     _build_footer_block(doc, prepared_by, today_str)

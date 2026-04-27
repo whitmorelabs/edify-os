@@ -20,7 +20,6 @@ All libraries are pre-installed in Anthropic's code-execution sandbox.
 import datetime
 import os
 import re
-import time
 from typing import Optional
 
 from docx import Document
@@ -266,14 +265,12 @@ def _build_agenda(doc: Document, agenda_items: list) -> None:
 
         table_row = table.rows[row_idx + 1]
 
-        # Alternate row shading for non-typed cells
         if row_idx % 2 == 1:
             _shade_cell(table_row.cells[0], _ALT_ROW_FILL)
             _shade_cell(table_row.cells[1], _ALT_ROW_FILL)
             _shade_cell(table_row.cells[2], _ALT_ROW_FILL)
             _shade_cell(table_row.cells[4], _ALT_ROW_FILL)
 
-        # Time
         table_row.cells[0].width = col_widths[0]
         _set_cell_margins(table_row.cells[0])
         p_time = table_row.cells[0].paragraphs[0]
@@ -281,7 +278,6 @@ def _build_agenda(doc: Document, agenda_items: list) -> None:
         r_time = p_time.add_run(time_str)
         r_time.font.size = Pt(9)
 
-        # Title
         table_row.cells[1].width = col_widths[1]
         _set_cell_margins(table_row.cells[1])
         p_title = table_row.cells[1].paragraphs[0]
@@ -289,14 +285,12 @@ def _build_agenda(doc: Document, agenda_items: list) -> None:
         r_title.font.size = Pt(9)
         r_title.bold = True
 
-        # Presenter
         table_row.cells[2].width = col_widths[2]
         _set_cell_margins(table_row.cells[2])
         p_pres = table_row.cells[2].paragraphs[0]
         r_pres = p_pres.add_run(presenter)
         r_pres.font.size = Pt(9)
 
-        # Type badge
         table_row.cells[3].width = col_widths[3]
         _shade_cell(table_row.cells[3], fill)
         _set_cell_margins(table_row.cells[3])
@@ -307,7 +301,6 @@ def _build_agenda(doc: Document, agenda_items: list) -> None:
         r_type.bold = True
         r_type.font.color.rgb = text_color
 
-        # Supporting material
         table_row.cells[4].width = col_widths[4]
         _set_cell_margins(table_row.cells[4])
         p_sup = table_row.cells[4].paragraphs[0]
@@ -399,7 +392,6 @@ def _build_action_tracker(doc: Document, prior_action_items: list) -> None:
             _shade_cell(table_row.cells[2], _ALT_ROW_FILL)
             _shade_cell(table_row.cells[4], _ALT_ROW_FILL)
 
-        # Number
         table_row.cells[0].width = col_widths[0]
         _set_cell_margins(table_row.cells[0])
         p_num = table_row.cells[0].paragraphs[0]
@@ -407,19 +399,16 @@ def _build_action_tracker(doc: Document, prior_action_items: list) -> None:
         r_num = p_num.add_run(str(row_idx + 1))
         r_num.font.size = Pt(9)
 
-        # Item
         table_row.cells[1].width = col_widths[1]
         _set_cell_margins(table_row.cells[1])
         r_item = table_row.cells[1].paragraphs[0].add_run(item_text)
         r_item.font.size = Pt(9)
 
-        # Owner
         table_row.cells[2].width = col_widths[2]
         _set_cell_margins(table_row.cells[2])
         r_owner = table_row.cells[2].paragraphs[0].add_run(owner)
         r_owner.font.size = Pt(9)
 
-        # Status badge
         table_row.cells[3].width = col_widths[3]
         _shade_cell(table_row.cells[3], status_fill)
         _set_cell_margins(table_row.cells[3])
@@ -430,7 +419,6 @@ def _build_action_tracker(doc: Document, prior_action_items: list) -> None:
         r_status.bold = True
         r_status.font.color.rgb = status_text_color
 
-        # Notes
         table_row.cells[4].width = col_widths[4]
         _set_cell_margins(table_row.cells[4])
         r_notes = table_row.cells[4].paragraphs[0].add_run(notes)
@@ -489,7 +477,7 @@ def _build_appendix(doc: Document, agenda_items: list) -> None:
     doc.add_paragraph()
 
     has_docs = False
-    for i, item in enumerate(agenda_items, 1):
+    for item in agenda_items:
         doc_note = item.get("supporting_doc_note", "")
         if doc_note and str(doc_note).strip():
             p = doc.add_paragraph(style="List Number")
