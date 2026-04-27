@@ -143,5 +143,35 @@
     "skill_id": "skill_018NaomrkRnqUoyRW5ykUJB3",
     "hash": "4c6bcdd03eb9198b",
     "uploaded_at": "2026-04-27T04:26:47.843Z"
+  },
+  "events/post_event_report": {
+    "skill_id": "skill_018BHgkWYqhgmM5KEPHaqJxo",
+    "hash": "0210973c8fd333bf",
+    "uploaded_at": "2026-04-27T04:48:19.321Z"
+  },
+  "events/run_of_show": {
+    "skill_id": "skill_01LHHJ4p5TQt71nWN8aFC4MX",
+    "hash": "7e0e87b3de9e3dfb",
+    "uploaded_at": "2026-04-27T04:48:20.464Z"
+  },
+  "events/sponsor_package": {
+    "skill_id": "skill_01Cf7LBM1sR2qGrBBhG8EPQD",
+    "hash": "82a9a3eeb3677db7",
+    "uploaded_at": "2026-04-27T04:48:21.629Z"
+  },
+  "operations/risk-assessment": {
+    "skill_id": "skill_01Vq2LKRZhd8WAoMRUYH8ySv",
+    "hash": "d21f173b77165420",
+    "uploaded_at": "2026-04-27T04:48:22.697Z"
+  },
+  "operations/vendor-review": {
+    "skill_id": "skill_0128ArDif665Khc5mQn9HY3b",
+    "hash": "e57e1acf423695ee",
+    "uploaded_at": "2026-04-27T04:48:23.799Z"
+  },
+  "sales/draft-outreach": {
+    "skill_id": "skill_01FThmnAVPbrcgra8b4iD1BR",
+    "hash": "8e8818c3341f320f",
+    "uploaded_at": "2026-04-27T04:48:24.866Z"
   }
 }
