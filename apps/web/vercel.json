@@ -1,5 +1,11 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm --filter @edify/shared build && cd apps/web && npx next build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/heartbeat/trigger",
+      "schedule": "0 12 * * 1-5"
+    }
+  ]
 }

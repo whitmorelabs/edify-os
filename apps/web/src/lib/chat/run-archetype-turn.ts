@@ -261,7 +261,7 @@ export async function runArchetypeTurn({
           betas: [...SKILLS_BETA_HEADERS],
           model: modelId,
           max_tokens: MAX_RESPONSE_TOKENS,
-          temperature: 0.3,
+          temperature: 0.5,
           system: systemBlocks,
           messages: loopMessages,
           ...(cachedTools.length > 0
@@ -275,7 +275,7 @@ export async function runArchetypeTurn({
       : await anthropic.messages.create({
           model: modelId,
           max_tokens: MAX_RESPONSE_TOKENS,
-          temperature: 0.3,
+          temperature: 0.5,
           system: systemBlocks,
           messages: loopMessages,
           ...(cachedTools.length > 0 ? { tools: cachedTools as unknown as Parameters<typeof anthropic.messages.create>[0]["tools"] } : {}),
