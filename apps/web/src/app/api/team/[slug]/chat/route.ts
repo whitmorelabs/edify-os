@@ -134,132 +134,123 @@ export async function POST(
     content: message,
   });
 
-  // Run the archetype turn via the shared helper (handles system prompt, temporal
-  // block, skills/beta path, Google token prefetch, parallel tool execution, 8-round loop).
-  let text: string;
-  let generatedFiles: Array<{ name: string; mimeType: string; downloadUrl: string }>;
-  let tokenUsage: import("@/lib/chat/run-archetype-turn").TokenUsage | undefined;
-
-  try {
-    ({ text, generatedFiles, tokenUsage } = await runArchetypeTurn({
-      serviceClient,
-      orgId,
-      memberId: memberId ?? null,
-      archetype: slug as ArchetypeSlug,
-      userMessage: message,
-      client: anthropic,
-      orgName,
-      mission,
-      timezone: orgTimezone,
-      history,
-      customArchetypeName,
-    }));
-  } catch (err) {
-    console.error("[team/chat] Claude API error:", err);
-    const msg = err instanceof Error ? err.message : "Claude API error";
-    return NextResponse.json({ error: msg }, { status: 502 });
-  }
-
-  // Persist ONLY the final assistant text (user message was already saved above).
-  // Token usage is stored in the metadata column for the Usage dashboard.
-  await Promise.all([
-    serviceClient.from("messages").insert({
-      conversation_id: activeConversationId,
-      role: "assistant",
-      content: text,
-      ...(tokenUsage
-        ? {
-            metadata: {
-              token_usage: {
-                input_tokens: tokenUsage.inputTokens,
-                output_tokens: tokenUsage.outputTokens,
-                cache_read_tokens: tokenUsage.cacheReadTokens,
-                cache_creation_tokens: tokenUsage.cacheCreationTokens,
-              },
-            },
-          }
-        : {}),
-    }),
-    serviceClient
-      .from("conversations")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", activeConversationId),
-  ]);
-
-  // Fire-and-forget: create a notification for the chat response.
-  const archetypeName = customArchetypeName ?? slug.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-  try {
-    serviceClient.from("notifications").insert({
-      org_id: orgId,
-      type: "message",
-      title: `${archetypeName} responded`,
-      body: text.substring(0, 150) + (text.length > 150 ? "..." : ""),
-      archetype: slug,
-      link: `/dashboard/team/${slug}`,
-    }).then(({ error }) => {
-      if (error) console.error("[team/chat] notification insert failed:", error);
-    });
-  } catch (err) {
-    console.error("[team/chat] notification insert failed:", err);
-  }
-
-  // Route completed artifact to the Tasks page (not the Inbox).
-  // Per Z's 2026-04-21 review + Citlali's Option B choice:
-  //   Inbox = items that need a user decision (approvals).
-  //   Tasks = completed agent work (drafts, replies, artifacts).
-  // Non-trivial responses get a tasks row with status='completed' + kind. The
-  // agent-task worker in apps/api is the write-path for approvals (when a
-  // response genuinely needs sign-off); it is the only producer of inbox items.
-  void recordChatArtifact({
-    serviceClient,
-    orgId,
-    slug: slug as ArchetypeSlug,
-    userMessage: message,
-    assistantText: text,
-    hasGeneratedFiles: generatedFiles.length > 0,
-    memberId: memberId ?? null,
-  });
-
-  // Auto-save org knowledge from user messages.
-  // When users share info about programs, contacts, donors, grants, or processes,
-  // we create a memory_entries row so the AI team retains this across conversations.
-  void autoSaveMemory({
-    serviceClient,
-    orgId,
-    memberId: memberId ?? null,
-    userMessage: message,
-  });
-
-  // Stream the response so the frontend can display text progressively.
-  // We've already completed the tool-use loop above — what we stream here is
-  // the final assembled text, word-by-word (chunk size ~4 chars) so the UI
-  // sees a typewriter effect without changing the server-side architecture.
+  // Stream the response in real-time — text deltas from Claude are pushed to
+  // the browser as SSE events the moment they arrive. DB persistence and
+  // side-effects (notifications, tasks, memory) happen after completion.
   const msgId = crypto.randomUUID();
   const timestamp = new Date().toISOString();
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
-    start(controller) {
-      // First event: metadata (conversationId, files, msgId)
-      const meta = JSON.stringify({
-        type: "meta",
-        id: msgId,
-        conversationId: activeConversationId,
-        timestamp,
-        ...(generatedFiles.length > 0 ? { files: generatedFiles } : {}),
-      });
-      controller.enqueue(encoder.encode(`data: ${meta}\n\n`));
+    async start(controller) {
+      try {
+        // Send preliminary meta event so the frontend knows the conversationId
+        // and can render the message shell immediately.
+        const meta = JSON.stringify({
+          type: "meta",
+          id: msgId,
+          conversationId: activeConversationId,
+          timestamp,
+        });
+        controller.enqueue(encoder.encode(`data: ${meta}\n\n`));
 
-      // Stream text in small chunks for a typewriter feel (~4 chars each).
-      const CHUNK = 4;
-      for (let i = 0; i < text.length; i += CHUNK) {
-        const chunk = JSON.stringify({ type: "delta", text: text.slice(i, i + CHUNK) });
-        controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+        // Run the archetype turn with real-time streaming — each text delta
+        // from Claude is forwarded to the browser as an SSE "delta" event.
+        const result = await runArchetypeTurn({
+          serviceClient,
+          orgId,
+          memberId: memberId ?? null,
+          archetype: slug as ArchetypeSlug,
+          userMessage: message,
+          client: anthropic,
+          orgName,
+          mission,
+          timezone: orgTimezone,
+          history,
+          customArchetypeName,
+          onTextDelta: (text) => {
+            const delta = JSON.stringify({ type: "delta", text });
+            controller.enqueue(encoder.encode(`data: ${delta}\n\n`));
+          },
+        });
+
+        const { text, generatedFiles, tokenUsage } = result;
+
+        // Send done event with files (if any)
+        const done = JSON.stringify({
+          type: "done",
+          ...(generatedFiles.length > 0 ? { files: generatedFiles } : {}),
+        });
+        controller.enqueue(encoder.encode(`data: ${done}\n\n`));
+        controller.close();
+
+        // --- Post-stream side-effects (fire-and-forget) ---
+
+        // Persist assistant message + update conversation timestamp
+        await Promise.all([
+          serviceClient.from("messages").insert({
+            conversation_id: activeConversationId,
+            role: "assistant",
+            content: text,
+            ...(tokenUsage
+              ? {
+                  metadata: {
+                    token_usage: {
+                      input_tokens: tokenUsage.inputTokens,
+                      output_tokens: tokenUsage.outputTokens,
+                      cache_read_tokens: tokenUsage.cacheReadTokens,
+                      cache_creation_tokens: tokenUsage.cacheCreationTokens,
+                    },
+                  },
+                }
+              : {}),
+          }),
+          serviceClient
+            .from("conversations")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", activeConversationId),
+        ]);
+
+        // Notification
+        const archetypeName = customArchetypeName ?? slug.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        serviceClient.from("notifications").insert({
+          org_id: orgId,
+          type: "message",
+          title: `${archetypeName} responded`,
+          body: text.substring(0, 150) + (text.length > 150 ? "..." : ""),
+          archetype: slug,
+          link: `/dashboard/team/${slug}`,
+        }).then(({ error }) => {
+          if (error) console.error("[team/chat] notification insert failed:", error);
+        });
+
+        // Task artifact
+        void recordChatArtifact({
+          serviceClient,
+          orgId,
+          slug: slug as ArchetypeSlug,
+          userMessage: message,
+          assistantText: text,
+          hasGeneratedFiles: generatedFiles.length > 0,
+          memberId: memberId ?? null,
+        });
+
+        // Auto-save org knowledge
+        void autoSaveMemory({
+          serviceClient,
+          orgId,
+          memberId: memberId ?? null,
+          userMessage: message,
+        });
+      } catch (err) {
+        console.error("[team/chat] Streaming error:", err);
+        const errMsg = err instanceof Error ? err.message : "Claude API error";
+        try {
+          const errEvent = JSON.stringify({ type: "error", error: errMsg });
+          controller.enqueue(encoder.encode(`data: ${errEvent}\n\n`));
+        } catch { /* controller may already be closed */ }
+        try { controller.close(); } catch { /* ignore */ }
       }
-
-      // Done event
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
-      controller.close();
     },
   });
 

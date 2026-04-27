@@ -84,6 +84,12 @@ export interface RunArchetypeTurnOptions {
    * "haiku"  → claude-haiku-4-5-20251001 (heartbeats, simple Q&A, 5× cheaper)
    */
   model?: "sonnet" | "haiku";
+  /**
+   * Streaming callback — called for each text delta as Claude generates it.
+   * Used by the chat route to push SSE chunks to the browser in real-time.
+   * Heartbeat callers can omit this to use the non-streaming accumulation path.
+   */
+  onTextDelta?: (text: string) => void;
 }
 
 export interface TokenUsage {
@@ -120,6 +126,7 @@ export async function runArchetypeTurn({
   history = [],
   customArchetypeName,
   model = "sonnet",
+  onTextDelta,
 }: RunArchetypeTurnOptions): Promise<RunArchetypeTurnResult> {
   const modelId = MODEL_IDS[model];
 
@@ -256,8 +263,16 @@ export async function runArchetypeTurn({
     // The non-beta path is used only for pure-chat turns with no skills/MCP.
     const useBetaPath = attachSkills || mcpServers.length > 0;
 
-    const response = useBetaPath
-      ? await anthropic.beta.messages.create({
+    // Use streaming API when an onTextDelta callback is provided.
+    // Text deltas are pushed to the caller in real-time; we still await
+    // finalMessage() to get the complete response for tool-use loop logic.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let response: any;
+
+    if (onTextDelta) {
+      // Streaming path — use .stream() for real-time text deltas
+      if (useBetaPath) {
+        const stream = anthropic.beta.messages.stream({
           betas: [...SKILLS_BETA_HEADERS],
           model: modelId,
           max_tokens: MAX_RESPONSE_TOKENS,
@@ -268,11 +283,12 @@ export async function runArchetypeTurn({
             ? { tools: cachedTools as unknown as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] }
             : {}),
           ...(containerParam ? { container: containerParam } : {}),
-          // F. MCP servers — always present (even if empty) to make the param visible in API calls.
-          // Empty array is equivalent to omitting the param; included for observability.
           ...(mcpServers.length > 0 ? { mcp_servers: mcpServers } : {}),
-        })
-      : await anthropic.messages.create({
+        });
+        stream.on("text", (textDelta) => { onTextDelta(textDelta); });
+        response = await stream.finalMessage();
+      } else {
+        const stream = anthropic.messages.stream({
           model: modelId,
           max_tokens: MAX_RESPONSE_TOKENS,
           temperature: 0.5,
@@ -280,6 +296,34 @@ export async function runArchetypeTurn({
           messages: loopMessages,
           ...(cachedTools.length > 0 ? { tools: cachedTools as unknown as Parameters<typeof anthropic.messages.create>[0]["tools"] } : {}),
         });
+        stream.on("text", (textDelta) => { onTextDelta(textDelta); });
+        response = await stream.finalMessage();
+      }
+    } else {
+      // Non-streaming path — used by heartbeats and callers that don't need real-time deltas
+      response = useBetaPath
+        ? await anthropic.beta.messages.create({
+            betas: [...SKILLS_BETA_HEADERS],
+            model: modelId,
+            max_tokens: MAX_RESPONSE_TOKENS,
+            temperature: 0.5,
+            system: systemBlocks,
+            messages: loopMessages,
+            ...(cachedTools.length > 0
+              ? { tools: cachedTools as unknown as Parameters<typeof anthropic.beta.messages.create>[0]["tools"] }
+              : {}),
+            ...(containerParam ? { container: containerParam } : {}),
+            ...(mcpServers.length > 0 ? { mcp_servers: mcpServers } : {}),
+          })
+        : await anthropic.messages.create({
+            model: modelId,
+            max_tokens: MAX_RESPONSE_TOKENS,
+            temperature: 0.5,
+            system: systemBlocks,
+            messages: loopMessages,
+            ...(cachedTools.length > 0 ? { tools: cachedTools as unknown as Parameters<typeof anthropic.messages.create>[0]["tools"] } : {}),
+          });
+    }
 
     // Accumulate token usage from this API response
     if (response.usage) {
@@ -326,8 +370,8 @@ export async function runArchetypeTurn({
 
     // Capture any text produced in this round
     const textInThisResponse = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
+      .filter((b: { type: string }) => b.type === "text")
+      .map((b: { type: string; text: string }) => b.text)
       .join("\n\n");
     if (textInThisResponse) lastAssistantText = textInThisResponse;
 
@@ -337,7 +381,7 @@ export async function runArchetypeTurn({
         content: response.content as Anthropic.MessageParam["content"],
       });
 
-      const toolUseBlocks = response.content.filter(
+      const toolUseBlocks = (response.content as Anthropic.ContentBlock[]).filter(
         (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
       );
 

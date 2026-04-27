@@ -137,6 +137,10 @@ export async function sendMessage(
         } else if (event.type === "delta" && event.text) {
           fullText += event.text;
           onDelta?.(event.text);
+        } else if (event.type === "done" && event.files && meta) {
+          // Files arrive with the done event (real streaming) since they're
+          // only known after the full tool-use loop completes.
+          meta.files = event.files;
         }
         // "done" event — loop will end naturally when the stream closes
       } catch {
