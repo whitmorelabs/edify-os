@@ -39,7 +39,7 @@ export default function AboutPage() {
                 We saw the same story, over and over.
               </h2>
               <p className="leading-[1.7] text-fg-2 mb-4">
-                Edify is a creative impact studio based in Beaufort, SC. For years, we have made cinematic films and immersive XR/VR experiences for nonprofits across the Southeast. Youth programs. Community health organizations. Cultural institutions. Conservation groups.
+                Edify is a creative impact studio based in Beaufort, SC. We make cinematic films and immersive XR/VR experiences for nonprofits across the Southeast. Youth programs. Community health organizations. Cultural institutions. Conservation groups.
               </p>
               <p className="leading-[1.7] text-fg-2 mb-4">
                 And in every single one, we met the same person. Passionate about the mission. Brilliant at their work. Completely buried in operational tasks they could not afford to delegate.
