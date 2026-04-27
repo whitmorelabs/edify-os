@@ -12,7 +12,6 @@ All libraries are pre-installed in Anthropic's code-execution sandbox.
 
 import os
 import re
-import time as _time
 from typing import Optional
 
 from reportlab.lib import colors
@@ -36,8 +35,6 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 _NAVY = colors.HexColor("#1A476B")
 _STEEL = colors.HexColor("#2E729E")
-_LIGHT_BLUE = colors.HexColor("#D6E8F5")
-_HEADER_BG = colors.HexColor("#1A476B")
 _ROW_ALT = colors.HexColor("#F0F6FB")
 _CONTACT_BG = colors.HexColor("#EAF2F8")
 _GRAY = colors.HexColor("#555555")
@@ -172,8 +169,7 @@ def _build_ros_table(segments: list, s: dict) -> Table:
     table = Table(rows, colWidths=col_widths, repeatRows=1)
 
     style_cmds = [
-        # Header row
-        ("BACKGROUND", (0, 0), (-1, 0), _HEADER_BG),
+        ("BACKGROUND", (0, 0), (-1, 0), _NAVY),
         ("TEXTCOLOR", (0, 0), (-1, 0), _WHITE),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 8),
@@ -181,7 +177,6 @@ def _build_ros_table(segments: list, s: dict) -> Table:
         ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, 0), 5),
         ("BOTTOMPADDING", (0, 0), (-1, 0), 5),
-        # All cells
         ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
         ("FONTSIZE", (0, 1), (-1, -1), 8),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -279,7 +274,6 @@ def render(
     str
         Absolute path to the generated PDF file
     """
-    # Validate required inputs
     required = {
         "event_name": event_name,
         "event_date": event_date,
@@ -291,7 +285,7 @@ def render(
         if not value or not str(value).strip():
             raise ValueError(f"{field} is required and cannot be empty")
 
-    if not segments or not isinstance(segments, list) or len(segments) == 0:
+    if not segments or not isinstance(segments, list):
         raise ValueError("segments is required and must be a non-empty list")
 
     key_contacts = key_contacts or []

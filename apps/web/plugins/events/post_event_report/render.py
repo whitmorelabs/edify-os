@@ -25,7 +25,6 @@ All libraries are pre-installed in Anthropic's code-execution sandbox.
 import datetime
 import os
 import re
-import time as _time
 from typing import Optional, Union
 
 from docx import Document
@@ -56,12 +55,6 @@ def _heading1(doc: Document, text: str) -> None:
     h = doc.add_heading(text, level=1)
     if h.runs:
         h.runs[0].font.color.rgb = _NAVY
-
-
-def _heading2(doc: Document, text: str) -> None:
-    h = doc.add_heading(text, level=2)
-    if h.runs:
-        h.runs[0].font.color.rgb = _STEEL
 
 
 def _para(doc: Document, text: str, italic: bool = False, bold: bool = False,
@@ -257,7 +250,6 @@ def _build_by_the_numbers(
     for row_idx, (label, value) in enumerate(rows_data):
         cells = table.rows[row_idx].cells
         if row_idx == 0:
-            # Header row
             cells[0].text = ""
             r1 = cells[0].paragraphs[0].add_run(label)
             r1.bold = True
@@ -276,7 +268,6 @@ def _build_by_the_numbers(
             cells[1].text = ""
             r2 = cells[1].paragraphs[0].add_run(value)
 
-            # Colour code net and ROI
             if label == "Net Revenue":
                 r2.font.color.rgb = _GREEN if net >= 0 else _RED
                 r2.bold = True
@@ -302,11 +293,9 @@ def _build_cost_breakdown(doc: Document, cost_breakdown: Optional[list], costs_t
         return
 
     rows_data = [("Category", "Amount")]
-    running_total = 0.0
     for item in cost_breakdown:
         cat = str(item.get("category", ""))
         amt = _parse_amount(item.get("amount", 0))
-        running_total += amt
         rows_data.append((cat, _fmt_currency(amt)))
     rows_data.append(("TOTAL", _fmt_currency(costs_total)))
 

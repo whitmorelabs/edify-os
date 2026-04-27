@@ -24,7 +24,7 @@ import time as _time
 from typing import Optional
 
 from docx import Document
-from docx.shared import Pt, RGBColor, Inches
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
@@ -50,12 +50,6 @@ def _heading1(doc: Document, text: str) -> None:
     h = doc.add_heading(text, level=1)
     if h.runs:
         h.runs[0].font.color.rgb = _NAVY
-
-
-def _heading2(doc: Document, text: str) -> None:
-    h = doc.add_heading(text, level=2)
-    if h.runs:
-        h.runs[0].font.color.rgb = _STEEL
 
 
 def _para(doc: Document, text: str, italic: bool = False, bold: bool = False,
@@ -248,12 +242,9 @@ def _build_tiers_table(doc: Document, sponsor_tiers: list) -> None:
         _para(doc, "[PLACEHOLDER: Add sponsor tier details here.]", italic=True)
         return
 
-    # Table: Tier | Amount | Benefits
-    col_count = 3
-    table = doc.add_table(rows=len(sponsor_tiers) + 1, cols=col_count)
+    table = doc.add_table(rows=len(sponsor_tiers) + 1, cols=3)
     table.style = "Table Grid"
 
-    # Header row
     hdr_cells = table.rows[0].cells
     for i, header in enumerate(["Sponsorship Tier", "Investment", "Benefits"]):
         cell = hdr_cells[i]
@@ -270,18 +261,15 @@ def _build_tiers_table(doc: Document, sponsor_tiers: list) -> None:
         row_cells = table.rows[row_idx + 1].cells
         shade = alt_colors[row_idx % 2]
 
-        # Tier name
         row_cells[0].text = ""
         name_run = row_cells[0].paragraphs[0].add_run(str(tier.get("name", "")))
         name_run.bold = True
 
-        # Amount
         row_cells[1].text = ""
         amt_val = _format_currency(tier.get("amount", ""))
         amt_run = row_cells[1].paragraphs[0].add_run(amt_val)
         amt_run.bold = True
 
-        # Benefits
         row_cells[2].text = ""
         benefits = tier.get("benefits", [])
         if isinstance(benefits, list):
@@ -393,7 +381,7 @@ def _build_cold_outreach(
         "Email Template 1 — Cold Outreach",
         "Use for sponsors you have not contacted before. Formal introduction to the organization and event.",
     )
-    _para(doc, "Subject: Sponsorship Opportunity — " + event_name + " | " + event_date)
+    _para(doc, f"Subject: Sponsorship Opportunity — {event_name} | {event_date}")
     doc.add_paragraph()
     _para(doc, "Dear [Contact Name],")
     doc.add_paragraph()
@@ -433,7 +421,7 @@ def _build_warm_outreach(
         "Email Template 2 — Warm Outreach",
         "Use for contacts with an existing relationship — past sponsors, board connections, or known community partners.",
     )
-    _para(doc, "Subject: " + event_name + " — " + event_date + " | Sponsorship Invitation")
+    _para(doc, f"Subject: {event_name} — {event_date} | Sponsorship Invitation")
     doc.add_paragraph()
     _para(doc, "Dear [Contact Name],")
     doc.add_paragraph()
@@ -470,7 +458,7 @@ def _build_last_chance(
         "Email Template 3 — Last-Chance Follow-Up",
         "Use approximately 1 week before the sponsorship deadline. Friendly urgency — not pushy.",
     )
-    _para(doc, "Subject: Last Chance — " + event_name + " Sponsorship Deadline [DATE]")
+    _para(doc, f"Subject: Last Chance — {event_name} Sponsorship Deadline [DATE]")
     doc.add_paragraph()
     _para(doc, "Dear [Contact Name],")
     doc.add_paragraph()
@@ -556,7 +544,7 @@ def render(
         if not value or not str(value).strip():
             raise ValueError(f"{field} is required and cannot be empty")
 
-    if not sponsor_tiers or not isinstance(sponsor_tiers, list) or len(sponsor_tiers) == 0:
+    if not sponsor_tiers or not isinstance(sponsor_tiers, list):
         raise ValueError("sponsor_tiers is required and must be a non-empty list")
 
     os.makedirs(output_dir, exist_ok=True)
