@@ -1,0 +1,17 @@
+Proprietary License
+
+Copyright (c) Anthropic, PBC. All rights reserved.
+
+This software and associated documentation files (the "Software") are proprietary
+to Anthropic, PBC and are made available under Anthropic's Consumer or Commercial
+Terms of Service (https://www.anthropic.com/legal/consumer-terms or
+https://www.anthropic.com/legal/commercial-terms, as applicable).
+
+You may use this Software solely as permitted by the applicable Terms of Service.
+No license is granted to copy, modify, distribute, sublicense, sell, or create
+derivative works from this Software except as expressly permitted by the Terms of
+Service or by Anthropic in writing.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
