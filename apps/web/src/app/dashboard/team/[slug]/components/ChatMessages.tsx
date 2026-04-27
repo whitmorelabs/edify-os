@@ -379,7 +379,7 @@ export function ChatMessages({ messages, isTyping, streamingId, slug, onQuickRep
                         isNew={fileIsNew}
                       />
                     )}
-                    {quickReplies && (
+                    {quickReplies && onQuickReply && (
                       <QuickReplyChips replies={quickReplies} onSelect={onQuickReply} />
                     )}
                   </>
