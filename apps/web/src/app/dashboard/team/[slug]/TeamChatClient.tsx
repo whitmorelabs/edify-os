@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, PanelLeft } from "lucide-react";
 import Link from "next/link";
 import { ARCHETYPE_CONFIG, ARCHETYPE_SLUGS } from "@/lib/archetype-config";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
@@ -101,16 +101,17 @@ function EmptyState({
       </p>
 
       {prompts.length > 0 && (
-        <div className="mt-8 w-full max-w-md">
+        <div className="mt-8 w-full max-w-md px-2 md:px-0">
           <p className="text-xs font-medium uppercase tracking-wider text-[var(--fg-3)] mb-3">
             Try one of these
           </p>
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-stretch gap-2">
             {prompts.slice(0, 4).map((prompt, i) => (
               <SuggestionChip
                 key={i}
                 icon={<Sparkles size={14} />}
                 onClick={() => onPromptSelect(prompt)}
+                className="w-full text-left justify-start"
               >
                 {prompt}
               </SuggestionChip>
@@ -412,22 +413,60 @@ export default function TeamChatClient({
   // Show the typing indicator only before any streaming has started
   const showTypingIndicator = isTyping && !streamingId;
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  function handleSelectConversationMobile(conv: Conversation) {
+    handleSelectConversation(conv);
+    setMobileSidebarOpen(false);
+  }
+
   return (
-    <div className="flex overflow-hidden -m-6 lg:-m-8" style={{ height: "calc(100vh)" }}>
-      {/* Conversation sidebar */}
-      <ConversationSidebar
-        conversations={conversations}
-        activeConversationId={activeConversation?.id ?? null}
-        onSelect={handleSelectConversation}
-        onNew={handleNewConversation}
-        onDelete={handleDeleteConversation}
-        isCreating={false}
-      />
+    <div className="flex overflow-hidden -m-6 lg:-m-8 h-[calc(100vh-56px)] lg:h-screen">
+      {/* Conversation sidebar — hidden on mobile, visible at md+ */}
+      <div className="hidden md:flex">
+        <ConversationSidebar
+          conversations={conversations}
+          activeConversationId={activeConversation?.id ?? null}
+          onSelect={handleSelectConversation}
+          onNew={handleNewConversation}
+          onDelete={handleDeleteConversation}
+          isCreating={false}
+        />
+      </div>
+
+      {/* Mobile conversation drawer */}
+      {mobileSidebarOpen && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 z-40 bg-black/60"
+            onClick={() => setMobileSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="md:hidden fixed inset-y-0 left-0 z-50 w-64 overflow-hidden flex flex-col">
+            <ConversationSidebar
+              conversations={conversations}
+              activeConversationId={activeConversation?.id ?? null}
+              onSelect={handleSelectConversationMobile}
+              onNew={() => { handleNewConversation(); setMobileSidebarOpen(false); }}
+              onDelete={handleDeleteConversation}
+              isCreating={false}
+            />
+          </div>
+        </>
+      )}
 
       {/* Main chat area */}
       <div className="flex flex-col flex-1 min-w-0 bg-[var(--bg-0)]">
         {/* Chat header */}
         <header className="flex items-center gap-3 px-4 sm:px-6 py-4 bg-[var(--bg-1)] border-b border-[var(--line-1)] shrink-0">
+          {/* Mobile hamburger for conversation list */}
+          <button
+            className="md:hidden p-1.5 rounded-lg text-[var(--fg-3)] hover:text-[var(--fg-1)] hover:bg-[var(--bg-2)] transition"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="Open conversations"
+          >
+            <PanelLeft size={18} />
+          </button>
           <Link
             href="/dashboard/team"
             className="p-1.5 rounded-lg text-[var(--fg-3)] hover:text-[var(--fg-1)] hover:bg-[var(--bg-2)] transition"

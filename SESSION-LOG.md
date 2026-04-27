@@ -969,3 +969,48 @@ Make Edify-OS installable as a home-screen app on iPhone and Android via PWA (ma
 ### Test status
 - typecheck: pre-existing environment failures only (broken pnpm virtual store for next/react/lucide-react — same failures present on main; zero new errors introduced by PWA files)
 - PR: (see below)
+
+---
+
+## 2026-04-26 — PWA launch fix (lopmon-spawned Sonnet)
+
+### Goal
+Fix Android WebAPK ERR_FAILED on launch after PR #28 shipped the PWA conversion.
+
+### Files touched
+- `apps/web/public/manifest.json` — `start_url` changed from `/dashboard` to `/`
+- `apps/web/public/sw.js` — `staleWhileRevalidate` now uses `fetch(request, { redirect: "manual" })`; opaqueredirect responses skip caching; `CACHE_VERSION` bumped from `edify-pwa-v1` to `edify-pwa-v2`
+
+### Changes summary
+1. **start_url fix:** `/dashboard` is auth-gated. WebAPK launches may not carry session cookies from Chrome (Android cookie isolation), causing a redirect to `/login` which compounds with the SW bug.
+2. **SW redirect fix:** Chrome throws ERR_FAILED when a service worker returns a `redirected: true` Response to a navigation FetchEvent. Using `redirect: "manual"` produces an `opaqueredirect` Response that the browser handles natively. opaqueredirect responses are also skipped from cache (Cache API rejects them).
+3. **Cache version bump:** Forces activate handler to purge `edify-pwa-v1` and install fresh SW immediately.
+
+### Test status
+- typecheck: pre-existing environment failures only (same broken pnpm virtual store on main — zero new errors introduced)
+- PR: https://github.com/whitmorelabs/edify-os/pull/29
+- Commit: 5aeb49a
+
+---
+
+## 2026-04-26 — Mobile-responsive dashboard (lopmon-spawned Sonnet)
+
+### Goal
+Make dashboard usable at phone widths (~360-414px) for Citlali's PWA field testing. After PR #28 + #29 shipped the PWA, the chat layout was desktop-only — the ConversationSidebar took a fixed 256px (w-64) leaving ~100px for chat content at 360px, causing single-character vertical stacks everywhere.
+
+### Files touched
+- `apps/web/src/app/dashboard/team/[slug]/TeamChatClient.tsx`
+
+### Decisions
+- **Breakpoint chosen:** `md:` (768px). Below 768px: sidebar hidden, hamburger shown. At 768px+: sidebar visible, hamburger hidden. Desktop layout (>=768px) byte-for-byte unchanged.
+- **ConversationSidebar hidden on mobile:** wrapped in `<div className="hidden md:flex">`. Mobile drawer uses `fixed inset-y-0 left-0 z-50 w-64` overlay panel — reuses existing sidebar dimensions and tokens.
+- **Hamburger icon:** `PanelLeft` from lucide-react, placed before the ArrowLeft back button in the chat header. `md:hidden` so invisible on desktop.
+- **Backdrop:** `fixed inset-0 z-40 bg-black/60` click-to-close. No animation (animation freeze in effect).
+- **Height fix:** Changed from `style={{ height: "calc(100vh)" }}` inline to `h-[calc(100vh-56px)] lg:h-screen` Tailwind classes. The dashboard main wrapper has `pt-14` (56px) on mobile for the nav sidebar hamburger; without this fix the chat overflows by 56px. lg+ gets `h-screen` (no pt offset at lg).
+- **Margins:** Restored original `-m-6 lg:-m-8` pattern exactly to preserve desktop layout.
+- **SuggestionChips:** Changed chip container to `items-stretch` + `w-full text-left justify-start` on chips so they fill available width instead of being narrow centered pills. Added `px-2 md:px-0` extra edge padding on mobile.
+- **No new components:** All changes are inside TeamChatClient.tsx. Mobile drawer reuses ConversationSidebar directly (no duplicate chrome).
+
+### Test status
+- typecheck: pre-existing environment failures only (framer-motion, @vercel/og, @supabase/ssr, next/server — same as main before this branch; zero new errors introduced)
+- PR: (see below)
