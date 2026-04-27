@@ -61,6 +61,9 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("sales/draft-outreach"),
     resolve("document/pptx"),
     resolve("document/xlsx"),
+    resolve("events/run_of_show"),
+    resolve("events/sponsor_package"),
+    resolve("events/post_event_report"),
   ].filter(Boolean) as string[],
   development_director: [
     resolve("sales/account-research"),

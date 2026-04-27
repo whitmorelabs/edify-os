@@ -1162,3 +1162,70 @@ Pre-existing environment errors (next/server, lucide-react, supabase). Zero new 
 ### Notes for Lopmon
 - Run `pnpm --filter web upload-plugin-skills` after merge — 3 new skill_ids needed (grant_proposal_writer, donor_stewardship_sequence, impact_report)
 - docx/xlsx already uploaded for HR; upload script should skip if hash unchanged
+
+---
+
+## Session: Events Director T1+T2 Skills Vendor
+
+**Identity:** Coding Agent (Sonnet)
+**Branch:** `lopmon/events-skills-vendor-2026-04-26`
+**Date:** 2026-04-26
+**PR:** https://github.com/whitmorelabs/edify-os/pull/35
+**Commit:** 4ae84da
+
+### What was done
+
+Vendored 3 new T1 plugin skills from `anthropics/knowledge-work-plugins` for the Events Director archetype:
+
+1. `operations/risk-assessment` → `apps/web/plugins/operations/risk-assessment/` (SKILL.md + LICENSE)
+2. `operations/vendor-review` → `apps/web/plugins/operations/vendor-review/` (SKILL.md + LICENSE)
+3. `sales/draft-outreach` → `apps/web/plugins/sales/draft-outreach/` (SKILL.md + LICENSE)
+
+Wired 6 total skills to `ARCHETYPE_PLUGIN_SKILLS.events_director` in `registry.ts`:
+- operations/status-report (already vendored)
+- operations/risk-assessment (new)
+- operations/vendor-review (new)
+- sales/draft-outreach (new)
+- document/pptx (reused T2)
+- document/xlsx (reused T2)
+
+Added `### Skills available` section to `EVENTS_DIRECTOR_PROMPT` in `archetype-prompts.ts` mirroring Development Director addendum style.
+
+### Typecheck
+
+Pre-existing environment errors (next/server, lucide-react, supabase) unchanged. Zero new errors introduced.
+
+### Notes for Lopmon
+- Run `pnpm --filter web upload-plugin-skills` after merge — 3 new skill_ids needed
+- pptx/xlsx already uploaded for Development Director sprint; upload script should skip unchanged hashes
+
+---
+
+## 2026-04-26 — Events Director Native Skills PR B
+
+**Identity:** Coding Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/events-native-skills-2026-04-26`
+**Date:** 2026-04-26
+
+### What Was Built
+
+Three Edify-native Events Director skills, each as `SKILL.md + render.py + LICENSE.txt` in `apps/web/plugins/events/`:
+
+1. **`events/run_of_show`** — Generates a landscape A4 PDF (ReportLab `SimpleDocTemplate`) with a color-coded run-of-show table (Time | Duration | Segment | Responsible | Tech/Setup Cue | Contingency, alternating row shading, navy header, per-row contingency column) plus a key contacts footer section. Saves to `/mnt/user-data/outputs/run_of_show_<event>_<date>.pdf`.
+
+2. **`events/sponsor_package`** — Generates a Word doc (python-docx) with a full sponsorship prospectus (cover page, about the event, about org, why sponsor, tier table with shaded rows, logo & recognition section, contact/next steps) plus 3 ready-to-customize outreach emails on a separate page break (cold outreach, warm outreach, last-chance follow-up). Saves to `/mnt/user-data/outputs/sponsor_package_<event>_<timestamp>.docx`.
+
+3. **`events/post_event_report`** — Generates a Word doc (python-docx) with cover, executive summary (auto-narrative using computed figures), by-the-numbers table (green/red colour-coded net and ROI), cost breakdown table, survey highlights, what worked/didn't, next-year recommendations, and appendix placeholder. Auto-computes: Net = revenue - costs, ROI % = (revenue - costs) / costs × 100. Saves to `/mnt/user-data/outputs/post_event_report_<event>_<date>.docx`.
+
+### Wiring
+
+- **`apps/web/src/lib/plugins/registry.ts`** — Appended 3 new `resolve()` calls to `ARCHETYPE_PLUGIN_SKILLS.events_director` (total 9 entries)
+- **`apps/web/src/lib/archetype-prompts.ts`** — Added `### Edify-native event templates` subsection to `EVENTS_DIRECTOR_PROMPT` listing all 3 skills with usage triggers
+
+### Typecheck
+
+Pre-existing environment errors (next/server, lucide-react, supabase). Zero new errors from changed files (`src/lib/plugins/registry.ts`, `src/lib/archetype-prompts.ts` both CLEAN).
+
+### Notes for Lopmon
+- Run `pnpm --filter web upload-plugin-skills` after merge — 3 new skill_ids needed (run_of_show, sponsor_package, post_event_report)
+- Existing events skills (status-report, risk-assessment, vendor-review, draft-outreach, pptx, xlsx) are already uploaded; upload script should skip unchanged hashes

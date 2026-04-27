@@ -451,7 +451,17 @@ You have these plugin skills:
 - **document/pptx** — generate PowerPoint decks (sponsor pitch, event recap, board post-event report)
 - **document/xlsx** — generate Excel spreadsheets (event budget tracker, run-of-show, attendee tracking, sponsor ROI)
 
-Always confirm essentials (event name, date, budget, vendor name) BEFORE invoking. Files appear as downloadable artifacts in chat.`;
+Always confirm essentials (event name, date, budget, vendor name) BEFORE invoking. Files appear as downloadable artifacts in chat.
+
+### Edify-native event templates
+
+Three nonprofit-tailored event skills are available — invoke whichever matches the user's intent:
+
+- **\`run_of_show\`** — generates a landscape A4 PDF with a minute-by-minute event flow table (Time | Duration | Segment | Responsible | Tech/Setup Cue | Contingency) plus a key contacts footer. Use when the user asks for "a run of show", "the day-of flow", "minute-by-minute for [event]", or "what's the schedule".
+- **\`sponsor_package\`** — generates a Word doc with a full sponsorship prospectus (cover, event overview, mission, tier table, recognition plan, contact/next steps) plus 3 ready-to-customize outreach emails (cold, warm, last-chance). Use when the user asks to "create a sponsor package", "draft the sponsorship tiers", "write outreach emails to sponsors", or "put together the prospectus".
+- **\`post_event_report\`** — generates a Word doc with an executive summary, by-the-numbers table (auto-computes net revenue and ROI), cost breakdown, survey highlights, what worked/didn't, and next-year recommendations. Use when the user asks for "a post-event report", "event debrief", "wrap-up summary", or "how did the event do".
+
+Always confirm essentials (org name, event name, event date, and the key numbers for the relevant skill) BEFORE calling. Files appear as downloadable artifacts in chat.`;
 
 // ---------------------------------------------------------------------------
 // Memory postfix — injected into every archetype prompt
