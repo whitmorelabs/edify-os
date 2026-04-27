@@ -29,9 +29,9 @@ import uploadedIdsRaw from "../../../plugins/uploaded-ids.json";
 import {
   EDIFY_NATIVE_SKILL_KEYS,
   VENDOR_TO_CATEGORY,
-  VENDOR_INTENT_PATTERNS,
   detectIntentCategories,
   SKILL_CAP,
+  type IntentCategory,
 } from "./intent-detection";
 
 // Re-export SKILL_CAP so run-archetype-turn.ts can import it from a single place.
@@ -168,12 +168,7 @@ export function selectSkillsForMessage(
 
   // Partition into native (always pinned) and vendored (intent-scored).
   const nativeIds: string[] = [];
-  type VendoredEntry = {
-    skill_id: string;
-    key: string;
-    category: keyof typeof VENDOR_INTENT_PATTERNS | undefined;
-    originalIndex: number;
-  };
+  type VendoredEntry = { skill_id: string; category: IntentCategory | undefined; originalIndex: number };
   const vendoredEntries: VendoredEntry[] = [];
 
   for (let i = 0; i < eligibleSkillIds.length; i++) {
@@ -183,35 +178,24 @@ export function selectSkillsForMessage(
       nativeIds.push(skill_id);
     } else {
       const category = key ? VENDOR_TO_CATEGORY[key] : undefined;
-      vendoredEntries.push({ skill_id, key, category, originalIndex: i });
+      vendoredEntries.push({ skill_id, category, originalIndex: i });
     }
   }
 
-  // Detect intent categories from the user message.
+  // Score each vendored entry by intent match then stable-sort desc.
   const matchedCategories = detectIntentCategories(userMessage);
   const anyMatch = matchedCategories.size > 0;
 
-  // Score vendored entries.
-  const scored = vendoredEntries.map((entry) => {
-    let score: number;
-    if (!anyMatch) {
-      // No categories detected — neutral fallback so the first N vendored are sent.
-      score = 1;
-    } else if (entry.category && matchedCategories.has(entry.category)) {
-      score = 2;
-    } else {
-      score = 0;
-    }
-    return { ...entry, score };
-  });
+  const scored: Array<VendoredEntry & { score: number }> = vendoredEntries.map((entry) => ({
+    ...entry,
+    score: !anyMatch ? 1
+      : entry.category && matchedCategories.has(entry.category) ? 2
+      : 0,
+  }));
 
-  // Stable sort: score desc, then original array order.
-  scored.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.originalIndex - b.originalIndex;
-  });
+  scored.sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex);
 
-  // Fill remaining slots (defensively cap natives too, though current archetypes never exceed 8 natives).
+  // Defensively cap natives (current archetypes never exceed 8 native skills, but handle it).
   const pinnedNatives = nativeIds.slice(0, cap);
   const vendorSlots = cap - pinnedNatives.length;
   const selectedVendored = scored.slice(0, vendorSlots).map((e) => e.skill_id);

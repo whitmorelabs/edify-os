@@ -130,6 +130,9 @@ export const EDIFY_NATIVE_SKILL_KEYS: ReadonlySet<string> = new Set<string>([
   "executive_assistant/action_item_extractor",
 ]);
 
+/** Named type for intent category keys — avoids `keyof typeof` repetition across modules. */
+export type IntentCategory = keyof typeof VENDOR_INTENT_PATTERNS;
+
 /** Hard cap imposed by the Anthropic Skills API (confirmed via PR #41 diagnostic). */
 export const SKILL_CAP = 8;
 
@@ -137,10 +140,10 @@ export const SKILL_CAP = 8;
  * Detect which intent categories are signalled by the user message.
  * Returns the set of matched category keys (empty set = no match = neutral fallback).
  */
-export function detectIntentCategories(userMessage: string): Set<keyof typeof VENDOR_INTENT_PATTERNS> {
-  const matches = new Set<keyof typeof VENDOR_INTENT_PATTERNS>();
+export function detectIntentCategories(userMessage: string): Set<IntentCategory> {
+  const matches = new Set<IntentCategory>();
   for (const [category, patterns] of Object.entries(VENDOR_INTENT_PATTERNS) as Array<
-    [keyof typeof VENDOR_INTENT_PATTERNS, RegExp[]]
+    [IntentCategory, RegExp[]]
   >) {
     if (patterns.some((re) => re.test(userMessage))) {
       matches.add(category);
