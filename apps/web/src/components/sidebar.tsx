@@ -38,7 +38,6 @@ const navLinks = [
   { href: '/dashboard/inbox', label: 'Inbox', icon: Inbox },
   { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/dashboard/ripple', label: 'Ripple', icon: Waves },
-  { href: '/dashboard/story-builder', label: 'Story Builder', icon: Sparkles },
   { href: '/dashboard/memory', label: 'Knowledge Base', icon: Brain },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/dashboard/guide', label: 'Help Center', icon: BookOpen },
