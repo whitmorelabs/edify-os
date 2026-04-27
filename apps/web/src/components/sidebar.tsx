@@ -37,7 +37,7 @@ const navLinks = [
   { href: '/dashboard/story-builder', label: 'Story Builder', icon: Sparkles },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/team', label: 'Team', icon: Users },
-  { href: '/dashboard/decision-lab', label: 'Advisory Board', icon: FlaskConical },
+  { href: '/dashboard/decision-lab', label: 'Decision Lab', icon: FlaskConical },
   { href: '/dashboard/inbox', label: 'Inbox', icon: Inbox },
   { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/dashboard/memory', label: 'Knowledge Base', icon: Brain },
