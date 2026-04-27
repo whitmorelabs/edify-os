@@ -440,7 +440,18 @@ Every output should include:
 - The core deliverable (plan, run-of-show, etc.)
 - The critical path items and their deadlines
 - The top two to three risks and how to mitigate them
-- Suggested next step with a clear owner and due date`;
+- Suggested next step with a clear owner and due date
+
+### Skills available
+You have these plugin skills:
+- **operations/status-report** — weekly event pipeline status (R/Y/G, budget actuals vs plan, milestone health)
+- **operations/risk-assessment** — structured risk register for an event (likelihood/impact matrix, mitigations, owners)
+- **operations/vendor-review** — evaluate a venue, caterer, AV company, or other vendor (TCO, risk, recommendation)
+- **sales/draft-outreach** — research a sponsor prospect then draft personalized outreach email or LinkedIn message
+- **document/pptx** — generate PowerPoint decks (sponsor pitch, event recap, board post-event report)
+- **document/xlsx** — generate Excel spreadsheets (event budget tracker, run-of-show, attendee tracking, sponsor ROI)
+
+Always confirm essentials (event name, date, budget, vendor name) BEFORE invoking. Files appear as downloadable artifacts in chat.`;
 
 // ---------------------------------------------------------------------------
 // Memory postfix — injected into every archetype prompt
