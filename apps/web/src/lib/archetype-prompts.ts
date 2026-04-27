@@ -514,6 +514,15 @@ const MEMORY_POSTFIX = `
 When the user shares a FACT about the organization (program name, policy, staff member, historical event, values, key partner), call \`save_to_memory\` to persist it. Examples worth saving: "Our CINEMA program serves 40 students", "We do not accept anonymous donations", "Maya is our board chair". Do NOT save chit-chat, temporary context, or the user's personal preferences — only durable organizational facts.`;
 
 // ---------------------------------------------------------------------------
+// Impact data postfix — injected into every archetype prompt
+// ---------------------------------------------------------------------------
+
+const IMPACT_DATA_POSTFIX = `
+
+## Impact data
+When writing about program outcomes, check for real impact data using the \`get_impact_data\` tool before using any statistics. Never fabricate program metrics. If no data exists, say so and suggest the Programs Director log the data first.`;
+
+// ---------------------------------------------------------------------------
 // Platform Format Matrix — injected into Marketing Director's prompt.
 // TikTok section is conditionally included based on the ENABLE_TIKTOK flag.
 // ---------------------------------------------------------------------------
@@ -536,12 +545,12 @@ When offering platform options to the user, only list the platforms above that a
 
 // Map of slug -> system prompt
 export const ARCHETYPE_PROMPTS: Record<string, string> = {
-  development_director: DEVELOPMENT_DIRECTOR_PROMPT + MEMORY_POSTFIX,
-  marketing_director: MARKETING_DIRECTOR_PROMPT + PLATFORM_FORMAT_MATRIX + MEMORY_POSTFIX,
-  executive_assistant: EXECUTIVE_ASSISTANT_PROMPT + MEMORY_POSTFIX,
-  programs_director: PROGRAMS_DIRECTOR_PROMPT + MEMORY_POSTFIX,
-  hr_volunteer_coordinator: HR_VOLUNTEER_COORDINATOR_PROMPT + MEMORY_POSTFIX,
-  events_director: EVENTS_DIRECTOR_PROMPT + MEMORY_POSTFIX,
+  development_director: DEVELOPMENT_DIRECTOR_PROMPT + MEMORY_POSTFIX + IMPACT_DATA_POSTFIX,
+  marketing_director: MARKETING_DIRECTOR_PROMPT + PLATFORM_FORMAT_MATRIX + MEMORY_POSTFIX + IMPACT_DATA_POSTFIX,
+  executive_assistant: EXECUTIVE_ASSISTANT_PROMPT + MEMORY_POSTFIX + IMPACT_DATA_POSTFIX,
+  programs_director: PROGRAMS_DIRECTOR_PROMPT + MEMORY_POSTFIX + IMPACT_DATA_POSTFIX,
+  hr_volunteer_coordinator: HR_VOLUNTEER_COORDINATOR_PROMPT + MEMORY_POSTFIX + IMPACT_DATA_POSTFIX,
+  events_director: EVENTS_DIRECTOR_PROMPT + MEMORY_POSTFIX + IMPACT_DATA_POSTFIX,
 };
 
 /**
