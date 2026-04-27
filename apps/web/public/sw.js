@@ -107,12 +107,21 @@ async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_VERSION);
   const cached = await cache.match(request);
 
-  const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  });
+  // Always kick off a background revalidation. Suppress rejections when we
+  // already have a cached response — a network error on a bg refresh is not
+  // fatal. If there is no cached response, let the rejection surface so the
+  // browser shows a real error rather than a silent hang.
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response.ok) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch((err) => {
+      if (cached) return; // bg revalidation failed — cached copy still served
+      throw err;          // no cache + no network → propagate so SW doesn't hang
+    });
 
   return cached || fetchPromise;
 }
