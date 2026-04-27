@@ -84,6 +84,9 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("data/build-dashboard"),
     resolve("document/docx"),
     resolve("document/xlsx"),
+    resolve("programs/logic_model_builder"),
+    resolve("programs/participant_survey"),
+    resolve("programs/grant_outcome_report"),
   ].filter(Boolean) as string[],
   hr_volunteer_coordinator: [
     resolve("human-resources/onboarding"),
