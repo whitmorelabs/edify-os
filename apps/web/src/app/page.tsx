@@ -599,11 +599,7 @@ function FeaturesDeepDive() {
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          {/* REAL DASHBOARD SCREENSHOT TO BE ADDED — Citlali to provide.
-               Capture the relevant director's chat view at /dashboard/team/<slug>
-               at 1440px desktop width and save to apps/web/public/features/<slug>.png.
-               Then replace this block with:
-                 <img src="/features/<slug>.png" alt="..." className="w-full h-full object-cover rounded-[20px]" /> */}
+          {/* Placeholder until director screenshots exist at apps/web/public/features/<slug>.png */}
           <div
             className="relative rounded-[20px] overflow-hidden flex flex-col items-center justify-center gap-2"
             style={{

@@ -10,16 +10,12 @@ export const metadata = {
 };
 
 /**
- * ScreenshotArea — placeholder for real Edify-OS dashboard screenshots.
- * These slots need actual screenshots captured from /dashboard at desktop width.
- * ACTION REQUIRED: Citlali to capture each screenshot and add to apps/web/public/demo/.
- * See PR description for the full list of files needed.
+ * ScreenshotArea — placeholder until real dashboard screenshots are available.
+ * To replace: capture /dashboard pages at 1440px, save to apps/web/public/demo/,
+ * then swap this component for <img src="/demo/<filename>.png" alt="..." />.
  */
 function ScreenshotArea({ label }: { label: string }) {
   return (
-    // REAL DASHBOARD SCREENSHOT TO BE ADDED — Citlali to provide.
-    // Capture from /dashboard at 1440px wide and save to apps/web/public/demo/.
-    // Replace this component with <img src="/demo/..." alt="..." /> once available.
     <div
       className="w-full aspect-[16/9] rounded-xl flex flex-col items-center justify-center gap-2"
       style={{

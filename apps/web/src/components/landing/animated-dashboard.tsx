@@ -28,9 +28,9 @@
 import { useEffect, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 
-// Archetype colors from apps/web/src/components/ui/archetypes.tsx
-const DEV_COLOR = "#F59E5C";   // Development Director
-const BRAND_PURPLE = "#9F4EF3"; // brand purple / exec color
+// Colors from apps/web/src/components/ui/archetypes.tsx — keep in sync if archetypes change
+const DEV_COLOR = "#F59E5C";    // Development Director
+const BRAND_PURPLE = "#9F4EF3"; // Executive Assistant / brand purple
 
 const SIDEBAR_ARCHETYPE_DOTS = [
   BRAND_PURPLE,  // exec
@@ -40,6 +40,16 @@ const SIDEBAR_ARCHETYPE_DOTS = [
   "#4ADE80",     // programs
   "#FCD34D",     // hr
 ];
+
+/** Hand-heart icon paths for the Development Director (reused in chat header + approval card). */
+function DevIconPaths() {
+  return (
+    <>
+      <path d="M11 14h2a2 2 0 0 0 2-2 2 2 0 0 0-2-2H9.8c-.5 0-1 .2-1.4.5L6.5 12" fill="none" stroke={DEV_COLOR} strokeWidth="1.5" />
+      <path d="m13 17 4-3 3 3-4 4-7-1L4 18v-5l3-1 3.5 1L13 17z" fill="none" stroke={DEV_COLOR} strokeWidth="1.5" />
+    </>
+  );
+}
 
 export function AnimatedDashboard() {
   const reduced = useReducedMotion();
@@ -228,10 +238,7 @@ export function AnimatedDashboard() {
             >
               {/* director header */}
               <div className="flex items-center gap-1.5">
-                <MiniMark color={DEV_COLOR} size={20} light>
-                  <path d="M11 14h2a2 2 0 0 0 2-2 2 2 0 0 0-2-2H9.8c-.5 0-1 .2-1.4.5L6.5 12" fill="none" stroke={DEV_COLOR} strokeWidth="1.5" />
-                  <path d="m13 17 4-3 3 3-4 4-7-1L4 18v-5l3-1 3.5 1L13 17z" fill="none" stroke={DEV_COLOR} strokeWidth="1.5" />
-                </MiniMark>
+                <MiniMark color={DEV_COLOR} size={20} light><DevIconPaths /></MiniMark>
                 <div>
                   <div className="font-mono" style={{ fontSize: 7.5, color: DEV_COLOR, letterSpacing: "0.08em" }}>
                     DEVELOPMENT DIRECTOR
@@ -452,10 +459,7 @@ export function AnimatedDashboard() {
                 }}
               >
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <MiniMark color={DEV_COLOR} size={16} light>
-                    <path d="M11 14h2a2 2 0 0 0 2-2 2 2 0 0 0-2-2H9.8c-.5 0-1 .2-1.4.5L6.5 12" fill="none" stroke={DEV_COLOR} strokeWidth="1.5" />
-                    <path d="m13 17 4-3 3 3-4 4-7-1L4 18v-5l3-1 3.5 1L13 17z" fill="none" stroke={DEV_COLOR} strokeWidth="1.5" />
-                  </MiniMark>
+                  <MiniMark color={DEV_COLOR} size={16} light><DevIconPaths /></MiniMark>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="font-mono" style={{ fontSize: 6.5, color: DEV_COLOR, letterSpacing: "0.08em" }}>
                       DEVELOPMENT DIRECTOR
