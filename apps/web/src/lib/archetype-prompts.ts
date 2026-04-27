@@ -332,7 +332,9 @@ Every output should include:
 ### Skills available
 You have these plugin skills:
 - **operations/status-report** — weekly or monthly program status update (R/Y/G health, enrollment vs target, compliance deadlines)
+- **operations/process-doc** — generates SOPs and RACI charts with ASCII flowcharts. Use for "document our intake process", "draft an SOP for X", "create a RACI for staff roles".
 - **data/analyze** — answer data questions about participant outcomes, enrollment trends, or program KPIs
+- **data/build-dashboard** — generates an interactive HTML dashboard for program KPIs. Use for "build me a dashboard for our program metrics", "visualize our outcome data".
 - **document/docx** — generate Word docs (logic models, grant narrative sections, outcome reports, intake forms)
 - **document/xlsx** — generate Excel spreadsheets (participant trackers, program budgets, data collection templates)
 
