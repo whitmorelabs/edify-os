@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Download } from "lucide-react";
+import { Download, AlertCircle, RotateCcw, ChevronUp } from "lucide-react";
 import type { Message, GeneratedFile } from "../api";
 import type { ArchetypeSlug } from "@/app/dashboard/inbox/heartbeats";
 import { ARCHETYPE_CONFIG } from "@/lib/archetype-config";
@@ -25,6 +25,8 @@ interface ChatMessagesProps {
   slug: ArchetypeSlug;
   /** Called when the user clicks a quick-reply chip below an assistant message. */
   onQuickReply?: (text: string) => void;
+  /** Called when the user clicks "Retry" on a failed message. */
+  onRetry?: (errorMessageId: string, originalText: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -319,15 +321,66 @@ function FileChips({ files, messageTimestamp, isNew }: FileChipsProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Error card with retry button (Item 7)
+// ---------------------------------------------------------------------------
+function ErrorCard({
+  content,
+  onRetry,
+}: {
+  content: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="max-w-[70%] rounded-2xl rounded-bl-sm px-4 py-3 bg-red-950/30 border border-red-500/30">
+      <div className="flex items-start gap-2">
+        <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-red-300 leading-relaxed">{content}</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 transition rounded-full border border-red-500/30 px-3 py-1.5 hover:bg-red-500/10"
+            >
+              <RotateCcw size={12} />
+              Retry
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-export function ChatMessages({ messages, isTyping, streamingId, streamingContent, slug, onQuickReply }: ChatMessagesProps) {
+const INITIAL_VISIBLE_COUNT = 50;
+const LOAD_MORE_COUNT = 30;
+
+export function ChatMessages({ messages, isTyping, streamingId, streamingContent, slug, onQuickReply, onRetry }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
 
   // Resolve the UI archetype object for ChatBubble + TypingIndicator
   const arcKey: ArchetypeKey | undefined = SLUG_TO_KEY[slug];
   const arc: Archetype | undefined = arcKey ? ARCHETYPES[arcKey] : undefined;
   const directorLabel = ARCHETYPE_CONFIG[slug]?.label ?? "Director";
+
+  // Message virtualization: only render the last N messages
+  const hasEarlierMessages = messages.length > visibleCount;
+  const visibleMessages = hasEarlierMessages
+    ? messages.slice(messages.length - visibleCount)
+    : messages;
+
+  const loadEarlierMessages = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + LOAD_MORE_COUNT, messages.length));
+  }, [messages.length]);
+
+  // Reset visible count when conversation changes (message list replaces entirely)
+  const firstMsgId = messages[0]?.id;
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }, [firstMsgId]);
 
   // Find the last assistant message ID once — used to determine isNew per FileCard spec.
   // A message qualifies as just-arrived only if it is the most recent assistant message
@@ -345,7 +398,20 @@ export function ChatMessages({ messages, isTyping, streamingId, streamingContent
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.map((msg) => {
+      {/* Load earlier messages button */}
+      {hasEarlierMessages && (
+        <div className="flex justify-center">
+          <button
+            onClick={loadEarlierMessages}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--fg-3)] hover:text-[var(--fg-1)] bg-[var(--bg-2)] hover:bg-[var(--bg-3)] border border-[var(--line-1)] rounded-full px-4 py-1.5 transition"
+          >
+            <ChevronUp size={14} />
+            Load earlier messages ({messages.length - visibleCount} more)
+          </button>
+        </div>
+      )}
+
+      {visibleMessages.map((msg) => {
         const isUser = msg.role === "user";
 
         if (isUser) {
@@ -355,6 +421,25 @@ export function ChatMessages({ messages, isTyping, streamingId, streamingContent
                 <span className="whitespace-pre-wrap">{msg.content}</span>
               </ChatBubble>
               <p className="text-[10px] font-mono text-[var(--fg-3)] px-1">
+                {relativeTime(msg.timestamp)}
+              </p>
+            </div>
+          );
+        }
+
+        // Item 7: Error card with retry button
+        if (msg.isError) {
+          return (
+            <div key={msg.id} className="flex flex-col gap-0.5 animate-slide-up">
+              <ErrorCard
+                content={msg.content}
+                onRetry={
+                  onRetry && msg.failedMessageText
+                    ? () => onRetry(msg.id, msg.failedMessageText!)
+                    : undefined
+                }
+              />
+              <p className="text-[10px] font-mono text-[var(--fg-3)] pl-9">
                 {relativeTime(msg.timestamp)}
               </p>
             </div>

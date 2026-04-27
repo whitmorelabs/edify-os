@@ -523,6 +523,114 @@ function countByCategory(cat: string) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  "What this unlocks" capability mapping                             */
+/* ------------------------------------------------------------------ */
+
+const INTEGRATION_UNLOCKS: Record<string, string> = {
+  gmail: 'Email drafting for Executive Assistant & Director of Development',
+  outlook: 'Email management for Executive Assistant & Director of Development',
+  google_calendar: 'Schedule management for Executive Assistant',
+  outlook_calendar: 'Schedule management for Executive Assistant',
+  google_drive: 'Document access for your entire team',
+  dropbox: 'File access for Executive Assistant',
+  onedrive: 'File access for Executive Assistant',
+  salesforce: 'Donor pipeline tracking for Director of Development',
+  hubspot: 'Contact management for Director of Development & Marketing Director',
+  bloomerang: 'Donor retention tracking for Director of Development',
+  donorperfect: 'Gift tracking for Director of Development',
+  little_green_light: 'Donor record access for Director of Development',
+  mailchimp: 'Campaign management for Marketing Director',
+  constant_contact: 'Email campaign management for Marketing Director',
+  canva: 'Design creation for Marketing Director',
+  facebook: 'Social posting for Marketing Director',
+  instagram: 'Content scheduling for Marketing Director',
+  linkedin: 'Professional outreach for Marketing Director & Director of Development',
+  twitter: 'Social engagement for Marketing Director',
+  youtube: 'Video management for Marketing Director',
+  instrumentl: 'Grant discovery for Director of Development',
+  grantstation: 'Funder research for Director of Development',
+  foundation_directory: 'Funding prospect research for Director of Development',
+  asana: 'Task tracking for Executive Assistant',
+  monday: 'Project management for Executive Assistant',
+  trello: 'Board management for Executive Assistant',
+  quickbooks: 'Financial reporting for Executive Assistant & Director of Development',
+  xero: 'Accounting data for Executive Assistant',
+  wordpress: 'Blog publishing for Marketing Director',
+  squarespace: 'Website content management for Marketing Director',
+  slack: 'Team messaging for your entire team',
+  microsoft_teams: 'Team notifications for Executive Assistant',
+  eventbrite: 'Event management for Marketing Director & Executive Assistant',
+  givesmart: 'Fundraising event data for Director of Development',
+  stripe: 'Donation revenue insights for Director of Development',
+  paypal: 'Payment history for Director of Development',
+};
+
+/* ------------------------------------------------------------------ */
+/*  Integration success celebration mapping                            */
+/* ------------------------------------------------------------------ */
+
+/** Maps integration group → celebration copy shown after successful OAuth. */
+const CELEBRATION_COPY: Record<string, { agent: string; capability: string }> = {
+  gmail: { agent: 'Executive Assistant', capability: 'draft and read emails' },
+  google_calendar: { agent: 'Executive Assistant', capability: 'manage your schedule' },
+  google_drive: { agent: 'team', capability: 'access your documents' },
+  canva: { agent: 'Marketing Director', capability: 'create designs' },
+  instagram: { agent: 'Marketing Director', capability: 'manage your Instagram content' },
+  facebook: { agent: 'Marketing Director', capability: 'post to your Facebook Page' },
+  linkedin: { agent: 'Marketing Director', capability: 'manage your LinkedIn presence' },
+  twitter: { agent: 'Marketing Director', capability: 'engage on Twitter/X' },
+  youtube: { agent: 'Marketing Director', capability: 'manage your YouTube channel' },
+};
+
+/** Returns celebration text for a connected integration group. */
+function getCelebrationText(source: string, platform?: string | null): string | null {
+  // Google connects 3 services at once — combine
+  if (source === 'google') {
+    return 'Connected! Your Executive Assistant can now draft emails, manage your calendar, and access your documents.';
+  }
+  // Composio social connections use the platform name from the reason param
+  if (source === 'composio' && platform) {
+    const key = platform.toLowerCase();
+    const entry = CELEBRATION_COPY[key];
+    if (entry) {
+      return `Connected! Your ${entry.agent} can now ${entry.capability}.`;
+    }
+    return `Connected! Your team can now use ${platform}.`;
+  }
+  // Canva
+  if (source === 'canva') {
+    return 'Connected! Your Marketing Director can now create designs on your behalf.';
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Celebration modal component                                        */
+/* ------------------------------------------------------------------ */
+
+function CelebrationModal({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-bg-2 shadow-elev-4 rounded-xl mx-4 w-full max-w-md animate-slide-up text-center p-8">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+          <CheckCircle className="h-8 w-8 text-emerald-500" />
+        </div>
+        <p className="text-lg font-semibold text-fg-1 mb-2">{message}</p>
+        <p className="text-sm text-fg-3 mb-6">
+          You can manage this connection anytime from the integrations page.
+        </p>
+        <button onClick={onClose} className="btn-primary px-8">
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Page component                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -578,6 +686,7 @@ function IntegrationsPageInner() {
   const [oauthModalId, setOauthModalId] = useState<string | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, Record<string, string>>>({});
   const [toast, setToast] = useState<{ message: string; kind: 'success' | 'error' } | null>(null);
+  const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
 
   /* ---------- load real Google connection status ---------- */
 
@@ -648,7 +757,9 @@ function IntegrationsPageInner() {
     const composioParam = searchParams.get('composio');
     if (composioParam === 'connected') {
       const platform = searchParams.get('reason') ?? 'social account';
-      setToast({ message: `${platform} connected successfully!`, kind: 'success' });
+      const celebText = getCelebrationText('composio', platform);
+      if (celebText) setCelebrationMessage(celebText);
+      else setToast({ message: `${platform} connected successfully!`, kind: 'success' });
       router.replace('/dashboard/integrations', { scroll: false });
     } else if (composioParam === 'denied') {
       const rawReason = searchParams.get('reason') ?? 'unknown_error';
@@ -666,8 +777,9 @@ function IntegrationsPageInner() {
   useEffect(() => {
     const googleParam = searchParams.get('google');
     if (googleParam === 'connected') {
-      setToast({ message: 'Google Workspace connected successfully!', kind: 'success' });
-      // Remove query param from URL without navigation
+      const celebText = getCelebrationText('google');
+      if (celebText) setCelebrationMessage(celebText);
+      else setToast({ message: 'Google Workspace connected successfully!', kind: 'success' });
       router.replace('/dashboard/integrations', { scroll: false });
     } else if (googleParam === 'denied') {
       const rawReason = searchParams.get('reason') ?? 'access_denied';
@@ -686,7 +798,9 @@ function IntegrationsPageInner() {
     const canvaParam = searchParams.get('canva');
     if (canvaParam === 'connected') {
       loadCanvaStatus();
-      setToast({ message: 'Canva connected successfully!', kind: 'success' });
+      const celebText = getCelebrationText('canva');
+      if (celebText) setCelebrationMessage(celebText);
+      else setToast({ message: 'Canva connected successfully!', kind: 'success' });
       router.replace('/dashboard/integrations', { scroll: false });
     } else if (canvaParam === 'denied') {
       const rawReason = searchParams.get('reason') ?? 'access_denied';
@@ -917,6 +1031,11 @@ function IntegrationsPageInner() {
         </div>
       )}
 
+      {/* Celebration modal */}
+      {celebrationMessage && (
+        <CelebrationModal message={celebrationMessage} onClose={() => setCelebrationMessage(null)} />
+      )}
+
       {/* Header */}
       <div>
         <h1 className="heading-1">Connected accounts</h1>
@@ -1037,6 +1156,13 @@ function IntegrationsPageInner() {
 
               {/* Description */}
               <p className="mt-3 text-sm text-fg-3 line-clamp-2">{i.description}</p>
+
+              {/* Unlocks line */}
+              {INTEGRATION_UNLOCKS[i.id] && (
+                <p className="mt-1.5 text-xs font-medium text-brand-500">
+                  Unlocks: {INTEGRATION_UNLOCKS[i.id]}
+                </p>
+              )}
 
               {/* Agent dots */}
               <div className="mt-3 flex items-center gap-2">

@@ -31,10 +31,10 @@ import type { InboxItem } from '@/app/api/inbox/pending/route';
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/team', label: 'Team', icon: Users },
-  { href: '/dashboard/decision-lab', label: 'Decision Lab', icon: FlaskConical },
+  { href: '/dashboard/decision-lab', label: 'Advisory Board', icon: FlaskConical },
   { href: '/dashboard/inbox', label: 'Inbox', icon: Inbox },
   { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
-  { href: '/dashboard/memory', label: 'Memory', icon: Brain },
+  { href: '/dashboard/memory', label: 'Knowledge Base', icon: Brain },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/dashboard/guide', label: 'Help Center', icon: BookOpen },
   { href: '/dashboard/admin', label: 'Admin', icon: Shield },
@@ -125,6 +125,9 @@ export function Sidebar() {
           const approvalsBadgeCount = isInbox ? pendingApprovalsCount : 0;
           const showApprovalsBadge = approvalsBadgeCount > 0;
 
+          // Notification badge: red pill on the Inbox row for unread notifications
+          const showNotificationBadge = isInbox && unreadCount > 0 && !showApprovalsBadge;
+
           return (
             <Link
               key={href}
@@ -150,6 +153,11 @@ export function Sidebar() {
               {showApprovalsBadge && (
                 <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold leading-none">
                   {approvalsBadgeCount >= 100 ? '99+' : approvalsBadgeCount}
+                </span>
+              )}
+              {showNotificationBadge && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </Link>

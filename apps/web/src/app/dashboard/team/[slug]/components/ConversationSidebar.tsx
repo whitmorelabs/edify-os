@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, MessageSquare, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, MessageSquare, ChevronLeft, ChevronRight, Trash2, Search } from "lucide-react";
 import type { Conversation } from "../api";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,7 @@ export function ConversationSidebar({
 }: ConversationSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   function handleDelete(e: React.MouseEvent, conv: Conversation) {
     e.stopPropagation();
@@ -104,6 +105,25 @@ export function ConversationSidebar({
             </button>
           </div>
 
+          {/* Search input */}
+          {conversations.length > 0 && (
+            <div className="px-3 pb-1">
+              <div className="relative">
+                <Search
+                  size={13}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--fg-3)] pointer-events-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-lg bg-[var(--bg-2)] border border-[var(--line-1)] text-[var(--fg-2)] placeholder:text-[var(--fg-3)] text-xs pl-8 pr-3 py-1.5 focus:outline-none focus:border-brand-500/50 transition"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Conversation list */}
           <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
             {conversations.length === 0 ? (
@@ -111,7 +131,12 @@ export function ConversationSidebar({
                 No conversations yet
               </div>
             ) : (
-              conversations.map((conv) => (
+              conversations
+                .filter((conv) =>
+                  searchQuery.trim() === "" ||
+                  (conv.title ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((conv) => (
                 <div
                   key={conv.id}
                   className="relative group"
