@@ -53,5 +53,55 @@
     "skill_id": "skill_01TKbUMCXfbFbSxHk7na7Wyf",
     "hash": "0eb35ee22b2b551c",
     "uploaded_at": "2026-04-27T00:05:18.384Z"
+  },
+  "document/docx": {
+    "skill_id": "skill_01Ly1TKuMykY1VR2nDeAMFzR",
+    "hash": "b365d3f660422ccf",
+    "uploaded_at": "2026-04-27T03:55:33.594Z"
+  },
+  "document/xlsx": {
+    "skill_id": "skill_016FnYDiCae39MC61CAJGg6b",
+    "hash": "d0b24a62faf13dea",
+    "uploaded_at": "2026-04-27T03:55:34.928Z"
+  },
+  "human-resources/comp-analysis": {
+    "skill_id": "skill_014qku21arUzW6JTLD99pi2J",
+    "hash": "aa25e31aff7aae06",
+    "uploaded_at": "2026-04-27T03:55:35.987Z"
+  },
+  "human-resources/interview-prep": {
+    "skill_id": "skill_018Jk29exYVnnSWnxbymobPG",
+    "hash": "24c96c7c4db9c674",
+    "uploaded_at": "2026-04-27T03:55:36.972Z"
+  },
+  "human-resources/onboarding": {
+    "skill_id": "skill_019AWYANp2u38Ac6iEfsAsMh",
+    "hash": "f7de29b83ded3664",
+    "uploaded_at": "2026-04-27T03:55:38.047Z"
+  },
+  "human-resources/performance-review": {
+    "skill_id": "skill_01DbuULarNTzesB1gRp9uisQ",
+    "hash": "ed5fc98ec8034917",
+    "uploaded_at": "2026-04-27T03:55:39.099Z"
+  },
+  "human-resources/policy-lookup": {
+    "skill_id": "skill_01BMnkmDeBcxnsM2pmpWPjKu",
+    "hash": "9dfdcd88f78dc8aa",
+    "uploaded_at": "2026-04-27T03:55:40.120Z"
+  },
+  "human-resources/recognition_program": {
+    "skill_id": "skill_01CM4XgVUW3V5Fvuj5qRzy5h",
+    "hash": "817ea019b794334d",
+    "uploaded_at": "2026-04-27T03:55:41.276Z"
+  },
+  "human-resources/volunteer_handbook_section": {
+    "skill_id": "skill_01Dc68ey5Bh25P1CMyki64ny",
+    "hash": "7eee91693372c3cd",
+    "uploaded_at": "2026-04-27T03:55:42.284Z"
+  },
+  "human-resources/volunteer_recruitment_kit": {
+    "skill_id": "skill_01XYfxvGfUnnk5sM7qZAAF8i",
+    "hash": "eff97eedb696701a",
+    "uploaded_at": "2026-04-27T03:55:43.302Z"
   }
 }
