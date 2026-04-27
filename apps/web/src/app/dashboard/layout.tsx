@@ -6,6 +6,7 @@ import { ChatWidget } from '@/components/support/ChatWidget';
 import { ProactiveHelper } from '@/components/support/ProactiveHelper';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import { ToastNotification } from '@/components/notifications/ToastNotification';
+import { CommandPalette } from '@/components/CommandPalette';
 
 export default function DashboardLayout({
   children,
@@ -28,6 +29,8 @@ export default function DashboardLayout({
         <ProactiveHelper />
         {/* Real-time toast alerts */}
         <ToastNotification />
+        {/* Cmd+K command palette -- available on every dashboard page */}
+        <CommandPalette />
       </SupportChatProvider>
     </NotificationProvider>
   );

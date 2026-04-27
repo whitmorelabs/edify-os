@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, type KeyboardEvent } from "react";
-import { Send, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, ChevronDown, ChevronUp, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
@@ -9,6 +9,8 @@ interface ChatInputProps {
   isDisabled: boolean;
   suggestedPrompts?: string[];
   showPrompts?: boolean;
+  /** When true (conversation is empty), prompts are expanded by default. */
+  isEmptyConversation?: boolean;
 }
 
 export function ChatInput({
@@ -16,10 +18,22 @@ export function ChatInput({
   isDisabled,
   suggestedPrompts = [],
   showPrompts = false,
+  isEmptyConversation = false,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
-  const [promptsVisible, setPromptsVisible] = useState(showPrompts);
+  // Item 5: Expand prompts by default when the conversation is empty
+  const [promptsVisible, setPromptsVisible] = useState(
+    showPrompts || isEmptyConversation
+  );
+  const [fileTooltip, setFileTooltip] = useState(false);
+
+  // Sync promptsVisible when isEmptyConversation changes (e.g. first message sent)
+  useEffect(() => {
+    if (isEmptyConversation) {
+      setPromptsVisible(true);
+    }
+  }, [isEmptyConversation]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -58,12 +72,18 @@ export function ChatInput({
     textareaRef.current?.focus();
   }
 
+  // Item 9: File upload button handler
+  function handleFileClick() {
+    setFileTooltip(true);
+    setTimeout(() => setFileTooltip(false), 3000);
+  }
+
   const charCount = value.length;
   const isLong = charCount > 400;
 
   return (
     <div className="border-t border-[var(--line-1)] bg-[var(--bg-1)]">
-      {/* Suggested prompts row */}
+      {/* Suggested prompts row — visible by default when conversation is empty */}
       {suggestedPrompts.length > 0 && (
         <div className="px-4 pt-3">
           <div className="flex items-center justify-between mb-2">
@@ -102,6 +122,23 @@ export function ChatInput({
 
       {/* Input area */}
       <div className="p-4 flex items-end gap-2">
+        {/* Item 9: File upload button (placeholder) */}
+        <div className="relative">
+          <button
+            onClick={handleFileClick}
+            className="flex-shrink-0 p-2.5 rounded-lg text-[var(--fg-3)] hover:text-[var(--fg-1)] hover:bg-[var(--bg-2)] transition"
+            aria-label="Attach file"
+            type="button"
+          >
+            <Paperclip size={18} />
+          </button>
+          {fileTooltip && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-[var(--bg-3)] border border-[var(--line-2)] text-xs text-[var(--fg-2)] whitespace-nowrap shadow-lg z-10">
+              File sharing coming soon — for now, paste text or describe what you need.
+            </div>
+          )}
+        </div>
+
         <div className="flex-1 relative">
           <textarea
             ref={textareaRef}

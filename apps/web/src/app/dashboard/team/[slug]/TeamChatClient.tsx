@@ -438,6 +438,8 @@ export default function TeamChatClient({
           content: friendlyContent,
           timestamp: new Date().toISOString(),
           conversationId: tempConvId,
+          isError: true,
+          failedMessageText: content,
         };
         // Replace placeholder with error message
         setMessages((prev) =>
@@ -518,6 +520,19 @@ export default function TeamChatClient({
   function handleSelectConversation(conv: Conversation) {
     setActiveConversation(conv);
   }
+
+  // ---------------------------------------------------------------------------
+  // Handle retry — removes the error message and re-sends the original text
+  // ---------------------------------------------------------------------------
+  const handleRetry = useCallback(
+    (errorMessageId: string, originalText: string) => {
+      // Remove the error message from the list
+      setMessages((prev) => prev.filter((m) => m.id !== errorMessageId));
+      // Re-send the original message
+      handleSend(originalText);
+    },
+    [handleSend]
+  );
 
   // isTyping: true while we're waiting for the first meta/delta event from server
   // streamingId non-null: we have a placeholder message being filled in live
@@ -632,6 +647,7 @@ export default function TeamChatClient({
             streamingContent={streamingDisplayText}
             slug={archetypeSlug}
             onQuickReply={handleSend}
+            onRetry={handleRetry}
           />
         )}
 
@@ -640,6 +656,8 @@ export default function TeamChatClient({
           onSend={handleSend}
           isDisabled={isTyping}
           showPrompts={false}
+          suggestedPrompts={SUGGESTED_PROMPTS[slug] ?? []}
+          isEmptyConversation={messages.length === 0 && !isTyping}
         />
       </div>
     </div>

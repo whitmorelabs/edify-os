@@ -18,6 +18,10 @@ export interface Message {
   conversationId?: string;
   /** Skill-generated files attached to this message (assistant messages only). */
   files?: GeneratedFile[];
+  /** When true, the message represents a send failure (error card with retry). */
+  isError?: boolean;
+  /** The original user message text that can be retried on error. */
+  failedMessageText?: string;
 }
 
 export interface Conversation {
