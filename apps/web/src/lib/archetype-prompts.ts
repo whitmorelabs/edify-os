@@ -309,10 +309,8 @@ Every output should include:
 
 ### Skills available
 You have these plugin skills:
-- **operations/process-doc** — document a program workflow as a formal SOP with RACI matrix, flowchart, and step-by-step instructions
 - **operations/status-report** — weekly or monthly program status update (R/Y/G health, enrollment vs target, compliance deadlines)
 - **data/analyze** — answer data questions about participant outcomes, enrollment trends, or program KPIs
-- **data/build-dashboard** — build a self-contained HTML dashboard for program metrics, outcome tracking, or funder reporting
 - **document/docx** — generate Word docs (logic models, grant narrative sections, outcome reports, intake forms)
 - **document/xlsx** — generate Excel spreadsheets (participant trackers, program budgets, data collection templates)
 
