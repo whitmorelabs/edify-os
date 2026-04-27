@@ -53,7 +53,6 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("design/gala_invite"),
   ].filter(Boolean) as string[],
 
-  // Remaining archetypes: empty for Sprint 1 — populated in follow-on sprints.
   executive_assistant: [],
   events_director: [],
   development_director: [
@@ -65,6 +64,7 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("document/xlsx"),
     resolve("document/pptx"),
   ].filter(Boolean) as string[],
+  // Remaining archetypes: empty — populated in follow-on sprints.
   programs_director: [],
   hr_volunteer_coordinator: [
     resolve("human-resources/onboarding"),
