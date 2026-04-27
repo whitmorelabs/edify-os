@@ -33,5 +33,25 @@
     "skill_id": "skill_01Vj5Chja2ajdTBSNi2LCEeq",
     "hash": "52372d8aaf9b5818",
     "uploaded_at": "2026-04-26T23:12:13.177Z"
+  },
+  "design/donor_thank_you": {
+    "skill_id": "skill_01S429QK2sj6FYDr4B6jox8S",
+    "hash": "3fc5cefd3bbda970",
+    "uploaded_at": "2026-04-27T00:05:15.134Z"
+  },
+  "design/flyer": {
+    "skill_id": "skill_01AR5LSg7tBiXM2JbGbGzy74",
+    "hash": "bd68492545914950",
+    "uploaded_at": "2026-04-27T00:05:16.308Z"
+  },
+  "design/gala_invite": {
+    "skill_id": "skill_01SMdYmc6aQ8S3exhJ8Go7kv",
+    "hash": "9fbbe93c2b71a7f9",
+    "uploaded_at": "2026-04-27T00:05:17.354Z"
+  },
+  "design/social_card": {
+    "skill_id": "skill_01TKbUMCXfbFbSxHk7na7Wyf",
+    "hash": "0eb35ee22b2b551c",
+    "uploaded_at": "2026-04-27T00:05:18.384Z"
   }
 }
