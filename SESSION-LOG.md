@@ -1014,3 +1014,82 @@ Make dashboard usable at phone widths (~360-414px) for Citlali's PWA field testi
 ### Test status
 - typecheck: pre-existing environment failures only (framer-motion, @vercel/og, @supabase/ssr, next/server — same as main before this branch; zero new errors introduced)
 - PR: (see below)
+
+---
+
+## 2026-04-26 — HR archetype PR A: vendor T1+T2 skills (lopmon-spawned Sonnet, autonomous overnight sprint)
+
+### Goal
+Vendor 5 HR plugin skills + docx/xlsx for HR & Volunteer Coordinator archetype. Close the correctness gap where the system prompt referenced docx/xlsx as live capabilities but they were not wired.
+
+### Files added
+- `apps/web/plugins/human-resources/LICENSE` (Apache 2.0, from anthropics/knowledge-work-plugins)
+- `apps/web/plugins/human-resources/onboarding/SKILL.md`
+- `apps/web/plugins/human-resources/interview-prep/SKILL.md`
+- `apps/web/plugins/human-resources/performance-review/SKILL.md`
+- `apps/web/plugins/human-resources/policy-lookup/SKILL.md`
+- `apps/web/plugins/human-resources/comp-analysis/SKILL.md`
+- `apps/web/plugins/document/docx/SKILL.md` + LICENSE.txt + scripts/ (from anthropics/skills)
+- `apps/web/plugins/document/xlsx/SKILL.md` + LICENSE.txt + scripts/ (from anthropics/skills)
+
+### Files modified
+- `apps/web/src/lib/plugins/registry.ts` — added 7 skills to hr_volunteer_coordinator
+- `apps/web/src/lib/archetype-prompts.ts` — updated HR_DOCUMENT_CREATION_ADDENDUM to confirm docx/xlsx are now wired + document all 5 HR plugin skills
+
+### Decisions
+- docx/xlsx placement: `apps/web/plugins/document/` for cross-archetype reuse (Development, Events, Programs, EA will share these in follow-on PRs)
+- Vendored actual Python runtime scripts from upstream (soffice.py, pack.py, unpack.py, validate.py, recalc.py, helpers, validators) — not just SKILL.md, so the skills are fully functional when Claude runs them
+- XSD schema files NOT vendored (hundreds of static XML files) — these are fetched at runtime by LibreOffice; not needed in the repo
+- Skipped skills: none — all 5 T1 HR skills and both T2 document skills were found upstream and vendored
+
+### Test status
+- typecheck: pre-existing environment failures only (next/server, lucide-react, supabase — same as main before this branch; zero new errors from our files)
+- PR: https://github.com/whitmorelabs/edify-os/pull/31
+- Commit: 4b7509b
+
+### Notes for Lopmon
+- Run `pnpm --filter web upload-plugin-skills` after merge to push all 7 skills to Skills API
+- docx/xlsx use a proprietary license (Anthropic source-available) — not Apache 2.0. Vendored LICENSE.txt reflects this.
+- HR skills use Apache 2.0 (from knowledge-work-plugins). CONNECTORS.md from upstream NOT vendored (it's a plugin-wide file, not per-skill) — this is fine; SKILL.md files reference it as a path and it's not required for upload.
+
+---
+
+## 2026-04-26 — HR Archetype PR B (Edify-native skills)
+
+**Identity:** Coding Agent (Sonnet, spawned by Lopmon)
+**Branch:** `lopmon/hr-native-skills-2026-04-26`
+**Date:** 2026-04-26
+**Task:** Second PR of the HR & Volunteer Coordinator sprint — author 3 Edify-native nonprofit HR skills (Path B)
+
+### Goal
+Author 3 self-contained, nonprofit-specific HR skills using pre-installed sandbox libraries (python-docx, openpyxl). Wire them to hr_volunteer_coordinator in ARCHETYPE_PLUGIN_SKILLS and update the HR archetype prompt.
+
+### Files added (9 new files across 3 skill directories)
+- `apps/web/plugins/human-resources/volunteer_recruitment_kit/render.py` — python-docx, ~230 lines, full role description + 3-channel outreach + 5-7 screening questions with scoring rubrics
+- `apps/web/plugins/human-resources/volunteer_recruitment_kit/SKILL.md`
+- `apps/web/plugins/human-resources/volunteer_recruitment_kit/LICENSE.txt` — Apache 2.0
+- `apps/web/plugins/human-resources/recognition_program/render.py` — openpyxl, ~250 lines, tiered recognition table + tracking roster (2 sheets, styled headers, frozen panes)
+- `apps/web/plugins/human-resources/recognition_program/SKILL.md`
+- `apps/web/plugins/human-resources/recognition_program/LICENSE.txt` — Apache 2.0
+- `apps/web/plugins/human-resources/volunteer_handbook_section/render.py` — python-docx, ~450 lines, hardcoded templates for all 7 topics with 5-section structure
+- `apps/web/plugins/human-resources/volunteer_handbook_section/SKILL.md`
+- `apps/web/plugins/human-resources/volunteer_handbook_section/LICENSE.txt` — Apache 2.0
+
+### Files modified (2 source files)
+- `apps/web/src/lib/plugins/registry.ts` — added 3 new skill resolves to hr_volunteer_coordinator
+- `apps/web/src/lib/archetype-prompts.ts` — added "Edify-native HR templates" section to HR_DOCUMENT_CREATION_ADDENDUM
+
+### Decisions
+- volunteer_handbook_section: all 7 topic templates hardcoded in render.py with full nonprofit compliance prose (mandatory reporting, boundaries with youth, HIPAA/FERPA notes, etc.). Compliance note appended to every doc advising legal review.
+- recognition_program: tier rows auto-generated from milestone_types input structure; cost estimates calibrated against budget input; sheet 2 is intentionally formula-free for ease of coordinator maintenance.
+- volunteer_recruitment_kit: screening question Q5 is always a safety-scenario question (what would you do if a participant disclosed something concerning) — this is intentional and non-negotiable for programs serving vulnerable populations.
+- Apache 2.0 chosen for all 3 skills (original CLM Studios authorship, not vendored from upstream).
+
+### Test status
+- typecheck: 383 pre-existing environment errors (next/server, lucide-react, supabase — same count as HEAD before branch; zero new errors introduced by this PR)
+- render.py files: mentally walk-through verified — all three produce realistic publishable output with realistic inputs
+
+### Notes for Lopmon before merge + upload
+- Run `pnpm --filter web upload-plugin-skills` after merge to push all 3 new skills to Skills API (the existing 7 from PR #31 may already be uploaded; the script should skip them if hash unchanged)
+- 3 new skills + 7 from PR #31 = 10 total for hr_volunteer_coordinator (plus document/docx and document/xlsx)
+- volunteer_handbook_section topics that are most legally sensitive: mandatory_reporting and boundaries_with_youth — Citlali should have these reviewed by HR/legal counsel before using in a real client context
