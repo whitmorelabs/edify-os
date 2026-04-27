@@ -28,14 +28,19 @@ import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 
 export type AnthropicSkillId = "xlsx" | "pptx" | "docx" | "pdf";
 
-/** Archetype → skills mapping. */
+/**
+ * Archetype → skills mapping.
+ * MAX 2 skills per archetype — Anthropic API expands each pre-built skill
+ * into internal sub-components. 3 skills expands to ~10, exceeding the
+ * 8-item limit on container.skills after validation.
+ */
 export const ARCHETYPE_SKILLS: Record<ArchetypeSlug, AnthropicSkillId[]> = {
-  executive_assistant: ["docx", "xlsx", "pdf"],
-  events_director: ["pptx", "xlsx", "pdf"],
-  development_director: ["docx", "xlsx", "pdf"],
-  marketing_director: ["pptx", "docx", "pdf"],
-  programs_director: ["docx", "xlsx", "pdf"],
-  hr_volunteer_coordinator: ["docx", "xlsx", "pdf"],
+  executive_assistant: ["docx", "xlsx"],
+  events_director: ["pptx", "xlsx"],
+  development_director: ["docx", "xlsx"],
+  marketing_director: ["pptx", "docx"],
+  programs_director: ["docx", "xlsx"],
+  hr_volunteer_coordinator: ["docx", "xlsx"],
 };
 
 // Exhaust-check: TypeScript errors here if ARCHETYPE_SLUGS drifts from this map.
@@ -111,8 +116,10 @@ export function buildContainer(
   skillIds: AnthropicSkillId[]
 ): { skills: Array<{ type: "anthropic"; skill_id: string; version: string }> } | undefined {
   if (skillIds.length === 0) return undefined;
+  // Cap at 2 skills -- API expands each into sub-components, 3+ exceeds 8-item limit
+  const capped = skillIds.slice(0, 2);
   return {
-    skills: skillIds.map((id) => ({
+    skills: capped.map((id) => ({
       type: "anthropic" as const,
       skill_id: id,
       version: "latest",
