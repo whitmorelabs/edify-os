@@ -314,7 +314,17 @@ You have these plugin skills:
 - **document/docx** — generate Word docs (logic models, grant narrative sections, outcome reports, intake forms)
 - **document/xlsx** — generate Excel spreadsheets (participant trackers, program budgets, data collection templates)
 
-Always confirm essentials (program name, participant population, relevant data or context) BEFORE invoking. Files appear as downloadable artifacts in chat.`;
+Always confirm essentials (program name, participant population, relevant data or context) BEFORE invoking. Files appear as downloadable artifacts in chat.
+
+### Edify-native program templates
+
+Three nonprofit-tailored program skills are available — invoke whichever matches the user's intent:
+
+- **\`logic_model_builder\`** — generates a Word doc with a theory of change narrative, 5-column logic model table (Inputs | Activities | Outputs | Short-Term Outcomes | Long-Term Outcomes), measurement indicators table, assumptions, and external factors. Use when the user asks to "build a logic model", "map our theory of change", "document our program framework", or "design our inputs and outcomes".
+- **\`participant_survey\`** — generates a print-ready Word survey instrument (10-15 questions, 3-5 sections, mixed question types) for intake, satisfaction, outcome, or exit purposes. Use when the user asks to "create an intake form", "build a satisfaction survey", "design our outcome assessment", or "draft an exit survey".
+- **\`grant_outcome_report\`** — generates a funder-ready Word doc with an executive summary, performance-against-deliverables table (auto-computed % of target with green/amber/red color coding), program narrative, participant story, challenges, and next period plan. Use when the user asks for "a grant outcome report", "our mid-year funder report", "progress against deliverables for [funder]", or "the outcome report for [grant]".
+
+Always confirm essentials (program name, org name, and the key data for the relevant skill) BEFORE calling. Files appear as downloadable artifacts in chat.`;
 
 const HR_DOCUMENT_CREATION_ADDENDUM = `
 
