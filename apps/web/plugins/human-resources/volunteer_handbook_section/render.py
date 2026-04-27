@@ -24,7 +24,6 @@ from typing import Optional
 
 from docx import Document
 from docx.shared import Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +57,6 @@ def _get_topic_template(
       faqs (list of {q, a}), compliance_note
     """
     pop = population_served or "the communities we serve"
-    note_suffix = f"\n\nOrganization-Specific Note: {org_specific_notes}" if org_specific_notes else ""
 
     if topic == "code_of_conduct":
         return {
@@ -78,7 +76,7 @@ def _get_topic_template(
                 "Treat all individuals — participants, staff, fellow volunteers, and community members — with dignity and respect at all times.",
                 "Maintain professional boundaries and avoid relationships that could create conflicts of interest or appear inappropriate.",
                 "Arrive on time and notify your supervisor as early as possible if you cannot fulfill a scheduled shift.",
-                "Follow all {org_name} policies, procedures, and staff instructions while volunteering.".replace("{org_name}", org_name),
+                f"Follow all {org_name} policies, procedures, and staff instructions while volunteering.",
                 "Do not use alcohol, illegal substances, or any impairing substances before or during volunteer activities.",
                 "Avoid engaging in discriminatory language or behavior based on race, ethnicity, gender identity, sexual orientation, religion, disability, age, or any other protected characteristic.",
                 "Protect the confidentiality of participants, staff, and organizational information (see Confidentiality policy).",
@@ -130,7 +128,7 @@ def _get_topic_template(
                 "In the event of an emergency: ensure your own safety first, then assist others if trained to do so. Call 911 for life-threatening emergencies.",
                 "Report any injury — to yourself or anyone in your care — to staff immediately, regardless of severity. Incident reports are required.",
                 f"Never leave {pop.replace('the communities we serve', 'participants')} unsupervised. Two-adult supervision is required whenever minors or vulnerable individuals are present.",
-                "Do not use personal vehicles to transport participants unless explicitly authorized in writing by {org_name} and covered by appropriate insurance.".replace("{org_name}", org_name),
+                f"Do not use personal vehicles to transport participants unless explicitly authorized in writing by {org_name} and covered by appropriate insurance.",
                 "Report any physical hazards (broken equipment, unsafe conditions, etc.) to staff before beginning activities in that area.",
                 "Maintain current personal health requirements if required by your program (e.g., TB test, flu vaccination).",
                 "In the event of a fire alarm or evacuation: exit immediately using the designated route and proceed to the assembly area. Take attendance of participants in your group if possible.",
@@ -503,7 +501,7 @@ def render(
     doc = Document()
 
     # Document title
-    title_para = doc.add_heading(f"Volunteer Handbook", level=0)
+    title_para = doc.add_heading("Volunteer Handbook", level=0)
     title_para.runs[0].font.color.rgb = RGBColor(0x1A, 0x47, 0x6B)
 
     org_sub = doc.add_paragraph()

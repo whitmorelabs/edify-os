@@ -29,7 +29,6 @@ from openpyxl.utils import get_column_letter
 NAVY = "1A476B"
 STEEL = "2E729E"
 LIGHT_BLUE = "D6E8F5"
-GOLD = "B8860B"
 LIGHT_GOLD = "FFF8DC"
 LIGHT_GRAY = "F5F5F5"
 WHITE = "FFFFFF"

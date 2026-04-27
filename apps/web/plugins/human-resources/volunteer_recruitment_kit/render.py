@@ -47,10 +47,6 @@ def _bulleted(doc: Document, text: str) -> None:
     doc.add_paragraph(text, style="List Bullet")
 
 
-def _numbered(doc: Document, text: str) -> None:
-    doc.add_paragraph(text, style="List Number")
-
-
 def _hr(doc: Document) -> None:
     """Insert a thin horizontal rule paragraph."""
     p = doc.add_paragraph()
@@ -172,7 +168,7 @@ def render(
     doc = Document()
 
     # Title page header
-    title = doc.add_heading(f"Volunteer Recruitment Kit", level=0)
+    title = doc.add_heading("Volunteer Recruitment Kit", level=0)
     title.runs[0].font.color.rgb = RGBColor(0x1A, 0x47, 0x6B)
 
     sub_title = doc.add_paragraph()
