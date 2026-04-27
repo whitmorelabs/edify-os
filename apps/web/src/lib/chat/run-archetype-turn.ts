@@ -32,7 +32,7 @@ import {
 } from "@/lib/skills/registry";
 import type { ArchetypeSlug } from "@/lib/archetypes";
 import { insertActivityEvent } from "@/lib/hours-saved/insert-event";
-import { ARCHETYPE_PLUGIN_SKILLS } from "@/lib/plugins/registry";
+import { ARCHETYPE_PLUGIN_SKILLS, selectSkillsForMessage, SKILL_CAP } from "@/lib/plugins/registry";
 import { buildMcpServersForOrg } from "@/lib/mcp/registry";
 
 const TOOL_USE_LOOP_MAX = 8;
@@ -209,18 +209,22 @@ export async function runArchetypeTurn({
   // SDK shape: container.skills[] where each entry is { type, skill_id, version? }
   //   - Pre-built (docx/xlsx/pptx/pdf): type = "anthropic"
   //   - Uploaded knowledge-work-plugins: type = "custom"
-  // Anthropic API limit: max 8 skills in container.skills.
+  // Anthropic API limit: max 8 skills in container.skills (confirmed via PR #41 diagnostic).
   // Plugin skills (custom uploaded) already include document generators
   // (document/docx, document/xlsx, document/pptx), so pre-built skills are
-  // redundant. Only send plugin skills, capped at 8.
+  // redundant. Only send plugin skills, capped at SKILL_CAP via priority-based
+  // dynamic selection: pin Edify-native skills, fill remaining slots by intent.
   const containerParam = attachSkills
     ? (() => {
-        const pluginSkills = pluginSkillIds.map((id) => ({
+        // Priority-based dynamic selection: pin Edify-native skills (always sent),
+        // dynamically select vendored skills for remaining slots by intent detection
+        // on the user message. See plugins/intent-detection.ts for categories.
+        const selectedIds = selectSkillsForMessage(archetype, userMessage, SKILL_CAP);
+        const pluginSkills = selectedIds.map((id) => ({
           type: "custom" as const,
           skill_id: id,
         }));
-        const capped = pluginSkills.slice(0, 8);
-        return capped.length > 0 ? { skills: capped } : undefined;
+        return pluginSkills.length > 0 ? { skills: pluginSkills } : undefined;
       })()
     : undefined;
 
