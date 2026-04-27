@@ -20,16 +20,15 @@ LOI variant: condensed to cover + executive summary + statement of need + goals.
 All libraries are pre-installed in Anthropic's code-execution sandbox.
 """
 
+import datetime
 import os
 import re
 import time
 from typing import Optional
 
 from docx import Document
-from docx.shared import Pt, RGBColor, Inches
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
 
 
 # ---------------------------------------------------------------------------
@@ -38,7 +37,6 @@ from docx.oxml import OxmlElement
 
 _NAVY = RGBColor(0x1A, 0x47, 0x6B)
 _STEEL = RGBColor(0x2E, 0x72, 0x9E)
-_DARK = RGBColor(0x22, 0x22, 0x22)
 _GRAY = RGBColor(0xCC, 0xCC, 0xCC)
 
 
@@ -81,10 +79,6 @@ def _hr(doc: Document) -> None:
     run = p.add_run("─" * 72)
     run.font.color.rgb = _GRAY
     run.font.size = Pt(7)
-
-
-def _page_break(doc: Document) -> None:
-    doc.add_page_break()
 
 
 def _add_budget_table(doc: Document) -> None:
@@ -312,6 +306,7 @@ def _build_evaluation_plan(
     program_name: str,
     evaluation_metrics: list,
     org_name: str,
+    funder_name: str = "[Funder]",
 ) -> None:
     _heading1(doc, "Evaluation Plan")
 
@@ -335,7 +330,7 @@ def _build_evaluation_plan(
     _para(
         doc,
         f"Outcome data will be compiled into a funder impact report submitted within 30 days "
-        f"of the grant period close. {org_name} will make this data available to {{}funder_name{}} "
+        f"of the grant period close. {org_name} will make this data available to {funder_name} "
         f"upon request and welcomes site visits to observe programming in action. "
         f"[PLACEHOLDER: Note any third-party evaluators, IRB protocols, or validated assessment "
         f"tools used in your specific program model.]",
@@ -475,10 +470,9 @@ def _build_loi(
     """Build a condensed 1-page letter of inquiry."""
 
     _build_cover_page(doc, org_name, funder_name, grant_amount, deadline, program_name, "loi")
-    _page_break(doc)
+    doc.add_page_break()
 
     # Date and salutation
-    import datetime
     today = datetime.date.today().strftime("%B %d, %Y")
     _para(doc, today)
     _para(doc, f"[Grants Manager Name]\n{funder_name}\n[Address]")
@@ -641,7 +635,7 @@ def render(
     else:
         # Full proposal
         _build_cover_page(doc, org_name, funder_name, grant_amount, deadline, program_name, "full")
-        _page_break(doc)
+        doc.add_page_break()
 
         _build_executive_summary(
             doc, org_name, org_mission, program_name, funding_request_summary, grant_amount, funder_name
@@ -657,7 +651,7 @@ def render(
         _build_goals_and_objectives(doc, program_name, target_population, evaluation_metrics)
         _hr(doc)
 
-        _build_evaluation_plan(doc, program_name, evaluation_metrics, org_name)
+        _build_evaluation_plan(doc, program_name, evaluation_metrics, org_name, funder_name)
         _hr(doc)
 
         _build_org_capacity(doc, org_name, org_mission, org_budget_total, program_name)
@@ -669,7 +663,7 @@ def render(
         _build_sustainability(doc, program_name, org_name, funder_name, grant_amount)
 
         if additional_context:
-            _page_break(doc)
+            doc.add_page_break()
             _heading1(doc, "Additional Information")
             _para(doc, additional_context)
 

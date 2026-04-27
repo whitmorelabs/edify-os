@@ -12,6 +12,7 @@ Sections:
 All libraries are pre-installed in Anthropic's code-execution sandbox.
 """
 
+import datetime
 import os
 import re
 import time
@@ -19,7 +20,6 @@ from typing import Optional
 
 from docx import Document
 from docx.shared import Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 # ---------------------------------------------------------------------------
@@ -73,22 +73,6 @@ def _hr(doc: Document) -> None:
     run.font.size = Pt(7)
 
 
-def _section_tag(doc: Document, text: str, timing: str) -> None:
-    """Render a section tag with timing note."""
-    p = doc.add_paragraph()
-    r1 = p.add_run(text)
-    r1.bold = True
-    r1.font.size = Pt(13)
-    r1.font.color.rgb = _NAVY
-    r1.add_break()  # type: ignore[attr-defined]  # not valid; use para break instead
-
-    p2 = doc.add_paragraph()
-    r2 = p2.add_run(f"Timing: {timing}")
-    r2.italic = True
-    r2.font.size = Pt(9)
-    r2.font.color.rgb = _STEEL
-
-
 def _extract_first_name(donor_name: str) -> str:
     """Return the first token of the donor name as a fallback salutation."""
     parts = donor_name.strip().split()
@@ -122,7 +106,6 @@ def _build_acknowledgement_letter(
     doc.add_paragraph()
 
     # Date
-    import datetime
     today = datetime.date.today().strftime("%B %d, %Y")
     _para(doc, today)
     doc.add_paragraph()
