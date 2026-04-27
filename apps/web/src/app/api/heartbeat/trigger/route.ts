@@ -142,6 +142,23 @@ export async function POST(request: Request) {
       .eq("id", jobId),
   ]);
 
+  // Fire-and-forget: create a notification for the heartbeat check-in.
+  const archetypeName = customArchetypeName ?? archetype.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  try {
+    serviceClient.from("notifications").insert({
+      org_id: orgId,
+      type: "checkin",
+      title: `${archetypeName} check-in`,
+      body: finalText.substring(0, 200) + (finalText.length > 200 ? "..." : ""),
+      archetype: archetype,
+      link: `/dashboard/team/${archetype}`,
+    }).then(({ error }) => {
+      if (error) console.error("[heartbeat/trigger] notification insert failed:", error);
+    });
+  } catch (err) {
+    console.error("[heartbeat/trigger] notification insert failed:", err);
+  }
+
   // Title = first non-empty line of the findings text (strips markdown headers, etc.)
   const firstLine =
     finalText

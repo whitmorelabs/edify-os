@@ -186,6 +186,23 @@ export async function POST(
       .eq("id", activeConversationId),
   ]);
 
+  // Fire-and-forget: create a notification for the chat response.
+  const archetypeName = customArchetypeName ?? slug.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+  try {
+    serviceClient.from("notifications").insert({
+      org_id: orgId,
+      type: "message",
+      title: `${archetypeName} responded`,
+      body: text.substring(0, 150) + (text.length > 150 ? "..." : ""),
+      archetype: slug,
+      link: `/dashboard/team/${slug}`,
+    }).then(({ error }) => {
+      if (error) console.error("[team/chat] notification insert failed:", error);
+    });
+  } catch (err) {
+    console.error("[team/chat] notification insert failed:", err);
+  }
+
   // Route completed artifact to the Tasks page (not the Inbox).
   // Per Z's 2026-04-21 review + Citlali's Option B choice:
   //   Inbox = items that need a user decision (approvals).

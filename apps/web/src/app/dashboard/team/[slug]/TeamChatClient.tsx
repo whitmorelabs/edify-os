@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Sparkles, PanelLeft } from "lucide-react";
 import Link from "next/link";
@@ -168,6 +168,15 @@ export default function TeamChatClient({
   const [conversationsLoading, setConversationsLoading] = useState(true);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
+  // AbortController for the current streaming fetch — allows cleanup on unmount.
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Mirror streamingId in a ref so the cleanup useEffect can read it without deps.
+  const streamingIdRef = useRef<string | null>(null);
+  // Mirror activeConversation id in a ref for the cleanup effect.
+  const activeConversationIdRef = useRef<string | null>(null);
+  useEffect(() => { streamingIdRef.current = streamingId; }, [streamingId]);
+  useEffect(() => { activeConversationIdRef.current = activeConversation?.id ?? null; }, [activeConversation]);
+
   // ---------------------------------------------------------------------------
   // Load conversations on mount — auto-select the most recent one
   // ---------------------------------------------------------------------------
@@ -208,25 +217,35 @@ export default function TeamChatClient({
       return;
     }
 
-    const stored = getMessages(activeConversation.id);
+    const convId = activeConversation.id;
+    const pendingKey = `chat:pending-stream:${convId}`;
+    const hasPendingMarker = !!localStorage.getItem(pendingKey);
+
+    const stored = getMessages(convId);
     if (stored.length > 0) {
       // Local cache hit — render immediately
       setMessages(stored);
-    } else {
-      // No local messages — fetch from server (e.g. new device or cleared cache)
-      setMessages([]); // Clear first to avoid stale messages from previous conv
-      getMessagesFromServer(slug, activeConversation.id)
+    }
+
+    if (hasPendingMarker || stored.length === 0) {
+      // Either a stream was interrupted (pending marker) or no local messages —
+      // fetch from server to recover any messages saved while the user was away.
+      if (stored.length === 0) setMessages([]); // Clear stale messages from previous conv
+      getMessagesFromServer(slug, convId)
         .then((serverMessages) => {
           if (serverMessages.length > 0) {
             setMessages(serverMessages);
             // Backfill localStorage so subsequent loads are instant
+            localStorage.removeItem(`chat:messages:${convId}`);
             for (const msg of serverMessages) {
-              saveMessage(activeConversation.id, msg);
+              saveMessage(convId, msg);
             }
           }
+          // Clear the pending marker — server data is now loaded
+          localStorage.removeItem(pendingKey);
         })
         .catch(() => {
-          // Server unavailable — show empty state
+          // Server unavailable — keep local messages if any
         });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,6 +284,10 @@ export default function TeamChatClient({
         setMessages((prev) => [...prev, placeholderMsg]);
         setStreamingId(placeholderId);
 
+        // Create an AbortController so we can cancel the stream on unmount.
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         const response = await apiSendMessage(
           slug,
           content,
@@ -278,10 +301,12 @@ export default function TeamChatClient({
                   : m
               )
             );
-          }
+          },
+          controller.signal
         );
 
         setStreamingId(null);
+        abortControllerRef.current = null;
 
         const serverConvId = response.conversationId;
         const isNew = !activeConversation;
@@ -332,6 +357,9 @@ export default function TeamChatClient({
         saveMessage(serverConvId, assistantMsg);
       } catch (err) {
         setStreamingId(null);
+        abortControllerRef.current = null;
+        // If aborted due to unmount, don't show an error — the cleanup effect handles it.
+        if (err instanceof DOMException && err.name === "AbortError") return;
         const rawMessage =
           err instanceof Error ? err.message : String(err);
         const friendlyContent = rawMessage.toLowerCase().includes("network") ||
@@ -365,6 +393,24 @@ export default function TeamChatClient({
       setPendingPrompt(null);
     }
   }, [pendingPrompt, isTyping, handleSend]);
+
+  // ---------------------------------------------------------------------------
+  // Cleanup on unmount: if a stream is active, save a "pending" marker so the
+  // next mount knows to re-fetch messages from the server. Also abort the
+  // in-flight fetch so we don't leak connections.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    return () => {
+      if (streamingIdRef.current && activeConversationIdRef.current) {
+        localStorage.setItem(
+          `chat:pending-stream:${activeConversationIdRef.current}`,
+          Date.now().toString()
+        );
+      }
+      // Abort the in-flight stream fetch if still running.
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Create new conversation — just reset local state.
@@ -518,6 +564,7 @@ export default function TeamChatClient({
             isTyping={showTypingIndicator}
             streamingId={streamingId}
             slug={archetypeSlug}
+            onQuickReply={handleSend}
           />
         )}
 

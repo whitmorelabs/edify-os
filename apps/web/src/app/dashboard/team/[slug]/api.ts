@@ -61,12 +61,14 @@ export async function sendMessage(
   slug: string,
   message: string,
   conversationId?: string,
-  onDelta?: (chunk: string) => void
+  onDelta?: (chunk: string) => void,
+  signal?: AbortSignal
 ): Promise<AssistantMessage> {
   const res = await fetch(`/api/team/${slug}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, conversationId }),
+    signal,
   });
 
   if (!res.ok) {
