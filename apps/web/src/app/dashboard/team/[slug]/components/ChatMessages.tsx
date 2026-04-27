@@ -17,6 +17,88 @@ interface ChatMessagesProps {
   /** ID of the assistant message currently being streamed — shows a blinking cursor. */
   streamingId?: string | null;
   slug: ArchetypeSlug;
+  /** Called when the user clicks a quick-reply chip below an assistant message. */
+  onQuickReply?: (text: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// Quick-reply extraction — detects structured choices in assistant messages
+// ---------------------------------------------------------------------------
+
+interface QuickReplies {
+  type: "options" | "yesno";
+  options: string[];
+}
+
+/**
+ * Scan assistant message content for structured choices and return clickable
+ * quick-reply labels. Returns null when no actionable pattern is detected.
+ */
+function extractQuickReplies(content: string): QuickReplies | null {
+  if (!content) return null;
+
+  // 1. Numbered options: "1. Option A\n2. Option B\n3. Option C"
+  const numberedRe = /^\d+[\.\)]\s+(.+)$/gm;
+  const numberedMatches = [...content.matchAll(numberedRe)];
+  if (numberedMatches.length >= 2) {
+    return {
+      type: "options",
+      options: numberedMatches.map((m) => m[1].trim()),
+    };
+  }
+
+  // 2. Bullet options: "- Option A\n- Option B"
+  const bulletRe = /^[-*]\s+(.+)$/gm;
+  const bulletMatches = [...content.matchAll(bulletRe)];
+  if (bulletMatches.length >= 2) {
+    return {
+      type: "options",
+      options: bulletMatches.map((m) => m[1].trim()),
+    };
+  }
+
+  // 3. Yes/No questions: ends with "?" and contains trigger phrases
+  const yesNoRe = /\b(would you like|should i|do you want|shall i|do you prefer|would you prefer)\b/i;
+  const trimmed = content.trim();
+  if (trimmed.endsWith("?") && yesNoRe.test(trimmed)) {
+    return { type: "yesno", options: ["Yes", "No"] };
+  }
+
+  // 4. A/B choice: "Option A or Option B?"
+  const abRe = /\b(.{3,40}?)\s+or\s+(.{3,40}?)\?/i;
+  const abMatch = trimmed.match(abRe);
+  if (abMatch) {
+    const a = abMatch[1].replace(/^(would you like|do you want|should i|prefer)\s+/i, "").trim();
+    const b = abMatch[2].replace(/\s*\?$/, "").trim();
+    if (a.length > 1 && b.length > 1 && a.length < 60 && b.length < 60) {
+      return { type: "options", options: [a, b] };
+    }
+  }
+
+  return null;
+}
+
+/** Renders pill-shaped quick-reply buttons below an assistant message. */
+function QuickReplyChips({
+  replies,
+  onSelect,
+}: {
+  replies: QuickReplies;
+  onSelect: (text: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-2">
+      {replies.options.map((opt) => (
+        <button
+          key={opt}
+          onClick={() => onSelect(opt)}
+          className="text-xs rounded-full border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-1.5 text-[var(--fg-2)] hover:bg-[var(--bg-3)] hover:border-[var(--line-purple)] hover:text-[var(--fg-1)] transition cursor-pointer"
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +315,7 @@ function FileChips({ files, messageTimestamp, isNew }: FileChipsProps) {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-export function ChatMessages({ messages, isTyping, streamingId, slug }: ChatMessagesProps) {
+export function ChatMessages({ messages, isTyping, streamingId, slug, onQuickReply }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Resolve the UI archetype object for ChatBubble + TypingIndicator
@@ -276,6 +358,12 @@ export function ChatMessages({ messages, isTyping, streamingId, slug }: ChatMess
         // Assistant message — use ChatBubble primitive with archetype arc
         const fileIsNew = msg.id === justArrivedId;
         const isStreaming = msg.id === streamingId;
+        // Quick replies: only show on the last assistant message when not streaming
+        const isLastAssistant = msg.id === lastAssistantMsg?.id;
+        const quickReplies =
+          isLastAssistant && !isStreaming && onQuickReply
+            ? extractQuickReplies(msg.content)
+            : null;
         return (
           <div key={msg.id} className="flex flex-col gap-0.5 animate-slide-up">
             {arc ? (
@@ -283,13 +371,18 @@ export function ChatMessages({ messages, isTyping, streamingId, slug }: ChatMess
                 role="agent"
                 arc={arc}
                 trailing={
-                  msg.files && msg.files.length > 0 ? (
-                    <FileChips
-                      files={msg.files}
-                      messageTimestamp={msg.timestamp}
-                      isNew={fileIsNew}
-                    />
-                  ) : undefined
+                  <>
+                    {msg.files && msg.files.length > 0 && (
+                      <FileChips
+                        files={msg.files}
+                        messageTimestamp={msg.timestamp}
+                        isNew={fileIsNew}
+                      />
+                    )}
+                    {quickReplies && (
+                      <QuickReplyChips replies={quickReplies} onSelect={onQuickReply} />
+                    )}
+                  </>
                 }
               >
                 {msg.content ? (
@@ -322,6 +415,9 @@ export function ChatMessages({ messages, isTyping, streamingId, slug }: ChatMess
                     messageTimestamp={msg.timestamp}
                     isNew={fileIsNew}
                   />
+                )}
+                {quickReplies && (
+                  <QuickReplyChips replies={quickReplies} onSelect={onQuickReply!} />
                 )}
               </div>
             )}

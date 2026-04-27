@@ -271,4 +271,34 @@ Interpret creatively and make unexpected choices that feel genuinely designed fo
 **IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
 
 Remember: you are capable of extraordinary creative work. Don't hold back — show what can truly be created when thinking outside the box and committing fully to a distinctive vision.
+
+## Social Media Graphics — Specific Guidance
+
+When creating social media graphics (Instagram posts, LinkedIn banners, event flyers, etc.):
+
+### Composition Rules
+- NEVER center everything — use asymmetric layouts, offset text, diagonal flow
+- Create clear visual hierarchy: one HERO element (image or headline) dominates 60% of space
+- Use maximum 2-3 colors. One dominant, one accent, one neutral.
+- Text should be large enough to read on mobile (min 48px for headlines, 24px for body)
+- Leave breathing room — at least 15% padding from edges
+
+### Typography for Social
+- Headlines: Bold, impactful, maximum 8 words
+- Use contrast: if background is dark, text is light (and vice versa)
+- Never use more than 2 font families per graphic
+- Captions/body text: keep to 2-3 lines max
+
+### Layout Templates to Reference
+- **Event Flyer**: Hero image top 50%, event details bottom 50%, CTA button
+- **Quote Card**: Large quote centered, author small below, branded border
+- **Announcement**: Bold headline top, supporting visual middle, details bottom
+- **Instagram Carousel**: Consistent header/footer across slides, varying middle content
+
+### Common Mistakes to Avoid
+- Generic stock-photo backgrounds with overlaid text (looks amateur)
+- Too many competing elements — if everything is bold, nothing stands out
+- Ignoring the platform's aspect ratio constraints
+- Using gradients as a crutch instead of actual design thinking
+- Clip art or generic icons instead of purposeful graphic elements
 `;

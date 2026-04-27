@@ -46,4 +46,17 @@ Use `social_card` instead of `canvas-design` when the user needs a templated, no
 
 Assemble inputs into a `render(**inputs)` call against `render.py`. Confirm `headline` and `brand_color` before calling — everything else has defaults.
 
-**Design philosophy:** Nonprofit social cards should feel trustworthy and warm, not corporate. The brand color anchors the composition; the headline is set large and centered with generous breathing room. A thin horizontal accent line or geometric shape (circle, rounded rectangle) drawn in a complementary tone adds visual polish without clutter. Footer attribution is set small (12–14pt) at the bottom margin. Think: one strong typographic statement, one supporting idea, one clear action — no more. Clean enough that a supporter shares it without hesitation.
+**Design philosophy:** Nonprofit social cards should feel trustworthy and warm, not corporate. The brand color anchors the composition; the headline is set large with generous breathing room. Think: one strong typographic statement, one supporting idea, one clear action — no more. Clean enough that a supporter shares it without hesitation.
+
+**Composition rules:**
+- NEVER center everything — use asymmetric layouts, offset headline text, or diagonal flow to create energy and visual interest
+- One HERO element (the headline) dominates 60% of the visual space — everything else is subordinate
+- Use maximum 2-3 colors: brand_color as dominant, secondary_color as accent, one neutral (white or near-black)
+- Text must be large enough to read on mobile at thumbnail size — min 48px equivalent for headlines, 24px for body/CTA
+- Leave at least 15% padding from all edges — breathing room signals confidence
+- A single geometric accent shape (circle, rounded rectangle, diagonal line) in a complementary tone adds polish without clutter
+- Footer attribution is set small (12-14pt) at the bottom margin
+- Avoid generic stock-photo backgrounds with overlaid text — they look amateur
+- If everything is bold, nothing stands out; restrain secondary elements
+- Never use gradients as a crutch instead of intentional design thinking
+- Avoid clip art or generic icons; use purposeful geometric elements instead

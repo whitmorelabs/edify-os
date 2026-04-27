@@ -56,4 +56,23 @@ Use `flyer` over `canvas-design` when the user needs a structured, information-r
 
 Assemble inputs into a `render(**inputs)` call against `render.py`. Confirm `headline` and `brand_color` before calling. If the user provides event details (date, venue, time), include them; otherwise the layout gracefully omits empty sections.
 
-**Design philosophy:** Print flyers for nonprofits work best when they communicate hierarchy — the event name commands attention, the logistics answer "when and where," and the CTA closes the deal. Use the brand_color as a full-width header band and a matching footer strip, leaving the body on a white or very light background for maximum readability when printed in grayscale on a home printer. Bullet points should feel like a preview, not a brochure dump. Body text at 18–20pt. Resist the urge to fill every pixel — white space signals confidence and makes the event feel prestigious.
+**Design philosophy:** Print flyers for nonprofits work best when they communicate hierarchy — the event name commands attention, the logistics answer "when and where," and the CTA closes the deal. Resist the urge to fill every pixel — white space signals confidence and makes the event feel prestigious.
+
+**Composition rules:**
+- Create clear visual hierarchy: the headline/event name dominates the top 40-50% of space as the HERO element
+- Use asymmetric layouts — offset text blocks, diagonal accent lines, or staggered sections create energy vs. rigid centering
+- Maximum 2-3 colors: brand_color for header band and accents, secondary_color for CTA/highlights, white or near-white for body background
+- Text sizing for print clarity: headline 36-48pt, subheadline 24-28pt, body 18-20pt, footer 12-14pt
+- Leave at least 15% padding from edges — critical for print trim safety and visual breathing room
+- Body on white or very light background ensures readability when printed in grayscale on a home printer
+- Bullet points should feel like a preview (3-5 items max), not a brochure dump
+- Event details (date, time, venue) in a visually distinct block — bordered, shaded, or icon-paired — so scanners find them instantly
+- CTA section at the bottom gets its own visual weight: bold text, contrasting background, clear action verb
+
+**Common mistakes to avoid:**
+- Generic stock-photo backgrounds with overlaid text (looks amateur and prints poorly)
+- Too many competing elements — if everything is bold, nothing stands out
+- Filling every square inch with content; density signals desperation, not prestige
+- Using gradients as a crutch instead of intentional color blocking
+- Clip art or generic icons instead of purposeful geometric accents
+- Ignoring print constraints: dark backgrounds waste ink, thin fonts disappear at distance
