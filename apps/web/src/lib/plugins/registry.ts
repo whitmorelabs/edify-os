@@ -58,5 +58,13 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
   events_director: [],
   development_director: [],
   programs_director: [],
-  hr_volunteer_coordinator: [],
+  hr_volunteer_coordinator: [
+    resolve("human-resources/onboarding"),
+    resolve("human-resources/interview-prep"),
+    resolve("human-resources/performance-review"),
+    resolve("human-resources/policy-lookup"),
+    resolve("human-resources/comp-analysis"),
+    resolve("document/docx"),
+    resolve("document/xlsx"),
+  ].filter(Boolean) as string[],
 };
