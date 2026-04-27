@@ -198,5 +198,35 @@
     "skill_id": "skill_012kdu555NXm5m3tmScUp1MA",
     "hash": "3db37af9e85e816c",
     "uploaded_at": "2026-04-27T05:11:39.170Z"
+  },
+  "document/internal-comms": {
+    "skill_id": "skill_01L5xQxwe9cTtgeh6njvRmVN",
+    "hash": "1a8d70c8bfc276fc",
+    "uploaded_at": "2026-04-27T05:37:46.367Z"
+  },
+  "executive_assistant/action_item_extractor": {
+    "skill_id": "skill_01GQcfmE1hoyyk96VLApgMX8",
+    "hash": "52c69900bd230ef1",
+    "uploaded_at": "2026-04-27T05:37:47.394Z"
+  },
+  "executive_assistant/board_meeting_packet": {
+    "skill_id": "skill_01KHQxP53YFnsXUDHfgd722K",
+    "hash": "f91e75be6bdc2a93",
+    "uploaded_at": "2026-04-27T05:37:48.521Z"
+  },
+  "executive_assistant/executive_brief": {
+    "skill_id": "skill_01LrFGRBNWV1Ad2VLMJEJFqP",
+    "hash": "0988361550a63a3d",
+    "uploaded_at": "2026-04-27T05:37:49.521Z"
+  },
+  "productivity/task-management": {
+    "skill_id": "skill_01DKCkrjAoH9wj8eNgwXMi31",
+    "hash": "137f11cc452acddb",
+    "uploaded_at": "2026-04-27T05:37:50.514Z"
+  },
+  "sales/daily-briefing": {
+    "skill_id": "skill_019xTe1gghJ5Hdc8t5kaVEQX",
+    "hash": "38eac49e539e1595",
+    "uploaded_at": "2026-04-27T05:37:51.468Z"
   }
 }
