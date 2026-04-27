@@ -13,6 +13,12 @@
  *
  * The ARCHETYPE_PLUGIN_SKILLS map is merged into the container.skill_ids param
  * in lib/chat/run-archetype-turn.ts alongside the pre-built skill IDs.
+ *
+ * Dynamic skill selection:
+ * The Anthropic Skills API hard-caps container.skills at 8 items. Use
+ * selectSkillsForMessage() rather than slicing the array directly — it pins
+ * Edify-native skills and fills remaining slots by intent-matching vendored
+ * skills against the user message. See intent-detection.ts for the categories.
  */
 
 import type { ArchetypeSlug } from "@/lib/archetypes";
@@ -20,6 +26,17 @@ import type { ArchetypeSlug } from "@/lib/archetypes";
 // without TypeScript complaining about missing properties on the initially-empty JSON.
 // Each entry is an object { skill_id, hash, uploaded_at } — use .skill_id to extract the ID.
 import uploadedIdsRaw from "../../../plugins/uploaded-ids.json";
+import {
+  EDIFY_NATIVE_SKILL_KEYS,
+  VENDOR_TO_CATEGORY,
+  VENDOR_INTENT_PATTERNS,
+  detectIntentCategories,
+  SKILL_CAP,
+} from "./intent-detection";
+
+// Re-export SKILL_CAP so run-archetype-turn.ts can import it from a single place.
+export { SKILL_CAP };
+
 const uploadedIds = uploadedIdsRaw as Record<
   string,
   { skill_id: string; hash: string; uploaded_at: string } | undefined
@@ -29,6 +46,16 @@ const uploadedIds = uploadedIdsRaw as Record<
 function resolve(key: string): string | undefined {
   return uploadedIds[key]?.skill_id;
 }
+
+/**
+ * Reverse lookup: skill_id → plugin key (e.g. "skill_01..." → "design/social_card").
+ * Built once at module load from uploaded-ids.json.
+ */
+const skillIdToKey: Record<string, string> = Object.fromEntries(
+  (Object.entries(uploadedIds) as Array<[string, { skill_id: string } | undefined]>)
+    .filter((entry): entry is [string, { skill_id: string }] => entry[1] !== undefined)
+    .map(([key, value]) => [value.skill_id, key])
+);
 
 /**
  * Archetype → uploaded plugin skill_ids.
@@ -112,3 +139,82 @@ export const ARCHETYPE_PLUGIN_SKILLS: Record<ArchetypeSlug, string[]> = {
     resolve("document/xlsx"),
   ].filter(Boolean) as string[],
 };
+
+/**
+ * Select up to `cap` skill_ids for a single archetype turn using priority-based
+ * dynamic selection.
+ *
+ * Strategy:
+ *   1. Pin all Edify-native skill_ids (always sent — nonprofit differentiation).
+ *   2. Score each vendored skill_id by whether its intent category matches the
+ *      user message:
+ *        - Score 2: category matched in user message
+ *        - Score 1: no categories matched at all (neutral fallback)
+ *        - Score 0: other categories matched but not this one
+ *   3. Stable-sort vendored by score desc (ties preserve original array order).
+ *   4. Fill remaining slots (cap - native count) from top-scored vendored skills.
+ *
+ * @param archetype  The archetype slug for this turn.
+ * @param userMessage  The raw user message (temporal prefix not needed here).
+ * @param cap  Maximum skills to return (defaults to SKILL_CAP = 8).
+ * @returns  Array of skill_ids, length <= cap.
+ */
+export function selectSkillsForMessage(
+  archetype: ArchetypeSlug,
+  userMessage: string,
+  cap: number = SKILL_CAP,
+): string[] {
+  const eligibleSkillIds = ARCHETYPE_PLUGIN_SKILLS[archetype] ?? [];
+
+  // Partition into native (always pinned) and vendored (intent-scored).
+  const nativeIds: string[] = [];
+  type VendoredEntry = {
+    skill_id: string;
+    key: string;
+    category: keyof typeof VENDOR_INTENT_PATTERNS | undefined;
+    originalIndex: number;
+  };
+  const vendoredEntries: VendoredEntry[] = [];
+
+  for (let i = 0; i < eligibleSkillIds.length; i++) {
+    const skill_id = eligibleSkillIds[i];
+    const key = skillIdToKey[skill_id];
+    if (key && EDIFY_NATIVE_SKILL_KEYS.has(key)) {
+      nativeIds.push(skill_id);
+    } else {
+      const category = key ? VENDOR_TO_CATEGORY[key] : undefined;
+      vendoredEntries.push({ skill_id, key, category, originalIndex: i });
+    }
+  }
+
+  // Detect intent categories from the user message.
+  const matchedCategories = detectIntentCategories(userMessage);
+  const anyMatch = matchedCategories.size > 0;
+
+  // Score vendored entries.
+  const scored = vendoredEntries.map((entry) => {
+    let score: number;
+    if (!anyMatch) {
+      // No categories detected — neutral fallback so the first N vendored are sent.
+      score = 1;
+    } else if (entry.category && matchedCategories.has(entry.category)) {
+      score = 2;
+    } else {
+      score = 0;
+    }
+    return { ...entry, score };
+  });
+
+  // Stable sort: score desc, then original array order.
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.originalIndex - b.originalIndex;
+  });
+
+  // Fill remaining slots (defensively cap natives too, though current archetypes never exceed 8 natives).
+  const pinnedNatives = nativeIds.slice(0, cap);
+  const vendorSlots = cap - pinnedNatives.length;
+  const selectedVendored = scored.slice(0, vendorSlots).map((e) => e.skill_id);
+
+  return [...pinnedNatives, ...selectedVendored];
+}
