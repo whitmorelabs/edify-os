@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
 import { AnimatedDashboard } from "@/components/landing/animated-dashboard";
@@ -437,6 +438,7 @@ function MeetYourTeam() {
 /* ── Features Deep Dive ───────────────────────────────────────── */
 function FeaturesDeepDive() {
   const [activeTab, setActiveTab] = useState(0);
+  const reduced = useReducedMotion();
 
   const tabs = [
     {
@@ -498,12 +500,16 @@ function FeaturesDeepDive() {
   const active = tabs[activeTab];
 
   return (
-    <section
+    <motion.section
       style={{
         padding: "128px 0",
         background: "var(--bg-1)",
         borderTop: "1px solid var(--line-1)",
       }}
+      initial={{ opacity: 0, y: reduced ? 0 : 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: reduced ? 0.01 : 0.6, ease: "easeOut" }}
     >
       <div className="mx-auto px-8" style={{ maxWidth: 1240 }}>
         <span className="eyebrow">FEATURES</span>
@@ -558,74 +564,92 @@ function FeaturesDeepDive() {
           className="grid gap-10 items-start"
           style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
         >
-          <div>
-            <h3
+          {/* Left column: title + points cross-fade on tab change */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reduced ? 0 : -8 }}
+              transition={{ duration: reduced ? 0.01 : 0.3, ease: "easeOut" }}
+            >
+              <h3
+                style={{
+                  fontSize: 26,
+                  fontWeight: 500,
+                  color: "var(--fg-1)",
+                  marginBottom: 20,
+                  letterSpacing: "-0.015em",
+                }}
+              >
+                {active.title}
+              </h3>
+              <ul className="list-none">
+                {active.points.map((p, i) => (
+                  <li
+                    key={i}
+                    className="flex gap-2.5 mb-4"
+                    style={{ color: "var(--fg-2)", lineHeight: 1.6 }}
+                  >
+                    <span
+                      className="shrink-0"
+                      style={{
+                        color: "var(--brand-purple)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      •
+                    </span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/features"
+                className="no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300"
+                style={{ color: "var(--brand-purple)" }}
+              >
+                See all features
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Right column: placeholder cross-fades on tab change */}
+          {/* Placeholder until director screenshots exist at apps/web/public/features/<slug>.png */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`preview-${activeTab}`}
+              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reduced ? 0 : -8 }}
+              transition={{ duration: reduced ? 0.01 : 0.3, ease: "easeOut" }}
+              className="relative rounded-[20px] overflow-hidden flex flex-col items-center justify-center gap-2"
               style={{
-                fontSize: 26,
-                fontWeight: 500,
-                color: "var(--fg-1)",
-                marginBottom: 20,
-                letterSpacing: "-0.015em",
+                background:
+                  "linear-gradient(135deg, rgba(159,78,243,0.10), rgba(124,58,237,0.05))",
+                aspectRatio: "4 / 3",
+                boxShadow: "var(--elev-1)",
+                border: "1px dashed var(--line-purple)",
               }}
             >
-              {active.title}
-            </h3>
-            <ul className="list-none">
-              {active.points.map((p, i) => (
-                <li
-                  key={i}
-                  className="flex gap-2.5 mb-4"
-                  style={{ color: "var(--fg-2)", lineHeight: 1.6 }}
-                >
-                  <span
-                    className="shrink-0"
-                    style={{
-                      color: "var(--brand-purple)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    •
-                  </span>
-                  {p}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/features"
-              className="no-underline font-medium inline-flex items-center gap-2 mt-5 transition-colors duration-300"
-              style={{ color: "var(--brand-purple)" }}
-            >
-              See all features
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-          {/* Placeholder until director screenshots exist at apps/web/public/features/<slug>.png */}
-          <div
-            className="relative rounded-[20px] overflow-hidden flex flex-col items-center justify-center gap-2"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(159,78,243,0.10), rgba(124,58,237,0.05))",
-              aspectRatio: "4 / 3",
-              boxShadow: "var(--elev-1)",
-              border: "1px dashed var(--line-purple)",
-            }}
-          >
-            <div
-              className="font-mono text-center"
-              style={{ fontSize: 11, color: "var(--brand-purple)", letterSpacing: "0.1em" }}
-            >
-              SCREENSHOT COMING SOON
-            </div>
-            <div
-              className="font-mono text-center"
-              style={{ fontSize: 12, color: "var(--fg-3)" }}
-            >
-              {active.label} view
-            </div>
-          </div>
+              <div
+                className="font-mono text-center"
+                style={{ fontSize: 11, color: "var(--brand-purple)", letterSpacing: "0.1em" }}
+              >
+                SCREENSHOT COMING SOON
+              </div>
+              <div
+                className="font-mono text-center"
+                style={{ fontSize: 12, color: "var(--fg-3)" }}
+              >
+                {active.label} view
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 

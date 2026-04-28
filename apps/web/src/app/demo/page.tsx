@@ -1,13 +1,77 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
 import { Button } from "@/components/ui";
 
-export const metadata = {
-  title: "Demo | Edify OS",
-  description: "A guided walkthrough of the Edify OS nonprofit user portal. See the dashboard, meet your team, and understand how the whole thing works.",
+// Reveal animation: fade in + slide up + subtle scale on scroll-into-view
+const revealVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.6, ease: "easeOut" },
+  },
 };
+
+// Reduced-motion fallback: instant fade-in, no slide or scale
+const revealVariantsReduced = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.01 } },
+};
+
+interface AnimatedScreenshotProps {
+  src: string;
+  alt: string;
+  /** Pixel distance the image pans downward over the duration (creates "scroll-through" feel). */
+  panDistance?: number;
+  /** Pan cycle duration in seconds. */
+  panDuration?: number;
+}
+
+function AnimatedScreenshot({
+  src,
+  alt,
+  panDistance = 100,
+  panDuration = 8,
+}: AnimatedScreenshotProps) {
+  const reduced = useReducedMotion();
+  const variants = reduced ? revealVariantsReduced : revealVariants;
+
+  return (
+    <motion.div
+      className="rounded-xl overflow-hidden border border-line-1 shadow-elev-2"
+      // Wrapper clips the image to a shorter window so the pan reveals content below
+      style={{ aspectRatio: "16 / 9", position: "relative" }}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-100px" }}
+      variants={variants}
+    >
+      <motion.img
+        src={src}
+        alt={alt}
+        className="w-full block"
+        style={{ display: "block" }}
+        // Continuous vertical pan — creates the "user is scrolling through the dashboard" feel
+        animate={reduced ? undefined : { y: [0, -panDistance, 0] }}
+        transition={
+          reduced
+            ? undefined
+            : {
+                duration: panDuration,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }
+        }
+      />
+    </motion.div>
+  );
+}
 
 export default function DemoPage() {
   return (
@@ -43,10 +107,11 @@ export default function DemoPage() {
                 The inbox lives here too -- every proactive check-in, every flagged deadline, every recommendation from your team waiting for your review.
               </p>
             </div>
-            <img
+            <AnimatedScreenshot
               src="/demo/dashboard-overview.jpg"
               alt="Dashboard overview showing all six director cards and the heartbeat inbox"
-              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+              panDistance={100}
+              panDuration={9}
             />
           </div>
         </div>
@@ -56,10 +121,11 @@ export default function DemoPage() {
       <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-            <img
+            <AnimatedScreenshot
               src="/demo/team-chat-dev-director.jpg"
               alt="Team chat with the Development Director showing suggested prompts"
-              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+              panDistance={120}
+              panDuration={8}
             />
             <div>
               <div className="eyebrow mb-3">Step 2</div>
@@ -96,10 +162,11 @@ export default function DemoPage() {
                 All 6 responses arrive in under 10 seconds.
               </p>
             </div>
-            <img
+            <AnimatedScreenshot
               src="/demo/decision-lab.jpg"
               alt="Decision Lab page showing example scenarios and six director perspectives"
-              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+              panDistance={80}
+              panDuration={10}
             />
           </div>
         </div>
@@ -109,10 +176,11 @@ export default function DemoPage() {
       <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-            <img
+            <AnimatedScreenshot
               src="/demo/heartbeat-inbox.jpg"
               alt="Heartbeat inbox page showing proactive director check-ins"
-              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+              panDistance={90}
+              panDuration={9}
             />
             <div>
               <div className="eyebrow mb-3">Step 4</div>
@@ -152,10 +220,11 @@ export default function DemoPage() {
                 The more context you give, the more specific and useful every response becomes.
               </p>
             </div>
-            <img
+            <AnimatedScreenshot
               src="/demo/org-briefing.jpg"
               alt="Org briefing page with four-step onboarding flow"
-              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+              panDistance={80}
+              panDuration={7}
             />
           </div>
         </div>
