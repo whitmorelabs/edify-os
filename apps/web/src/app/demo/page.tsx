@@ -6,26 +6,21 @@ import { motion, useReducedMotion } from "framer-motion";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
 import { Button } from "@/components/ui";
+import { EASE } from "@/lib/motion";
 
-// Per-screenshot variation — 5 distinct reveal combos so the cascade feels
-// organic rather than 5 identical animations firing in sequence.
+// Per-screenshot variation — slight y/duration differences so the 5 reveals
+// feel organic rather than identical.
 const SCREENSHOT_REVEAL_VARIANTS = [
-  // Index 0
-  { y: 24, duration: 0.7, ease: [0.16, 1, 0.3, 1] },
-  // Index 1
-  { y: 32, duration: 0.65, ease: [0.22, 1, 0.36, 1] },
-  // Index 2
-  { y: 28, duration: 0.75, ease: [0.16, 1, 0.3, 1] },
-  // Index 3
-  { y: 36, duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-  // Index 4
-  { y: 24, duration: 0.7, ease: [0.16, 1, 0.3, 1] },
+  { y: 24, duration: 0.7,  ease: EASE.entrance },
+  { y: 32, duration: 0.65, ease: [0.22, 1, 0.36, 1] as const },
+  { y: 28, duration: 0.75, ease: EASE.entrance },
+  { y: 36, duration: 0.6,  ease: [0.22, 1, 0.36, 1] as const },
+  { y: 24, duration: 0.7,  ease: EASE.entrance },
 ] as const;
 
 interface AnimatedScreenshotProps {
   src: string;
   alt: string;
-  /** 0-4 — picks the reveal variant for this screenshot. */
   index: number;
 }
 
@@ -45,13 +40,7 @@ function AnimatedScreenshot({ src, alt, index }: AnimatedScreenshotProps) {
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        className="w-full block"
-        // No wrapper aspect-ratio constraint — image renders at its natural
-        // 1280×607 ratio. No parallax pan. Always fully visible, no clipping.
-      />
+      <img src={src} alt={alt} className="w-full block" />
     </motion.div>
   );
 }
