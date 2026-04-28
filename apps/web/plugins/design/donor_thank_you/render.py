@@ -1,91 +1,89 @@
 """
 donor_thank_you/render.py
 Generates a warm 5x7" portrait thank-you card (1500x2100 at 300 DPI).
-Uses ReportLab for PDF layout + pdf2image to convert to PNG.
-All libraries are pre-installed in Anthropic's code-execution sandbox.
+Uses Pillow directly — bundled Google Fonts (CrimsonPro Italic/Regular + NothingYouCouldDo).
+Aesthetic: letterpress personal note card. Cream background, serif italic message,
+handwritten signoff, restrained brand-color accent band.
 """
 
-import io
 import os
 import time
 from typing import Optional
 
-from reportlab.pdfgen import canvas as rl_canvas
-from pdf2image import convert_from_bytes
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Font loader
 # ---------------------------------------------------------------------------
 
-def _hex_to_rgb(hex_color: str):
+_FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+
+
+def _font(name: str, size: int) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(os.path.join(_FONT_DIR, name), size)
+
+
+# ---------------------------------------------------------------------------
+# Color helpers
+# ---------------------------------------------------------------------------
+
+def _hex_to_rgb(hex_color: str) -> tuple:
     h = hex_color.lstrip("#")
     if len(h) == 3:
         h = "".join(c * 2 for c in h)
-    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-    return r / 255.0, g / 255.0, b / 255.0
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def _luminance(r, g, b) -> float:
-    def lin(c):
-        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
-
-
-def _contrast_text(r, g, b) -> tuple:
-    return (1, 1, 1) if _luminance(r, g, b) < 0.4 else (0.08, 0.08, 0.08)
-
-
-def _tint(r, g, b, factor=0.35) -> tuple:
-    return (r + (1 - r) * factor, g + (1 - g) * factor, b + (1 - b) * factor)
-
-
-def _shade(r, g, b, factor=0.4) -> tuple:
-    return (r * (1 - factor), g * (1 - factor), b * (1 - factor))
-
-
-def _wrap_text(text: str, max_chars: int) -> list:
-    words = text.split()
-    lines, current, current_len = [], [], 0
-    for word in words:
-        needed = len(word) + (1 if current else 0)
-        if current_len + needed > max_chars:
-            if current:
-                lines.append(" ".join(current))
-            current, current_len = [word], len(word)
-        else:
-            current.append(word)
-            current_len += needed
-    if current:
-        lines.append(" ".join(current))
-    return lines
-
-
-def _draw_heart(c, cx, cy, size, r, g, b, alpha=0.18):
-    """Draw a simple heart using two arcs and a triangle (filled polygon)."""
-    from reportlab.lib.colors import Color
-    c.setFillColor(Color(r, g, b, alpha=alpha))
-    # Simple heart approximation using a path
-    c.saveState()
-    c.translate(cx, cy)
-    c.scale(size, size)
-    p = c.beginPath()
-    # Heart drawn as two semicircles + V bottom
-    # Upper-left lobe
-    p.arc(-0.5, 0.0, 0.0, 1.0, startAng=0, extent=180)
-    # Upper-right lobe
-    p.arc(0.0, 0.0, 0.5, 1.0, startAng=0, extent=180)
-    # Right slope down to point
-    p.lineTo(0.0, -1.0)
-    # Left slope back
-    p.lineTo(-0.5, 0.0)
-    p.close()
-    c.drawPath(p, fill=1, stroke=0)
-    c.restoreState()
+def _tint(r: int, g: int, b: int, factor: float = 0.35) -> tuple:
+    return (
+        int(r + (255 - r) * factor),
+        int(g + (255 - g) * factor),
+        int(b + (255 - b) * factor),
+    )
 
 
 # ---------------------------------------------------------------------------
-# Core render function
+# Pillow effects
+# ---------------------------------------------------------------------------
+
+def _wrap_text_px(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:
+    words = text.split()
+    lines = []
+    current_words = []
+    for word in words:
+        test = " ".join(current_words + [word])
+        bbox = font.getbbox(test)
+        w = bbox[2] - bbox[0]
+        if w > max_width and current_words:
+            lines.append(" ".join(current_words))
+            current_words = [word]
+        else:
+            current_words.append(word)
+    if current_words:
+        lines.append(" ".join(current_words))
+    return lines
+
+
+def _soft_vignette(canvas: Image.Image, strength: float = 0.18) -> Image.Image:
+    """Apply a gentle corner-darkening vignette for warmth."""
+    W, H = canvas.size
+    vig_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    vl = ImageDraw.Draw(vig_layer)
+    alpha_val = int(255 * strength)
+    steps = 12
+    for i in range(steps, 0, -1):
+        ratio = i / steps
+        margin_x = int(W * (1 - ratio) * 0.5)
+        margin_y = int(H * (1 - ratio) * 0.5)
+        a = min(int(alpha_val * (1 - ratio) * 1.8), 255)
+        vl.ellipse([margin_x, margin_y, W - margin_x, H - margin_y], fill=(10, 8, 6, a))
+    blurred_vig = vig_layer.filter(ImageFilter.GaussianBlur(radius=60))
+    return Image.alpha_composite(canvas, blurred_vig)
+
+
+# ---------------------------------------------------------------------------
+# Core render
 # ---------------------------------------------------------------------------
 
 def render(
@@ -103,133 +101,117 @@ def render(
     Render a 5x7 portrait donor thank-you card PNG (1500x2100 at 300 DPI).
     Returns absolute path to generated PNG.
     """
+    W, H = 1500, 2100
+
     # --- Colors ---
     br, bg, bb = _hex_to_rgb(brand_color)
 
     if accent_color:
         ar, ag, ab = _hex_to_rgb(accent_color)
     else:
-        # Default: warm complementary — lighten the brand color considerably
         ar, ag, ab = _tint(br, bg, bb, 0.55)
 
-    # Card background: warm off-white
-    card_bg = (0.99, 0.98, 0.96)
+    # Card background: warm cream (not pure white — adds physical-card warmth)
+    CREAM = (252, 249, 243)
+    primary_text = (28, 22, 18)
+    subtle_text = (90, 80, 72)
 
-    # Text colors on light background
-    primary_text = (0.12, 0.10, 0.10)
-    subtle_text = (0.35, 0.32, 0.30)
+    canvas = Image.new("RGBA", (W, H), (*CREAM, 255))
+    draw = ImageDraw.Draw(canvas, "RGBA")
 
-    # Page: 5x7 inches at 72 DPI → 360x504 pt
-    W = 5.0 * 72   # 360 pt
-    H = 7.0 * 72   # 504 pt
+    # --- Load fonts ---
+    font_italic = _font("CrimsonPro-Italic.ttf", 88)
+    font_org = _font("CrimsonPro-Regular.ttf", 52)
+    font_signoff = _font("NothingYouCouldDo-Regular.ttf", 96)
+    font_signer = _font("CrimsonPro-Regular.ttf", 68)
+    font_signer_title = _font("CrimsonPro-Italic.ttf", 58)
+    font_donor_name = _font("CrimsonPro-Italic.ttf", 96)
 
-    buf = io.BytesIO()
-    c = rl_canvas.Canvas(buf, pagesize=(W, H))
+    MARGIN = 120
 
-    # ---- Card background ----
-    c.setFillColorRGB(*card_bg)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    # --- TOP accent band (restrained — just one, not top + bottom) ---
+    BAND_H = 28
+    draw.rectangle([(0, 0), (W, BAND_H)], fill=(br, bg, bb, 255))
+    # Thin sub-rule in accent
+    draw.rectangle([(0, BAND_H), (W, BAND_H + 5)], fill=(ar, ag, ab, 255))
 
-    # ---- Top accent band (brand_color strip) ----
-    BAND_H = 14
-    c.setFillColorRGB(br, bg, bb)
-    c.rect(0, H - BAND_H, W, BAND_H, fill=1, stroke=0)
+    # --- Subtle decorative brushstroke element (upper-right corner) ---
+    # Blurred soft ellipse in accent color — watercolor impression
+    brush_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(brush_layer)
+    bd.ellipse([W - 280, 40, W + 80, 380], fill=(ar, ag, ab, 55))
+    bd.ellipse([W - 240, 60, W + 40, 340], fill=(ar, ag, ab, 35))
+    blurred_brush = brush_layer.filter(ImageFilter.GaussianBlur(radius=40))
+    canvas.alpha_composite(blurred_brush)
+    draw = ImageDraw.Draw(canvas, "RGBA")
 
-    # ---- Thin accent rule below band ----
-    c.setFillColorRGB(ar, ag, ab)
-    c.rect(0, H - BAND_H - 3, W, 3, fill=1, stroke=0)
+    # --- Org name centered near top ---
+    org_text = org_name.upper()
+    ob = font_org.getbbox(org_text)
+    org_w = ob[2] - ob[0]
+    org_y = BAND_H + 5 + 52
+    draw.text(((W - org_w) // 2, org_y), org_text, font=font_org, fill=(br, bg, bb, 255))
 
-    # ---- Bottom accent band ----
-    c.setFillColorRGB(br, bg, bb)
-    c.rect(0, 0, W, BAND_H, fill=1, stroke=0)
+    # Thin decorative rule below org name
+    rule_y = org_y + 62
+    draw.line([(W // 2 - 180, rule_y), (W // 2 + 180, rule_y)], fill=(ar, ag, ab, 200), width=2)
 
-    # Thin accent rule above bottom band
-    c.setFillColorRGB(ar, ag, ab)
-    c.rect(0, BAND_H, W, 3, fill=1, stroke=0)
-
-    # ---- Decorative heart motif (subtle, upper-right) ----
-    try:
-        _draw_heart(c, W - 38, H - 60, 22, ar, ag, ab, alpha=0.25)
-    except Exception:
-        pass  # Non-critical decoration — skip on error
-
-    # ---- Small decorative heart (lower-left) ----
-    try:
-        _draw_heart(c, 36, 52, 14, br, bg, bb, alpha=0.20)
-    except Exception:
-        pass
-
-    # ---- Org name (small, top-center, in brand color) ----
-    c.setFillColorRGB(br, bg, bb)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawCentredString(W / 2, H - BAND_H - 22, org_name.upper())
-
-    # ---- Thin horizontal rule after org name ----
-    c.setStrokeColorRGB(ar, ag, ab)
-    c.setLineWidth(1.5)
-    rule_y = H - BAND_H - 34
-    c.line(W * 0.2, rule_y, W * 0.8, rule_y)
-
-    # ---- Salutation: "Dear [donor_name]," ----
-    MARGIN = 28
-    y_cursor = H - BAND_H - 60
+    # --- Salutation: "Dear [donor_name]," in italic ---
+    y_cursor = rule_y + 80
 
     if donor_name:
-        c.setFillColorRGB(*primary_text)
-        c.setFont("Times-Italic", 18)
-        c.drawString(MARGIN, y_cursor, f"Dear {donor_name},")
-        y_cursor -= 18 * 1.8
+        salutation = f"Dear {donor_name},"
+        # Donor name is the hero — slightly oversize, left-aligned (personal, not corporate)
+        draw.text((MARGIN, y_cursor), salutation, font=font_donor_name, fill=(*primary_text, 255))
+        y_cursor += int(96 * 1.7)
     else:
-        y_cursor -= 8
+        y_cursor += 20
 
-    # ---- Gratitude message ----
-    msg_lines = _wrap_text(gratitude_message, 38)
-    c.setFillColorRGB(*primary_text)
-    c.setFont("Times-Roman", 17)
+    # --- Gratitude message in CrimsonPro-Italic for personal voice ---
+    msg_lines = _wrap_text_px(gratitude_message, font_italic, W - MARGIN * 2)
     for line in msg_lines:
-        c.drawString(MARGIN, y_cursor, line)
-        y_cursor -= 17 * 1.65
+        draw.text((MARGIN, y_cursor), line, font=font_italic, fill=(*primary_text, 255))
+        y_cursor += int(88 * 1.62)
 
-    # ---- Small decorative flourish ----
-    y_cursor -= 10
-    c.setStrokeColorRGB(ar, ag, ab)
-    c.setLineWidth(1)
-    c.line(W * 0.3, y_cursor, W * 0.7, y_cursor)
-    y_cursor -= 20
+    # --- Decorative flourish: thin rule + small diamond ornament ---
+    y_cursor += 40
+    mid_x = W // 2
+    draw.line([(MARGIN + 60, y_cursor), (mid_x - 30, y_cursor)], fill=(ar, ag, ab, 180), width=2)
+    draw.line([(mid_x + 30, y_cursor), (W - MARGIN - 60, y_cursor)], fill=(ar, ag, ab, 180), width=2)
+    # Diamond
+    dm = 12
+    draw.polygon(
+        [(mid_x, y_cursor - dm), (mid_x + dm, y_cursor), (mid_x, y_cursor + dm), (mid_x - dm, y_cursor)],
+        fill=(ar, ag, ab, 220),
+    )
+    y_cursor += 60
 
-    # ---- Signoff block ----
+    # --- Signoff in NothingYouCouldDo handwritten ---
     signoff_text = signoff or "With gratitude,"
-    c.setFillColorRGB(*subtle_text)
-    c.setFont("Times-Italic", 16)
-    c.drawString(MARGIN, y_cursor, signoff_text)
-    y_cursor -= 16 * 2.2
+    draw.text((MARGIN, y_cursor), signoff_text, font=font_signoff, fill=(*subtle_text, 255))
+    y_cursor += int(96 * 1.8)
 
+    # --- Signer name in CrimsonPro-Regular ---
     if signer_name:
-        c.setFillColorRGB(*primary_text)
-        c.setFont("Times-Bold", 16)
-        c.drawString(MARGIN, y_cursor, signer_name)
-        y_cursor -= 16 * 1.5
+        draw.text((MARGIN, y_cursor), signer_name, font=font_signer, fill=(*primary_text, 255))
+        y_cursor += int(68 * 1.5)
 
+    # --- Signer title in CrimsonPro-Italic ---
     if signer_title:
-        c.setFillColorRGB(*subtle_text)
-        c.setFont("Times-Roman", 13)
-        c.drawString(MARGIN, y_cursor, signer_title)
-        y_cursor -= 13 * 1.4
+        draw.text((MARGIN, y_cursor), signer_title, font=font_signer_title, fill=(*subtle_text, 255))
+        y_cursor += int(58 * 1.4)
 
-    c.save()
-    pdf_bytes = buf.getvalue()
+    # --- Bottom accent: tiny brand-color rule only (restrained) ---
+    draw.rectangle([(0, H - BAND_H), (W, H)], fill=(br, bg, bb, 255))
 
-    # --- Convert PDF → PNG at 300 DPI → 1500x2100 ---
-    images = convert_from_bytes(pdf_bytes, dpi=300, fmt="png")
-    img = images[0]
+    # --- Warm vignette for letterpress depth ---
+    canvas = _soft_vignette(canvas, strength=0.10)
+    draw = ImageDraw.Draw(canvas, "RGBA")
 
-    if img.size != (1500, 2100):
-        from PIL import Image as PILImage
-        img = img.resize((1500, 2100), PILImage.LANCZOS)
-
+    # --- Export ---
+    final = canvas.convert("RGB")
     os.makedirs(output_dir, exist_ok=True)
     timestamp = int(time.time())
     out_path = os.path.join(output_dir, f"donor_thank_you_{timestamp}.png")
-    img.save(out_path, "PNG", optimize=True)
-
+    final.save(out_path, "PNG", optimize=True)
     return out_path

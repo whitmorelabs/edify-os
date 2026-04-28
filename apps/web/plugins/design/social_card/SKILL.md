@@ -60,3 +60,9 @@ Assemble inputs into a `render(**inputs)` call against `render.py`. Confirm `hea
 - If everything is bold, nothing stands out; restrain secondary elements
 - Never use gradients as a crutch instead of intentional design thinking
 - Avoid clip art or generic icons; use purposeful geometric elements instead
+
+## Visual upgrade notes (Apr 2026)
+
+Typography is now powered by **Outfit-Bold** (hero headline), **Outfit-Regular** (subheadline/body), and **CrimsonPro-Italic** (accent accent text) — bundled Google Fonts in `fonts/` rather than system Helvetica. This gives the card a contemporary geometric-sans editorial character.
+
+Composition has moved from centered-stack to an **editorial-magazine layout**: the headline is left-aligned and oversize, pushed to the upper portion of the canvas (not vertically centered). A large quarter-circle geometric accent in the upper-right corner (partially clipped off canvas) creates energy and unexpected negative space. A diagonal stripe in the accent color bisects the lower third. The CTA is rendered as an accent-colored pill rather than plain centered text, and a typographic arrow (→) in the lower-right corner adds editorial punctuation. A gradient background (light-to-dark brand color) replaces the flat solid fill. Drop shadows on the headline are composited via Pillow `GaussianBlur` on a separate RGBA layer for soft depth without hard edges.
