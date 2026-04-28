@@ -29,8 +29,10 @@ import { useEffect, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 
 // Colors from apps/web/src/components/ui/archetypes.tsx — keep in sync if archetypes change
-const DEV_COLOR = "#F59E5C";    // Development Director
-const BRAND_PURPLE = "#9F4EF3"; // Executive Assistant / brand purple
+const DEV_COLOR = "#F59E5C";       // Development Director
+const BRAND_PURPLE = "#9F4EF3";    // Executive Assistant / brand purple
+// Sidebar nav icon color for inactive items on the dark (brand-950) sidebar background
+const SIDEBAR_NAV_MUTED = "#C4B5D4";
 
 const SIDEBAR_ARCHETYPE_DOTS = [
   BRAND_PURPLE,  // exec
@@ -152,11 +154,11 @@ export function AnimatedDashboard() {
           {/* nav icon slots — active = Dashboard */}
           {[
             { active: true, accent: BRAND_PURPLE },   // Dashboard
-            { active: false, accent: "#C4B5D4" },      // Briefing (muted lavender on dark)
-            { active: false, accent: "#F59E5C" },      // Inbox (amber = has items)
-            { active: false, accent: "#C4B5D4" },      // Tasks
-            { active: false, accent: "#C4B5D4" },      // Decision Lab
-            { active: false, accent: "#C4B5D4" },      // Memory
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Briefing
+            { active: false, accent: "#F59E5C" },        // Inbox (amber = has items)
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Tasks
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Decision Lab
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Memory
           ].map((item, i) => (
             <div
               key={i}
