@@ -1,236 +1,300 @@
 """
 gala_invite/render.py
 Generates a formal gala save-the-date / event invite.
-Default: 1080x1080 square (IG/social). portrait option: 1500x2100 (5x7 print).
-Uses ReportLab for PDF layout + pdf2image to convert to PNG.
-All libraries are pre-installed in Anthropic's code-execution sandbox.
+Default: 1080x1080 square (IG/social). Portrait option: 1500x2100 (5x7 print).
+Uses Pillow directly — bundled Google Fonts (Italiana + CrimsonPro + WorkSans).
+Aesthetic: Met Gala meets Vienna Opera invite. Jewel-tone background, gold accents,
+refined vertical composition, vignette depth.
 """
 
-import io
 import os
 import time
 from typing import Optional
 
-from reportlab.pdfgen import canvas as rl_canvas
-from reportlab.lib.colors import Color
-from pdf2image import convert_from_bytes
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Font loader
 # ---------------------------------------------------------------------------
 
-def _hex_to_rgb(hex_color: str):
+_FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+
+
+def _font(name: str, size: int) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(os.path.join(_FONT_DIR, name), size)
+
+
+# ---------------------------------------------------------------------------
+# Color helpers
+# ---------------------------------------------------------------------------
+
+def _hex_to_rgb(hex_color: str) -> tuple:
     h = hex_color.lstrip("#")
     if len(h) == 3:
         h = "".join(c * 2 for c in h)
-    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-    return r / 255.0, g / 255.0, b / 255.0
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def _luminance(r, g, b) -> float:
+def _luminance(r: int, g: int, b: int) -> float:
     def lin(c):
+        c = c / 255.0
         return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
     return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
 
 
-def _tint(r, g, b, factor=0.35) -> tuple:
-    return (r + (1 - r) * factor, g + (1 - g) * factor, b + (1 - b) * factor)
+def _tint(r: int, g: int, b: int, factor: float = 0.35) -> tuple:
+    return (
+        int(r + (255 - r) * factor),
+        int(g + (255 - g) * factor),
+        int(b + (255 - b) * factor),
+    )
 
 
-def _shade(r, g, b, factor=0.4) -> tuple:
-    return (r * (1 - factor), g * (1 - factor), b * (1 - factor))
+def _shade(r: int, g: int, b: int, factor: float = 0.4) -> tuple:
+    return (int(r * (1 - factor)), int(g * (1 - factor)), int(b * (1 - factor)))
 
 
-def _wrap_text(text: str, max_chars: int) -> list:
+# ---------------------------------------------------------------------------
+# Pillow effects
+# ---------------------------------------------------------------------------
+
+def _wrap_text_px(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:
     words = text.split()
-    lines, current, current_len = [], [], 0
+    lines = []
+    current_words = []
     for word in words:
-        needed = len(word) + (1 if current else 0)
-        if current_len + needed > max_chars:
-            if current:
-                lines.append(" ".join(current))
-            current, current_len = [word], len(word)
+        test = " ".join(current_words + [word])
+        bbox = font.getbbox(test)
+        w = bbox[2] - bbox[0]
+        if w > max_width and current_words:
+            lines.append(" ".join(current_words))
+            current_words = [word]
         else:
-            current.append(word)
-            current_len += needed
-    if current:
-        lines.append(" ".join(current))
+            current_words.append(word)
+    if current_words:
+        lines.append(" ".join(current_words))
     return lines
 
 
-def _draw_border_frame(c, W, H, margin, color_rgb, line_width=1.5):
-    """Draw a thin rectangular border frame inside margins."""
-    cr, cg, cb = color_rgb
-    c.setStrokeColorRGB(cr, cg, cb)
-    c.setLineWidth(line_width)
-    c.rect(margin, margin, W - 2 * margin, H - 2 * margin, fill=0, stroke=1)
+def _gradient_fill(width: int, height: int, top_color: tuple, bottom_color: tuple) -> Image.Image:
+    """Vertical linear gradient as RGBA image."""
+    grad = Image.new("RGBA", (width, height))
+    pixels = grad.load()
+    tr, tg, tb = top_color[:3]
+    br, bg, bb = bottom_color[:3]
+    for y in range(height):
+        ratio = y / max(height - 1, 1)
+        r = int(tr + (br - tr) * ratio)
+        g = int(tg + (bg - tg) * ratio)
+        b = int(tb + (bb - tb) * ratio)
+        for x in range(width):
+            pixels[x, y] = (r, g, b, 255)
+    return grad
 
 
-def _draw_double_border(c, W, H, outer_margin, gap, color_rgb):
-    """Draw two concentric thin border lines — formal invitation aesthetic."""
-    _draw_border_frame(c, W, H, outer_margin, color_rgb, 1.2)
-    _draw_border_frame(c, W, H, outer_margin + gap, color_rgb, 0.6)
+def _vignette(canvas: Image.Image, strength: float = 0.45) -> Image.Image:
+    """Apply corner-darkening vignette for depth."""
+    W, H = canvas.size
+    vig_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    vl = ImageDraw.Draw(vig_layer)
+    steps = 16
+    alpha_max = int(255 * strength)
+    for i in range(steps, 0, -1):
+        ratio = i / steps
+        mx = int(W * (1 - ratio) * 0.6)
+        my = int(H * (1 - ratio) * 0.6)
+        a = int(alpha_max * (1 - ratio) * 2.2)
+        a = min(a, 255)
+        vl.ellipse([mx, my, W - mx, H - my], fill=(0, 0, 0, a))
+    blurred = vig_layer.filter(ImageFilter.GaussianBlur(radius=int(W * 0.12)))
+    return Image.alpha_composite(canvas, blurred)
 
 
-def _render_canvas(
-    c,
-    W: float,
-    H: float,
-    event_name: str,
-    date: str,
-    venue: str,
-    brand_rgb: tuple,
-    accent_rgb: tuple,
-    tagline: Optional[str] = None,
-    time_str: Optional[str] = None,
-    cta: Optional[str] = None,
-    cta_url: Optional[str] = None,
-):
-    """Draw all invite elements onto the ReportLab canvas c."""
+def _draw_double_border(draw: ImageDraw.ImageDraw, W: int, H: int, margin: int, gap: int, color: tuple):
+    """Draw two concentric thin border lines."""
+    draw.rectangle([margin, margin, W - margin, H - margin], outline=(*color, 200), width=2)
+    draw.rectangle([margin + gap, margin + gap, W - margin - gap, H - margin - gap], outline=(*color, 120), width=1)
+
+
+def _letter_spaced(text: str, spacing: int = 3) -> str:
+    return (" " * spacing).join(list(text))
+
+
+def _centered_text(draw: ImageDraw.ImageDraw, W: int, y: int, text: str,
+                    font: ImageFont.FreeTypeFont, fill: tuple) -> int:
+    """Draw text centered horizontally, return new y below text."""
+    bbox = font.getbbox(text)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    draw.text(((W - tw) // 2, y), text, font=font, fill=fill)
+    return y + th
+
+
+def _centered_text_block(draw: ImageDraw.ImageDraw, W: int, y: int, lines: list,
+                           font: ImageFont.FreeTypeFont, fill: tuple, line_spacing: float = 1.25) -> int:
+    """Draw multiple centered text lines, return y below last line."""
+    for line in lines:
+        bbox = font.getbbox(line)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        draw.text(((W - tw) // 2, y), line, font=font, fill=fill)
+        y += int(th * line_spacing)
+    return y
+
+
+# ---------------------------------------------------------------------------
+# Core render canvas
+# ---------------------------------------------------------------------------
+
+def _render_invite(canvas: Image.Image, W: int, H: int, scale: float,
+                   event_name: str, date: str, venue: str,
+                   brand_rgb: tuple, accent_rgb: tuple,
+                   tagline: Optional[str], time_str: Optional[str],
+                   cta: Optional[str], cta_url: Optional[str]) -> Image.Image:
+    """Draw all invite elements on canvas. Returns updated canvas."""
     br, bg, bb = brand_rgb
     ar, ag, ab = accent_rgb
 
-    # ---- Full background in brand_color ----
-    c.setFillColorRGB(br, bg, bb)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    # Apply vignette for depth
+    canvas = _vignette(canvas, strength=0.42)
+    draw = ImageDraw.Draw(canvas, "RGBA")
 
-    # ---- Subtle vignette / radial texture: two concentric circles fading ----
-    # Lighter tint in center for depth
-    c.setFillColor(Color(*_tint(br, bg, bb, 0.08), alpha=0.5))
-    c.circle(W / 2, H / 2, W * 0.55, fill=1, stroke=0)
-    c.setFillColor(Color(*_tint(br, bg, bb, 0.05), alpha=0.3))
-    c.circle(W / 2, H / 2, W * 0.3, fill=1, stroke=0)
+    # --- Double border frame in accent ---
+    border_margin = int(W * 0.055)
+    _draw_double_border(draw, W, H, border_margin, int(W * 0.012), accent_rgb)
 
-    # ---- Double border frame in accent color ----
-    margin = W * 0.05
-    _draw_double_border(c, W, H, margin, 5, accent_rgb)
-
-    # ---- Corner ornaments: small diamond shapes at each corner ----
-    diamond_size = W * 0.025
-    corners = [
-        (margin + 2, H - margin - 2),
-        (W - margin - 2, H - margin - 2),
-        (margin + 2, margin + 2),
-        (W - margin - 2, margin + 2),
-    ]
-    c.setFillColorRGB(ar, ag, ab)
+    # --- Corner diamond ornaments ---
+    dm = int(W * 0.022)
+    m = border_margin + 3
+    corners = [(m, m), (W - m, m), (m, H - m), (W - m, H - m)]
     for cx, cy in corners:
-        p = c.beginPath()
-        p.moveTo(cx, cy + diamond_size)
-        p.lineTo(cx + diamond_size, cy)
-        p.lineTo(cx, cy - diamond_size)
-        p.lineTo(cx - diamond_size, cy)
-        p.close()
-        c.drawPath(p, fill=1, stroke=0)
+        draw.polygon(
+            [(cx, cy - dm), (cx + dm, cy), (cx, cy + dm), (cx - dm, cy)],
+            fill=(*accent_rgb, 220),
+        )
 
-    # ---- Layout vertical rhythm ----
-    # Work from top to bottom, centering everything
-    center_x = W / 2
+    # --- Fonts (scaled by canvas size) ---
+    s = scale
+    font_eyebrow = _font("WorkSans-Bold.ttf", int(26 * s))
+    font_event = _font("Italiana-Regular.ttf", int(88 * s))
+    font_tagline = _font("CrimsonPro-Regular.ttf", int(32 * s))
+    font_logistics = _font("WorkSans-Bold.ttf", int(28 * s))
+    font_venue = _font("CrimsonPro-Regular.ttf", int(30 * s))
+    font_cta = _font("WorkSans-Bold.ttf", int(28 * s))
+    font_cta_url = _font("CrimsonPro-Regular.ttf", int(22 * s))
 
-    # Top padding from inner border
-    inner_top = H - margin - 5 - 20
+    inner_top = int(H * 0.14)
+    inner_w = W - border_margin * 2 - int(W * 0.06)
+    y = inner_top
 
-    # --- "YOU ARE INVITED" eyebrow ---
-    eyebrow_y = inner_top - W * 0.06
-    c.setFillColorRGB(ar, ag, ab)
-    c.setFont("Helvetica", W * 0.022)
-    # Letter-spaced eyebrow: manually space chars
-    eyebrow = "— Y O U  A R E  I N V I T E D —"
-    c.drawCentredString(center_x, eyebrow_y, eyebrow)
+    # --- Eyebrow: "— YOU ARE INVITED —" ---
+    eyebrow_text = _letter_spaced("YOU ARE INVITED", spacing=2)
+    eyebrow_display = f"— {eyebrow_text} —"
+    y = _centered_text(draw, W, y, eyebrow_display, font_eyebrow, (*accent_rgb, 230))
+    y += int(W * 0.025)
 
-    # --- Thin accent rule ---
-    rule_y1 = eyebrow_y - W * 0.025
-    c.setStrokeColorRGB(ar, ag, ab)
-    c.setLineWidth(0.8)
-    c.line(W * 0.25, rule_y1, W * 0.75, rule_y1)
+    # --- Thin gold rule ---
+    rule_h = 1
+    draw.rectangle(
+        [(border_margin + int(W * 0.12), y), (W - border_margin - int(W * 0.12), y + rule_h)],
+        fill=(*accent_rgb, 180),
+    )
+    y += rule_h + int(W * 0.038)
 
-    # --- Event name (hero) ---
+    # --- Event name in Italiana (elegant serif hero) ---
+    max_name_w = inner_w
     if len(event_name) <= 22:
-        name_size = W * 0.085
-        max_chars = 20
+        name_size = int(88 * s)
     elif len(event_name) <= 36:
-        name_size = W * 0.067
-        max_chars = 28
+        name_size = int(70 * s)
     else:
-        name_size = W * 0.054
-        max_chars = 36
+        name_size = int(56 * s)
+    font_event_sized = _font("Italiana-Regular.ttf", name_size)
+    name_lines = _wrap_text_px(event_name, font_event_sized, inner_w)
 
-    name_lines = _wrap_text(event_name, max_chars)
-    line_h = name_size * 1.3
-    name_block_h = len(name_lines) * line_h
-
-    name_y_start = rule_y1 - W * 0.04
-
-    c.setFillColorRGB(ar, ag, ab)
-    c.setFont("Times-Bold", name_size)
-    y = name_y_start
+    # Shadow for event name
+    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    shadow_y = y
     for line in name_lines:
-        c.drawCentredString(center_x, y, line)
-        y -= line_h
+        bbox = font_event_sized.getbbox(line)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        sd = ImageDraw.Draw(shadow_layer)
+        sd.text(((W - tw) // 2 + 4, shadow_y + 5), line, font=font_event_sized, fill=(0, 0, 0, 100))
+        shadow_y += int(th * 1.2)
+    blurred_shadow = shadow_layer.filter(ImageFilter.GaussianBlur(radius=int(12 * s)))
+    canvas.alpha_composite(blurred_shadow)
+    draw = ImageDraw.Draw(canvas, "RGBA")
 
-    # --- Tagline (italic, lighter) ---
-    y -= W * 0.01
+    y = _centered_text_block(draw, W, y, name_lines, font_event_sized, (*accent_rgb, 255), line_spacing=1.2)
+    y += int(W * 0.018)
+
+    # --- Tagline in CrimsonPro-Regular italic ---
     if tagline:
-        c.setFillColor(Color(ar, ag, ab, alpha=0.80))
-        c.setFont("Times-Italic", W * 0.040)
-        tag_lines = _wrap_text(tagline, 38)
-        for line in tag_lines:
-            c.drawCentredString(center_x, y, line)
-            y -= W * 0.050
+        tag_lines = _wrap_text_px(tagline, font_tagline, inner_w)
+        y = _centered_text_block(draw, W, y, tag_lines, font_tagline, (*accent_rgb, 175), line_spacing=1.35)
+        y += int(W * 0.018)
 
-    # --- Decorative center ornament ---
-    y -= W * 0.03
-    ornament_y = y
-    c.setStrokeColorRGB(ar, ag, ab)
-    c.setLineWidth(0.6)
-    c.line(W * 0.2, ornament_y, W * 0.42, ornament_y)
-    c.line(W * 0.58, ornament_y, W * 0.80, ornament_y)
-    # Small diamond at center
-    ds = W * 0.012
-    p = c.beginPath()
-    p.moveTo(center_x, ornament_y + ds)
-    p.lineTo(center_x + ds, ornament_y)
-    p.lineTo(center_x, ornament_y - ds)
-    p.lineTo(center_x - ds, ornament_y)
-    p.close()
-    c.setFillColorRGB(ar, ag, ab)
-    c.drawPath(p, fill=1, stroke=0)
+    # --- Center ornament: double line + diamond ---
+    orn_y = y + int(W * 0.015)
+    orn_center = W // 2
+    wing_w = int(W * 0.22)
+    draw.line([(orn_center - wing_w, orn_y), (orn_center - int(dm * 1.5), orn_y)], fill=(*accent_rgb, 170), width=1)
+    draw.line([(orn_center + int(dm * 1.5), orn_y), (orn_center + wing_w, orn_y)], fill=(*accent_rgb, 170), width=1)
+    ods = int(dm * 0.8)
+    draw.polygon(
+        [(orn_center, orn_y - ods), (orn_center + ods, orn_y), (orn_center, orn_y + ods), (orn_center - ods, orn_y)],
+        fill=(*accent_rgb, 220),
+    )
+    y = orn_y + int(W * 0.04)
 
-    # --- Date ---
-    y -= W * 0.045
-    date_size = W * 0.040
-    c.setFillColorRGB(ar, ag, ab)
-    c.setFont("Helvetica-Bold", date_size)
-    c.drawCentredString(center_x, y, date.upper())
-    y -= date_size * 1.5
+    # --- Date in WorkSans-Bold uppercase ---
+    date_spaced = _letter_spaced(date.upper(), spacing=1)
+    y = _centered_text(draw, W, y, date_spaced, font_logistics, (*accent_rgb, 240))
+    y += int(font_logistics.getbbox("A")[3] * 0.4)
 
     # --- Time ---
     if time_str:
-        c.setFillColor(Color(ar, ag, ab, alpha=0.85))
-        c.setFont("Helvetica", W * 0.033)
-        c.drawCentredString(center_x, y, time_str)
-        y -= W * 0.048
+        y = _centered_text(draw, W, y + int(W * 0.008), time_str, font_logistics, (*accent_rgb, 190))
+        y += int(font_logistics.getbbox("A")[3] * 0.2)
 
-    # --- Venue ---
-    venue_lines = _wrap_text(venue, 42)
-    c.setFillColor(Color(ar, ag, ab, alpha=0.80))
-    c.setFont("Times-Italic", W * 0.033)
-    for line in venue_lines:
-        c.drawCentredString(center_x, y, line)
-        y -= W * 0.042
+    # --- Venue in CrimsonPro italic-ish ---
+    y += int(W * 0.012)
+    venue_lines = _wrap_text_px(venue, font_venue, inner_w)
+    y = _centered_text_block(draw, W, y, venue_lines, font_venue, (*accent_rgb, 175), line_spacing=1.3)
+    y += int(W * 0.03)
 
-    # --- CTA block near bottom ---
-    bottom_margin = margin + 5 + W * 0.06
+    # --- Gold accent line separator ---
+    draw.rectangle(
+        [(border_margin + int(W * 0.22), y), (W - border_margin - int(W * 0.22), y + 1)],
+        fill=(*accent_rgb, 130),
+    )
+    y += int(W * 0.04)
+
+    # --- CTA as pill near bottom ---
     if cta:
-        cta_y = bottom_margin + (W * 0.04 if cta_url else 0)
-        c.setFillColorRGB(ar, ag, ab)
-        c.setFont("Helvetica-Bold", W * 0.038)
-        c.drawCentredString(center_x, cta_y, cta)
-        if cta_url:
-            c.setFillColor(Color(ar, ag, ab, alpha=0.75))
-            c.setFont("Helvetica", W * 0.028)
-            c.drawCentredString(center_x, bottom_margin, cta_url)
+        cb = font_cta.getbbox(cta)
+        cta_tw = cb[2] - cb[0]
+        cta_th = cb[3] - cb[1]
+        pill_pad_x = int(28 * s)
+        pill_pad_y = int(12 * s)
+        pill_w = cta_tw + pill_pad_x * 2
+        pill_h = cta_th + pill_pad_y * 2
+        pill_x = (W - pill_w) // 2
+        draw.rounded_rectangle(
+            [(pill_x, y), (pill_x + pill_w, y + pill_h)],
+            radius=int(8 * s),
+            outline=(*accent_rgb, 200),
+            width=2,
+        )
+        draw.text((pill_x + pill_pad_x, y + pill_pad_y), cta, font=font_cta, fill=(*accent_rgb, 230))
+        y += pill_h + int(W * 0.018)
+
+    if cta_url:
+        y = _centered_text(draw, W, y, cta_url, font_cta_url, (*accent_rgb, 150))
+
+    return canvas
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +313,6 @@ def render(
     accent_color: Optional[str] = None,
     format: str = "square",
     output_dir: str = "/mnt/user-data/outputs",
-    # Accept 'time' kwarg since Python reserves 'time' module name
     **kwargs,
 ) -> str:
     """
@@ -262,38 +325,35 @@ def render(
         time_str = kwargs.pop("time")
 
     # --- Colors ---
-    br, bg, bb = _hex_to_rgb(brand_color)
+    brand_rgb = _hex_to_rgb(brand_color)
+    br, bg, bb = brand_rgb
 
     if accent_color:
-        ar, ag, ab = _hex_to_rgb(accent_color)
+        accent_rgb = _hex_to_rgb(accent_color)
     else:
-        # Default: warm gold — works with most deep brand tones
-        ar, ag, ab = _hex_to_rgb("#D4AF37")
+        accent_rgb = _hex_to_rgb("#C9A961")  # champagne gold
 
-    brand_rgb = (br, bg, bb)
-    accent_rgb = (ar, ag, ab)
+    ar, ag, ab = accent_rgb
 
-    # --- Canvas dimensions ---
+    # --- Canvas dimensions and scale factor ---
     if format == "portrait":
-        # 5x7 at 72 DPI → 360x504 pt; pdf2image at 300 DPI → 1500x2100
-        W = 5.0 * 72
-        H = 7.0 * 72
+        W, H = 1500, 2100
         target_size = (1500, 2100)
-        dpi = 300
+        scale = 1.4
         suffix = "portrait"
     else:
-        # Square: 1080x1080 pt; pdf2image at 72 DPI → 1080x1080
-        W = 1080.0
-        H = 1080.0
+        W, H = 1080, 1080
         target_size = (1080, 1080)
-        dpi = 72
+        scale = 1.0
         suffix = "square"
 
-    buf = io.BytesIO()
-    c = rl_canvas.Canvas(buf, pagesize=(W, H))
+    # --- Base: gradient from brand_color to slightly darker shade ---
+    bg_light = _tint(*brand_rgb, 0.06)
+    bg_dark = _shade(*brand_rgb, 0.22)
+    canvas = _gradient_fill(W, H, bg_light, bg_dark)
 
-    _render_canvas(
-        c, W, H,
+    canvas = _render_invite(
+        canvas, W, H, scale,
         event_name=event_name,
         date=date,
         venue=venue,
@@ -305,20 +365,12 @@ def render(
         cta_url=cta_url,
     )
 
-    c.save()
-    pdf_bytes = buf.getvalue()
-
-    # --- Convert PDF → PNG ---
-    images = convert_from_bytes(pdf_bytes, dpi=dpi, fmt="png")
-    img = images[0]
-
-    if img.size != target_size:
-        from PIL import Image as PILImage
-        img = img.resize(target_size, PILImage.LANCZOS)
+    final = canvas.convert("RGB")
+    if final.size != target_size:
+        final = final.resize(target_size, Image.LANCZOS)
 
     os.makedirs(output_dir, exist_ok=True)
     timestamp = int(time.time())
     out_path = os.path.join(output_dir, f"gala_invite_{suffix}_{timestamp}.png")
-    img.save(out_path, "PNG", optimize=True)
-
+    final.save(out_path, "PNG", optimize=True)
     return out_path

@@ -76,3 +76,9 @@ Assemble inputs into a `render(**inputs)` call against `render.py`. Confirm `hea
 - Using gradients as a crutch instead of intentional color blocking
 - Clip art or generic icons instead of purposeful geometric accents
 - Ignoring print constraints: dark backgrounds waste ink, thin fonts disappear at distance
+
+## Visual upgrade notes (Apr 2026)
+
+Typography is now powered by **YoungSerif-Regular** (hero headline — distinctive, warm serif), **Outfit-Regular** (body text, logistics, bullets), and **WorkSans-Bold** (eyebrow labels in uppercase) — bundled Google Fonts in `fonts/` rather than system Helvetica.
+
+The hero band (top 38% of canvas) now has a **diagonal bottom edge** (polygon slant) instead of a flat horizontal strip, with an asymmetric corner block accent in the upper-right. Bullet points use a **two-column grid** layout with diamond-shaped bullets in the accent color instead of a single-column stack. The footer is a darker shade of the brand color with an accent stripe separator. All typography is Pillow-native (no ReportLab/pdf2image pipeline) — headline rendered with a composited `GaussianBlur` drop shadow for print-quality depth. The eyebrow label uses simulated letter-spacing via WorkSans-Bold for the editorial typographic feel of museum poster design.
