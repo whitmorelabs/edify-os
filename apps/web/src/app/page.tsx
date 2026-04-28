@@ -499,6 +499,14 @@ function FeaturesDeepDive() {
 
   const active = tabs[activeTab];
 
+  // Shared motion props for both tab-content columns
+  const tabFadeProps = {
+    initial: { opacity: 0, y: reduced ? 0 : 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: reduced ? 0 : -8 },
+    transition: { duration: reduced ? 0.01 : 0.3, ease: "easeOut" as const },
+  };
+
   return (
     <motion.section
       style={{
@@ -564,15 +572,8 @@ function FeaturesDeepDive() {
           className="grid gap-10 items-start"
           style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
         >
-          {/* Left column: title + points cross-fade on tab change */}
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: reduced ? 0 : -8 }}
-              transition={{ duration: reduced ? 0.01 : 0.3, ease: "easeOut" }}
-            >
+            <motion.div key={activeTab} {...tabFadeProps}>
               <h3
                 style={{
                   fontSize: 26,
@@ -615,15 +616,11 @@ function FeaturesDeepDive() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Right column: placeholder cross-fades on tab change */}
           {/* Placeholder until director screenshots exist at apps/web/public/features/<slug>.png */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`preview-${activeTab}`}
-              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: reduced ? 0 : -8 }}
-              transition={{ duration: reduced ? 0.01 : 0.3, ease: "easeOut" }}
+              {...tabFadeProps}
               className="relative rounded-[20px] overflow-hidden flex flex-col items-center justify-center gap-2"
               style={{
                 background:

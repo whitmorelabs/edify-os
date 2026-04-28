@@ -45,7 +45,6 @@ function AnimatedScreenshot({
   return (
     <motion.div
       className="rounded-xl overflow-hidden border border-line-1 shadow-elev-2"
-      // Wrapper clips the image to a shorter window so the pan reveals content below
       style={{ aspectRatio: "16 / 9", position: "relative" }}
       initial="hidden"
       whileInView="visible"
@@ -56,8 +55,6 @@ function AnimatedScreenshot({
         src={src}
         alt={alt}
         className="w-full block"
-        style={{ display: "block" }}
-        // Continuous vertical pan — creates the "user is scrolling through the dashboard" feel
         animate={reduced ? undefined : { y: [0, -panDistance, 0] }}
         transition={
           reduced
