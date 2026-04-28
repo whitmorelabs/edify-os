@@ -9,32 +9,6 @@ export const metadata = {
   description: "A guided walkthrough of the Edify OS nonprofit user portal. See the dashboard, meet your team, and understand how the whole thing works.",
 };
 
-/**
- * ScreenshotArea — placeholder until real dashboard screenshots are available.
- * To replace: capture /dashboard pages at 1440px, save to apps/web/public/demo/,
- * then swap this component for <img src="/demo/<filename>.png" alt="..." />.
- */
-function ScreenshotArea({ label }: { label: string }) {
-  return (
-    <div
-      className="w-full aspect-[16/9] rounded-xl flex flex-col items-center justify-center gap-2"
-      style={{
-        background: "var(--bg-3)",
-        border: "1px dashed var(--line-purple)",
-        boxShadow: "var(--elev-1)",
-      }}
-    >
-      <div
-        className="font-mono text-center"
-        style={{ fontSize: 10, color: "var(--brand-purple)", letterSpacing: "0.1em" }}
-      >
-        SCREENSHOT COMING SOON
-      </div>
-      <div className="text-fg-3 text-sm font-medium text-center px-4">{label}</div>
-    </div>
-  );
-}
-
 export default function DemoPage() {
   return (
     <div className="bg-bg-0 min-h-screen">
@@ -69,7 +43,11 @@ export default function DemoPage() {
                 The inbox lives here too -- every proactive check-in, every flagged deadline, every recommendation from your team waiting for your review.
               </p>
             </div>
-            <ScreenshotArea label="Dashboard overview" />
+            <img
+              src="/demo/dashboard-overview.jpg"
+              alt="Dashboard overview showing all six director cards and the heartbeat inbox"
+              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+            />
           </div>
         </div>
       </section>
@@ -78,7 +56,11 @@ export default function DemoPage() {
       <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-            <ScreenshotArea label="Team chat -- Development Director" />
+            <img
+              src="/demo/team-chat-dev-director.jpg"
+              alt="Team chat with the Development Director showing suggested prompts"
+              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+            />
             <div>
               <div className="eyebrow mb-3">Step 2</div>
               <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-5">
@@ -114,7 +96,11 @@ export default function DemoPage() {
                 All 6 responses arrive in under 10 seconds.
               </p>
             </div>
-            <ScreenshotArea label="Decision Lab -- 6 perspectives" />
+            <img
+              src="/demo/decision-lab.jpg"
+              alt="Decision Lab page showing example scenarios and six director perspectives"
+              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+            />
           </div>
         </div>
       </section>
@@ -123,7 +109,11 @@ export default function DemoPage() {
       <section className="py-20 bg-bg-1">
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
-            <ScreenshotArea label="Heartbeat inbox" />
+            <img
+              src="/demo/heartbeat-inbox.jpg"
+              alt="Heartbeat inbox page showing proactive director check-ins"
+              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+            />
             <div>
               <div className="eyebrow mb-3">Step 4</div>
               <h2 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.01em] text-fg-1 mb-5">
@@ -162,7 +152,11 @@ export default function DemoPage() {
                 The more context you give, the more specific and useful every response becomes.
               </p>
             </div>
-            <ScreenshotArea label="Org briefing -- 4-step onboarding" />
+            <img
+              src="/demo/org-briefing.jpg"
+              alt="Org briefing page with four-step onboarding flow"
+              className="w-full rounded-xl border border-line-1 shadow-elev-2"
+            />
           </div>
         </div>
       </section>
