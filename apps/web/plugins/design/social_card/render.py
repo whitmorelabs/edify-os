@@ -79,45 +79,16 @@ def _gradient_fill(width: int, height: int, top_color: tuple, bottom_color: tupl
 
 
 def _draw_quarter_circle(draw: ImageDraw.ImageDraw, cx: int, cy: int, radius: int, color: tuple, quadrant: str = "top-right"):
-    """Draw a filled quarter-circle. quadrant: top-right, top-left, bottom-right, bottom-left."""
-    bbox_map = {
-        "top-right":    (cx - radius, cy - radius, cx + radius, cy + radius),
-        "top-left":     (cx - radius, cy - radius, cx + radius, cy + radius),
-        "bottom-right": (cx - radius, cy - radius, cx + radius, cy + radius),
-        "bottom-left":  (cx - radius, cy - radius, cx + radius, cy + radius),
-    }
+    """Draw a filled quarter-circle. quadrant controls the pieslice angle."""
     angle_map = {
         "top-right":    (-90, 0),
         "top-left":     (180, 270),
         "bottom-right": (0, 90),
         "bottom-left":  (90, 180),
     }
-    bbox = bbox_map[quadrant]
+    bbox = (cx - radius, cy - radius, cx + radius, cy + radius)
     start, end = angle_map[quadrant]
     draw.pieslice(bbox, start=start, end=end, fill=color)
-
-
-def _text_with_shadow(
-    draw: ImageDraw.ImageDraw,
-    position: tuple,
-    text: str,
-    font: ImageFont.FreeTypeFont,
-    fill: tuple,
-    shadow_offset: tuple = (3, 3),
-    shadow_color: tuple = (0, 0, 0, 80),
-    align: str = "left",
-    shadow_img: Optional[Image.Image] = None,
-):
-    """Draw text with a soft drop shadow. shadow_img must be an RGBA Image for alpha shadow."""
-    sx, sy = shadow_offset
-    px, py = position
-    if shadow_img is not None:
-        # Draw shadow on shadow_img for alpha compositing
-        shadow_draw = ImageDraw.Draw(shadow_img)
-        shadow_draw.text((px + sx, py + sy), text, font=font, fill=shadow_color, align=align)
-    else:
-        draw.text((px + sx, py + sy), text, font=font, fill=shadow_color, align=align)
-    draw.text(position, text, font=font, fill=fill, align=align)
 
 
 def _wrap_text_px(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:
@@ -210,8 +181,8 @@ def render(
 
     font_hero = _font("Outfit-Bold.ttf", hero_size)
     font_sub = _font("Outfit-Regular.ttf", 38)
-    font_accent = _font("CrimsonPro-Italic.ttf", 30)
     font_cta = _font("Outfit-Bold.ttf", 34)
+    font_arrow = _font("Outfit-Bold.ttf", 52)
     font_org = _font("Outfit-Regular.ttf", 22)
 
     # --- Layout: headline occupies upper 60% ---
@@ -219,26 +190,18 @@ def render(
     max_text_w = W - MARGIN * 2
 
     hl_lines = _wrap_text_px(headline, font_hero, max_text_w)
-
-    # Measure headline block
     line_h = hero_size * 1.18
-    block_h = len(hl_lines) * line_h
 
     # Headline starts at ~18% from top — editorial: text is HIGH, not centered
     y = int(H * 0.14)
 
     # Shadow layer for headline
     shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    shadow_d = ImageDraw.Draw(shadow_layer)
 
     for line in hl_lines:
-        bbox = font_hero.getbbox(line)
-        tw = bbox[2] - bbox[0]
-        # Left-aligned with a slight indent — asymmetric, not centered
-        x = MARGIN
-        # Shadow
-        shadow_d = ImageDraw.Draw(shadow_layer)
-        shadow_d.text((x + 4, y + 4), line, font=font_hero, fill=(0, 0, 0, 90))
-        draw.text((x, y), line, font=font_hero, fill=text_color)
+        shadow_d.text((MARGIN + 4, y + 4), line, font=font_hero, fill=(0, 0, 0, 90))
+        draw.text((MARGIN, y), line, font=font_hero, fill=text_color)
         y += int(line_h)
 
     # Composite shadow below headline
@@ -290,7 +253,7 @@ def render(
     # --- Arrow mark — editorial punctuation ---
     arrow_x = W - MARGIN - 60
     arrow_y = H - MARGIN - 60
-    draw.text((arrow_x, arrow_y), "→", font=_font("Outfit-Bold.ttf", 52), fill=(*accent, 200))
+    draw.text((arrow_x, arrow_y), "→", font=font_arrow, fill=(*accent, 200))
 
     # --- Org name small top-right ---
     if org_name:

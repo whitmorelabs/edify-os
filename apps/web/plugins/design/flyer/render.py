@@ -80,19 +80,6 @@ def _wrap_text_px(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> li
     return lines
 
 
-def _draw_text_shadow(canvas: Image.Image, draw: ImageDraw.ImageDraw, pos: tuple, text: str,
-                       font: ImageFont.FreeTypeFont, fill: tuple, blur: int = 12, offset: tuple = (4, 6)) -> ImageDraw.ImageDraw:
-    """Draw text with blurred shadow. Returns updated draw handle."""
-    shadow_layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    sd = ImageDraw.Draw(shadow_layer)
-    sd.text((pos[0] + offset[0], pos[1] + offset[1]), text, font=font, fill=(0, 0, 0, 100))
-    blurred = shadow_layer.filter(ImageFilter.GaussianBlur(radius=blur))
-    canvas.alpha_composite(blurred)
-    draw = ImageDraw.Draw(canvas, "RGBA")
-    draw.text(pos, text, font=font, fill=fill)
-    return draw
-
-
 def _letter_spaced(text: str, spacing: int = 12) -> str:
     """Insert spaces between characters to simulate letter-spacing."""
     return (" " * spacing).join(list(text))
@@ -201,8 +188,8 @@ def render(
 
     # Draw with shadow
     shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow_layer)
     for line in hl_lines:
-        sd = ImageDraw.Draw(shadow_layer)
         sd.text((MARGIN + 5, y + 8), line, font=font_hero, fill=(0, 0, 0, 85))
         y += line_h
     blurred_shadow = shadow_layer.filter(ImageFilter.GaussianBlur(radius=16))
@@ -323,8 +310,6 @@ def render(
 
     # --- Export 2550x3300 PNG ---
     final = canvas.convert("RGB")
-    if final.size != (W, H):
-        final = final.resize((W, H), Image.LANCZOS)
     os.makedirs(output_dir, exist_ok=True)
     timestamp = int(time.time())
     out_path = os.path.join(output_dir, f"flyer_{timestamp}.png")

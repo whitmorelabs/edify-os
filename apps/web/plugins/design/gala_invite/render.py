@@ -36,13 +36,6 @@ def _hex_to_rgb(hex_color: str) -> tuple:
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def _luminance(r: int, g: int, b: int) -> float:
-    def lin(c):
-        c = c / 255.0
-        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
-
-
 def _tint(r: int, g: int, b: int, factor: float = 0.35) -> tuple:
     return (
         int(r + (255 - r) * factor),
@@ -154,7 +147,6 @@ def _render_invite(canvas: Image.Image, W: int, H: int, scale: float,
                    cta: Optional[str], cta_url: Optional[str]) -> Image.Image:
     """Draw all invite elements on canvas. Returns updated canvas."""
     br, bg, bb = brand_rgb
-    ar, ag, ab = accent_rgb
 
     # Apply vignette for depth
     canvas = _vignette(canvas, strength=0.42)
@@ -177,7 +169,6 @@ def _render_invite(canvas: Image.Image, W: int, H: int, scale: float,
     # --- Fonts (scaled by canvas size) ---
     s = scale
     font_eyebrow = _font("WorkSans-Bold.ttf", int(26 * s))
-    font_event = _font("Italiana-Regular.ttf", int(88 * s))
     font_tagline = _font("CrimsonPro-Regular.ttf", int(32 * s))
     font_logistics = _font("WorkSans-Bold.ttf", int(28 * s))
     font_venue = _font("CrimsonPro-Regular.ttf", int(30 * s))
@@ -203,7 +194,6 @@ def _render_invite(canvas: Image.Image, W: int, H: int, scale: float,
     y += rule_h + int(W * 0.038)
 
     # --- Event name in Italiana (elegant serif hero) ---
-    max_name_w = inner_w
     if len(event_name) <= 22:
         name_size = int(88 * s)
     elif len(event_name) <= 36:
@@ -215,12 +205,12 @@ def _render_invite(canvas: Image.Image, W: int, H: int, scale: float,
 
     # Shadow for event name
     shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow_layer)
     shadow_y = y
     for line in name_lines:
         bbox = font_event_sized.getbbox(line)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
-        sd = ImageDraw.Draw(shadow_layer)
         sd.text(((W - tw) // 2 + 4, shadow_y + 5), line, font=font_event_sized, fill=(0, 0, 0, 100))
         shadow_y += int(th * 1.2)
     blurred_shadow = shadow_layer.filter(ImageFilter.GaussianBlur(radius=int(12 * s)))
@@ -326,14 +316,11 @@ def render(
 
     # --- Colors ---
     brand_rgb = _hex_to_rgb(brand_color)
-    br, bg, bb = brand_rgb
 
     if accent_color:
         accent_rgb = _hex_to_rgb(accent_color)
     else:
         accent_rgb = _hex_to_rgb("#C9A961")  # champagne gold
-
-    ar, ag, ab = accent_rgb
 
     # --- Canvas dimensions and scale factor ---
     if format == "portrait":

@@ -35,27 +35,12 @@ def _hex_to_rgb(hex_color: str) -> tuple:
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def _luminance(r: int, g: int, b: int) -> float:
-    def lin(c):
-        c = c / 255.0
-        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
-
-
-def _contrast_text(r: int, g: int, b: int) -> tuple:
-    return (255, 255, 255) if _luminance(r, g, b) < 0.4 else (16, 16, 16)
-
-
 def _tint(r: int, g: int, b: int, factor: float = 0.35) -> tuple:
     return (
         int(r + (255 - r) * factor),
         int(g + (255 - g) * factor),
         int(b + (255 - b) * factor),
     )
-
-
-def _shade(r: int, g: int, b: int, factor: float = 0.4) -> tuple:
-    return (int(r * (1 - factor)), int(g * (1 - factor)), int(b * (1 - factor)))
 
 
 # ---------------------------------------------------------------------------
@@ -80,35 +65,21 @@ def _wrap_text_px(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> li
     return lines
 
 
-def _draw_brushstroke(draw: ImageDraw.ImageDraw, cx: int, cy: int, w: int, h: int, color: tuple, alpha: int = 30):
-    """Simulate a watercolor-like accent via a soft blurred ellipse on a separate layer."""
-    # Handled externally with a blurred overlay for proper RGBA compositing
-    pass
-
-
 def _soft_vignette(canvas: Image.Image, strength: float = 0.18) -> Image.Image:
     """Apply a gentle corner-darkening vignette for warmth."""
-    vignette = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    vd = ImageDraw.Draw(vignette)
     W, H = canvas.size
-    # Draw a large blurred black ellipse — center is transparent, edges darken
     vig_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     vl = ImageDraw.Draw(vig_layer)
     alpha_val = int(255 * strength)
-    # Outer darkness ring
-    vl.ellipse([-W // 2, -H // 2, W + W // 2, H + H // 2], fill=(0, 0, 0, 0))
-    # We'll use radial gradient approach: draw concentric ellipses from edge inward
     steps = 12
     for i in range(steps, 0, -1):
         ratio = i / steps
         margin_x = int(W * (1 - ratio) * 0.5)
         margin_y = int(H * (1 - ratio) * 0.5)
-        a = int(alpha_val * (1 - ratio) * 1.8)
-        a = min(a, 255)
+        a = min(int(alpha_val * (1 - ratio) * 1.8), 255)
         vl.ellipse([margin_x, margin_y, W - margin_x, H - margin_y], fill=(10, 8, 6, a))
     blurred_vig = vig_layer.filter(ImageFilter.GaussianBlur(radius=60))
-    result = Image.alpha_composite(canvas, blurred_vig)
-    return result
+    return Image.alpha_composite(canvas, blurred_vig)
 
 
 # ---------------------------------------------------------------------------
@@ -150,7 +121,6 @@ def render(
 
     # --- Load fonts ---
     font_italic = _font("CrimsonPro-Italic.ttf", 88)
-    font_body = _font("CrimsonPro-Regular.ttf", 80)
     font_org = _font("CrimsonPro-Regular.ttf", 52)
     font_signoff = _font("NothingYouCouldDo-Regular.ttf", 96)
     font_signer = _font("CrimsonPro-Regular.ttf", 68)
@@ -240,8 +210,6 @@ def render(
 
     # --- Export ---
     final = canvas.convert("RGB")
-    if final.size != (W, H):
-        final = final.resize((W, H), Image.LANCZOS)
     os.makedirs(output_dir, exist_ok=True)
     timestamp = int(time.time())
     out_path = os.path.join(output_dir, f"donor_thank_you_{timestamp}.png")
