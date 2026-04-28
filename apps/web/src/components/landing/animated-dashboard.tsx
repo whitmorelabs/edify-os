@@ -29,8 +29,10 @@ import { useEffect, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 
 // Colors from apps/web/src/components/ui/archetypes.tsx — keep in sync if archetypes change
-const DEV_COLOR = "#F59E5C";    // Development Director
-const BRAND_PURPLE = "#9F4EF3"; // Executive Assistant / brand purple
+const DEV_COLOR = "#F59E5C";       // Development Director
+const BRAND_PURPLE = "#9F4EF3";    // Executive Assistant / brand purple
+// Sidebar nav icon color for inactive items on the dark (brand-950) sidebar background
+const SIDEBAR_NAV_MUTED = "#C4B5D4";
 
 const SIDEBAR_ARCHETYPE_DOTS = [
   BRAND_PURPLE,  // exec
@@ -128,13 +130,13 @@ export function AnimatedDashboard() {
       {/* app shell: sidebar + main */}
       <div className="flex" style={{ height: "calc(100% - 34px)" }}>
 
-        {/* SIDEBAR — mirrors real Edify sidebar */}
+        {/* SIDEBAR — mirrors real Edify sidebar (bg-brand-950 = #2A1440) */}
         <div
           className="flex flex-col items-center gap-2.5"
           style={{
             width: 40,
-            background: "#FFFFFF",
-            borderRight: "1px solid #E5E7EB",
+            background: "#2A1440",
+            borderRight: "1px solid rgba(255,255,255,0.08)",
             padding: "10px 0",
             flexShrink: 0,
           }}
@@ -152,11 +154,11 @@ export function AnimatedDashboard() {
           {/* nav icon slots — active = Dashboard */}
           {[
             { active: true, accent: BRAND_PURPLE },   // Dashboard
-            { active: false, accent: "#D1D5DB" },      // Briefing
-            { active: false, accent: "#F59E5C" },      // Inbox (amber = has items)
-            { active: false, accent: "#D1D5DB" },      // Tasks
-            { active: false, accent: "#D1D5DB" },      // Decision Lab
-            { active: false, accent: "#D1D5DB" },      // Memory
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Briefing
+            { active: false, accent: "#F59E5C" },        // Inbox (amber = has items)
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Tasks
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Decision Lab
+            { active: false, accent: SIDEBAR_NAV_MUTED }, // Memory
           ].map((item, i) => (
             <div
               key={i}
@@ -164,8 +166,8 @@ export function AnimatedDashboard() {
                 width: 20,
                 height: 20,
                 borderRadius: 5,
-                background: item.active ? `${item.accent}20` : "transparent",
-                border: item.active ? `1px solid ${item.accent}40` : "1px solid transparent",
+                background: item.active ? `${item.accent}25` : "transparent",
+                border: item.active ? `1px solid ${item.accent}50` : "1px solid transparent",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -177,7 +179,7 @@ export function AnimatedDashboard() {
                   height: 9,
                   borderRadius: 2,
                   background: item.accent,
-                  opacity: item.active ? 1 : 0.3,
+                  opacity: item.active ? 1 : 0.45,
                 }}
               />
             </div>

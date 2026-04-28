@@ -6,66 +6,41 @@ import { motion, useReducedMotion } from "framer-motion";
 import SpialNavbar from "@/components/spial-navbar";
 import SpialFooter from "@/components/spial-footer";
 import { Button } from "@/components/ui";
+import { EASE } from "@/lib/motion";
 
-// Reveal animation: fade in + slide up + subtle scale on scroll-into-view
-const revealVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.96 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.6, ease: "easeOut" },
-  },
-};
-
-// Reduced-motion fallback: instant fade-in, no slide or scale
-const revealVariantsReduced = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.01 } },
-};
+// Per-screenshot variation — slight y/duration differences so the 5 reveals
+// feel organic rather than identical.
+const SCREENSHOT_REVEAL_VARIANTS = [
+  { y: 24, duration: 0.7,  ease: EASE.entrance },
+  { y: 32, duration: 0.65, ease: [0.22, 1, 0.36, 1] as const },
+  { y: 28, duration: 0.75, ease: EASE.entrance },
+  { y: 36, duration: 0.6,  ease: [0.22, 1, 0.36, 1] as const },
+  { y: 24, duration: 0.7,  ease: EASE.entrance },
+] as const;
 
 interface AnimatedScreenshotProps {
   src: string;
   alt: string;
-  /** Pixel distance the image pans downward over the duration (creates "scroll-through" feel). */
-  panDistance?: number;
-  /** Pan cycle duration in seconds. */
-  panDuration?: number;
+  index: number;
 }
 
-function AnimatedScreenshot({
-  src,
-  alt,
-  panDistance = 100,
-  panDuration = 8,
-}: AnimatedScreenshotProps) {
+function AnimatedScreenshot({ src, alt, index }: AnimatedScreenshotProps) {
   const reduced = useReducedMotion();
-  const variants = reduced ? revealVariantsReduced : revealVariants;
+  const variant = SCREENSHOT_REVEAL_VARIANTS[index % SCREENSHOT_REVEAL_VARIANTS.length];
 
   return (
     <motion.div
       className="rounded-xl overflow-hidden border border-line-1 shadow-elev-2"
-      style={{ aspectRatio: "16 / 9", position: "relative" }}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
-      variants={variants}
+      initial={{ opacity: 0, y: reduced ? 0 : variant.y, scale: reduced ? 1 : 0.97 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{
+        duration: reduced ? 0.2 : variant.duration,
+        ease: variant.ease,
+      }}
     >
-      <motion.img
-        src={src}
-        alt={alt}
-        className="w-full block"
-        animate={reduced ? undefined : { y: [0, -panDistance, 0] }}
-        transition={
-          reduced
-            ? undefined
-            : {
-                duration: panDuration,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }
-        }
-      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} className="w-full block" />
     </motion.div>
   );
 }
@@ -105,10 +80,9 @@ export default function DemoPage() {
               </p>
             </div>
             <AnimatedScreenshot
+              index={0}
               src="/demo/dashboard-overview.jpg"
               alt="Dashboard overview showing all six director cards and the heartbeat inbox"
-              panDistance={100}
-              panDuration={9}
             />
           </div>
         </div>
@@ -119,10 +93,9 @@ export default function DemoPage() {
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
             <AnimatedScreenshot
+              index={1}
               src="/demo/team-chat-dev-director.jpg"
               alt="Team chat with the Development Director showing suggested prompts"
-              panDistance={120}
-              panDuration={8}
             />
             <div>
               <div className="eyebrow mb-3">Step 2</div>
@@ -160,10 +133,9 @@ export default function DemoPage() {
               </p>
             </div>
             <AnimatedScreenshot
+              index={2}
               src="/demo/decision-lab.jpg"
               alt="Decision Lab page showing example scenarios and six director perspectives"
-              panDistance={80}
-              panDuration={10}
             />
           </div>
         </div>
@@ -174,10 +146,9 @@ export default function DemoPage() {
         <div className="spial-container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[60px] items-center">
             <AnimatedScreenshot
+              index={3}
               src="/demo/heartbeat-inbox.jpg"
               alt="Heartbeat inbox page showing proactive director check-ins"
-              panDistance={90}
-              panDuration={9}
             />
             <div>
               <div className="eyebrow mb-3">Step 4</div>
@@ -218,10 +189,9 @@ export default function DemoPage() {
               </p>
             </div>
             <AnimatedScreenshot
+              index={4}
               src="/demo/org-briefing.jpg"
               alt="Org briefing page with four-step onboarding flow"
-              panDistance={80}
-              panDuration={7}
             />
           </div>
         </div>
