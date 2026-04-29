@@ -11,24 +11,77 @@ Invoke `flyer` when the user asks for a printable handout, a program flyer, an e
 
 Use `flyer` over `canvas-design` when the user needs a structured, information-rich layout (event details, bullet points, venue, date, CTA URL) rather than an artistic open-ended composition. `flyer` prioritizes clarity and print readiness; `canvas-design` prioritizes artistic expression.
 
+## Recommended workflow: hero photo
+
+For maximum visual impact, call `search_stock_photo` FIRST to find a relevant event photo, then pass the returned URL into `hero_image_url`. This gives the flyer real photographic energy versus a pure typography layout.
+
+**Pattern:**
+1. Call `search_stock_photo` with a short query describing the event (e.g. `"career fair young adults"`, `"community event nonprofit"`, `"fundraiser dinner"`)
+2. Take the first result's `url` field
+3. Pass it as `hero_image_url` in the flyer call
+
+```
+search_stock_photo → { url: "https://images.unsplash.com/..." }
+↓
+flyer(hero_image_url="https://images.unsplash.com/...", ...)
+```
+
+If `search_stock_photo` is unavailable or returns no results, omit `hero_image_url` — the flyer renders gracefully with the diagonal hero band alone.
+
 ## Inputs
 
 - `headline` *(required, string)* — Event name or primary announcement. Example: `"Fall Fundraiser Dinner"`
 - `subheadline` *(optional, string)* — Tagline or date range beneath the headline.
 - `body_text` *(optional, string)* — One paragraph of details (description, mission context, or call to community).
-- `bullet_points` *(optional, array of strings)* — Up to 5 key highlights or program features. Example: `["Live auction", "Silent raffle", "Dinner included"]`
-- `date` *(optional, string)* — Event date in display format. Example: `"Saturday, November 8, 2026"`
-- `time` *(optional, string)* — Event start time. Example: `"6:00 PM – 9:00 PM"`
+- `bullet_points` *(optional, array of strings)* — Up to 6 key highlights or program features. Example: `["Live auction", "Silent raffle", "Dinner included"]`
+- `bullet_icons` *(optional, array of strings)* — Keyword per bullet that maps to a bundled icon (see Icon keywords below). Must match `bullet_points` index-for-index. Falls back to diamond markers when omitted or unmatched. Example: `["fundraiser", "music", "food"]`
+- `date` *(optional, string)* — Event date in display format. Example: `"Thursday, May 22, 2026"`
+- `time` *(optional, string)* — Event start time. Example: `"10:00 AM – 2:00 PM"`
 - `venue` *(optional, string)* — Location name and address.
 - `cta` *(optional, string)* — Primary call-to-action text. Example: `"Register Today"`
 - `cta_url` *(optional, string)* — URL printed below the CTA. Example: `"edify.org/gala"`
 - `brand_color` *(required, hex string)* — Primary brand color applied to header band and accents.
-- `secondary_color` *(optional, hex string)* — Secondary accent. Defaults to a tint of brand_color.
-- `org_name` *(optional, string)* — Organization name for footer attribution.
+- `secondary_color` *(optional, hex string)* — Secondary accent. Defaults to a tint/shade of brand_color.
+- `org_name` *(optional, string)* — Organization name for eyebrow label and footer attribution.
+- `hero_image_url` *(optional, string)* — URL to a photo that composites into the hero band as a right-side panel. The renderer downloads the image, smart-crops it, applies a brand-color tint overlay, and adds a gradient edge so the headline stays legible. Graceful fallback when omitted.
+
+## Icon keywords
+
+Pass these as items in `bullet_icons` to get a matching icon beside each bullet point. The renderer does partial-match lookup, so "free lunch" maps to `"lunch"` automatically.
+
+| Keyword(s) | Icon |
+|---|---|
+| `lunch`, `food`, `meal`, `dinner`, `breakfast` | Fork & knife |
+| `panel`, `speaker`, `employer` | Three people |
+| `resume`, `cv`, `portfolio` | Document |
+| `interview`, `interviews`, `hiring` | Handshake |
+| `register`, `registration`, `rsvp`, `signup` | Clipboard with checkmark |
+| `fundraiser`, `donate`, `donation`, `fund` | Heart with dollar |
+| `volunteer`, `volunteering` | Person with raised arms |
+| `award`, `awards`, `recognition` | Medal/ribbon |
+| `network`, `networking`, `connect` | Connected nodes |
+| `training`, `workshop`, `class`, `education` | Graduation cap |
+| `music`, `concert`, `performance` | Musical note |
+| `health`, `wellness`, `medical` | Cross |
+| `community`, `social` | Group of people |
+| `calendar`, `schedule` | Calendar |
+| `location`, `venue`, `place` | Map pin |
+| `star`, `highlight` | Star |
+| `gift`, `raffle`, `prize` | Gift box |
+| `heart`, `care`, `love` | Heart |
+| `check`, `free`, `help`, `support`, `assistance` | Checkmark circle |
+
+If a keyword doesn't match, the bullet falls back to the diamond marker automatically — no error.
 
 ## Output
 
-2550×3300 PNG at 300 DPI (US Letter portrait). Returned as a downloadable file artifact. The layout uses a branded header band with the headline, a structured body area for details and bullet points, and a bold CTA section at the bottom. Ready for print or digital distribution.
+2550×3300 PNG at 300 DPI (US Letter portrait). Returned as a downloadable file artifact.
+
+**Layout regions:**
+- **Hero band** (top 38%): Diagonal-edge brand-color block with eyebrow label and YoungSerif headline. When `hero_image_url` is provided, a photo panel occupies the right ~42% with brand-color tint + bottom gradient.
+- **Body area** (middle ~48%): Cream off-white with paper-grain texture overlay. Contains subheadline, date callout (when `date` provided), logistics info box, body text, and two-column bullet grid.
+- **Date callout**: When `date` is provided, renders a tear-off calendar block — big numeric day in YoungSerif display size, month eyebrow label above, time below — with a sun-ray starburst accent behind the number.
+- **Footer** (bottom ~14%): Darker brand shade with accent stripe separator. Contains CTA + URL left, org name right.
 
 ## Example invocation
 
@@ -36,10 +89,39 @@ Use `flyer` over `canvas-design` when the user needs a structured, information-r
 {
   "skill": "flyer",
   "inputs": {
+    "headline": "Open Doors Career Day",
+    "subheadline": "Building futures for ages 17-21",
+    "bullet_points": ["Free lunch provided", "Employer panel", "Resume help", "On-site interviews"],
+    "bullet_icons": ["lunch", "panel", "resume", "interview"],
+    "date": "Thursday, May 22, 2026",
+    "time": "10:00 AM – 2:00 PM",
+    "venue": "Bridgewater Community Center",
+    "cta": "RSVP at opendoors.edify.org",
+    "cta_url": "opendoors.edify.org",
+    "brand_color": "#F4801A",
+    "org_name": "Open Doors Program",
+    "hero_image_url": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80"
+  }
+}
+```
+
+**With hero photo workflow (recommended):**
+```
+Step 1 → search_stock_photo("career fair young adults")
+         returns { url: "https://images.unsplash.com/photo-abc123..." }
+
+Step 2 → flyer({ ..., hero_image_url: "https://images.unsplash.com/photo-abc123..." })
+```
+
+```json
+{
+  "skill": "flyer",
+  "inputs": {
     "headline": "Fall Fundraiser Dinner",
     "subheadline": "An evening of impact and community",
-    "body_text": "Join us for a night celebrating the families we serve. Your presence makes a difference.",
+    "body_text": "Join us for a night celebrating the families we serve.",
     "bullet_points": ["Live auction", "Gourmet dinner", "Impact stories from families"],
+    "bullet_icons": ["fundraiser", "food", "heart"],
     "date": "Saturday, November 8, 2026",
     "time": "6:00 PM – 9:00 PM",
     "venue": "The Grand Pavilion, 500 Main Street, Chicago IL",
@@ -47,7 +129,8 @@ Use `flyer` over `canvas-design` when the user needs a structured, information-r
     "cta_url": "edify.org/fundraiser",
     "brand_color": "#1A3C5E",
     "secondary_color": "#C89B3C",
-    "org_name": "Edify Nonprofit OS"
+    "org_name": "Edify Nonprofit OS",
+    "hero_image_url": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80"
   }
 }
 ```
@@ -70,15 +153,26 @@ Assemble inputs into a `render(**inputs)` call against `render.py`. Confirm `hea
 - CTA section at the bottom gets its own visual weight: bold text, contrasting background, clear action verb
 
 **Common mistakes to avoid:**
-- Generic stock-photo backgrounds with overlaid text (looks amateur and prints poorly)
 - Too many competing elements — if everything is bold, nothing stands out
 - Filling every square inch with content; density signals desperation, not prestige
 - Using gradients as a crutch instead of intentional color blocking
-- Clip art or generic icons instead of purposeful geometric accents
 - Ignoring print constraints: dark backgrounds waste ink, thin fonts disappear at distance
 
-## Visual upgrade notes (Apr 2026)
+## Visual upgrade notes (Apr 2026 — wow-factor overhaul)
 
-Typography is now powered by **YoungSerif-Regular** (hero headline — distinctive, warm serif), **Outfit-Regular** (body text, logistics, bullets), and **WorkSans-Bold** (eyebrow labels in uppercase) — bundled Google Fonts in `fonts/` rather than system Helvetica.
+**1. Hero imagery** — `hero_image_url` downloads a photo via `urllib.request`, smart-crops to fill the right side of the hero band, applies a brand-color tint at 45% opacity, and adds a bottom-edge gradient so headline text stays legible. Graceful fallback to diagonal-band hero when omitted. Pattern: call `search_stock_photo` first, pass the URL here.
 
-The hero band (top 38% of canvas) now has a **diagonal bottom edge** (polygon slant) instead of a flat horizontal strip, with an asymmetric corner block accent in the upper-right. Bullet points use a **two-column grid** layout with diamond-shaped bullets in the accent color instead of a single-column stack. The footer is a darker shade of the brand color with an accent stripe separator. All typography is Pillow-native (no ReportLab/pdf2image pipeline) — headline rendered with a composited `GaussianBlur` drop shadow for print-quality depth. The eyebrow label uses simulated letter-spacing via WorkSans-Bold for the editorial typographic feel of museum poster design.
+**2. Custom bullet icons** — `bullet_icons` maps keyword strings to a bundled set of ~20 procedurally-generated PNG icons (64×64) in `icons/`. Icons are recolored to match the accent color at render time. Partial keyword matching handles `"free lunch"` → `"lunch"` icon automatically. Falls back to diamond markers for unmatched keywords.
+
+**3. Date as design element** — When `date` is provided, renders a tear-off calendar callout block: big numeric day (200pt YoungSerif), `MAY` month eyebrow (WorkSans-Bold, letter-spaced), weekday label above, time below. A sun-ray starburst pattern (16 rays) radiates behind the day number. The callout has a soft alpha-blended shadow underneath.
+
+**4. Texture + depth** — A `assets/noise.png` (512×512 paper-grain texture) tiles across the cream body region at 4-6% opacity, giving the flyer a premium printed feel. The headline drop shadow radius is strengthened (GaussianBlur r=20). The hero band's top edge has a 3px lighter inset highlight.
+
+**5. Geometric accent stack** — Added beyond the original diagonal hero edge + corner block:
+- Curved arc element cutting across the lower-left body area
+- Thin vertical accent line connecting hero bottom to footer (right side)
+- Sun-ray starburst behind the date number
+- Ribbon/banner stripe under the headline in the hero band
+- Halftone dot field fading in the upper-right body corner
+
+Typography is powered by **YoungSerif-Regular** (hero headline + date day number), **Outfit-Regular** (body text, logistics, bullets), and **WorkSans-Bold** (eyebrow labels, HIGHLIGHTS label, date month + weekday) — bundled Google Fonts in `fonts/`.
