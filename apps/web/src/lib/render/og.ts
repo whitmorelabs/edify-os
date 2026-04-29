@@ -17,8 +17,6 @@ export const SOCIAL_PRESETS = {
   ig_story: { width: 1080, height: 1920 },
   /** LinkedIn / Facebook link share */
   linkedin: { width: 1200, height: 628 },
-  /** Twitter/X summary-large-image card */
-  twitter: { width: 1200, height: 675 },
   /** Generic Open Graph default (Facebook link preview) */
   og: { width: 1200, height: 630 },
 } as const;

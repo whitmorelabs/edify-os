@@ -21,7 +21,7 @@ import {
 // System-prompt addendum when render tool is active.
 // ---------------------------------------------------------------------------
 
-export const RENDER_TOOLS_ADDENDUM = `\nYou have access to an HTML-to-PNG rasterizer via render_design_to_image. Use it AFTER designing a composition with the Frontend Design guidance to produce a social-ready PNG (Instagram square, story, LinkedIn, Twitter, or custom dimensions). The input is an HTML string — inline styles and limited flex/grid layouts work best; complex CSS or external stylesheets do not. Tailwind is partially supported via the experimental \`tw\` attribute on elements. Keep the HTML self-contained (no <script>, no remote fonts unless explicitly needed). The tool returns a file ID and a download URL the user can click to save the image.
+export const RENDER_TOOLS_ADDENDUM = `\nYou have access to an HTML-to-PNG rasterizer via render_design_to_image. Use it AFTER designing a composition with the Frontend Design guidance to produce a social-ready PNG (Instagram square, story, LinkedIn, or custom dimensions). The input is an HTML string — inline styles and limited flex/grid layouts work best; complex CSS or external stylesheets do not. Tailwind is partially supported via the experimental \`tw\` attribute on elements. Keep the HTML self-contained (no <script>, no remote fonts unless explicitly needed). The tool returns a file ID and a download URL the user can click to save the image.
 
 ### Satori HTML constraints (READ CAREFULLY before calling render_design_to_image)
 
@@ -46,7 +46,7 @@ export const renderTools: Anthropic.Tool[] = [
   {
     name: "render_design_to_image",
     description:
-      "Rasterize an HTML design composition into a social-ready PNG image. Use AFTER designing a visual composition (with the Frontend Design skill guidance, or on your own) to produce an actual downloadable raster image — for Instagram posts, LinkedIn banners, Twitter cards, event flyers, etc. The HTML should be self-contained: inline styles and flex layouts are supported. No external stylesheets, scripts, or remote fonts. Note: every multi-child div MUST set display: flex explicitly (Satori limitation — omitting it causes a render error). Pick a preset dimension that matches the target platform, or specify a custom width/height. Returns a fileId + downloadUrl the user can click to save the PNG.",
+      "Rasterize an HTML design composition into a social-ready PNG image. Use AFTER designing a visual composition (with the Frontend Design skill guidance, or on your own) to produce an actual downloadable raster image — for Instagram posts, LinkedIn banners, event flyers, etc. The HTML should be self-contained: inline styles and flex layouts are supported. No external stylesheets, scripts, or remote fonts. Note: every multi-child div MUST set display: flex explicitly (Satori limitation — omitting it causes a render error). Pick a preset dimension that matches the target platform, or specify a custom width/height. Returns a fileId + downloadUrl the user can click to save the PNG.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -57,9 +57,9 @@ export const renderTools: Anthropic.Tool[] = [
         },
         preset: {
           type: "string",
-          enum: ["ig_square", "ig_story", "linkedin", "twitter", "og"],
+          enum: ["ig_square", "ig_story", "linkedin", "og"],
           description:
-            "Social dimension preset. ig_square = 1080x1080 (Instagram feed post). ig_story = 1080x1920 (Instagram / TikTok story). linkedin = 1200x628 (LinkedIn/Facebook link share). twitter = 1200x675 (Twitter/X summary large image). og = 1200x630 (generic Open Graph). Pick the one that matches where the user plans to post. If the user asks for custom dimensions, omit this and pass width/height instead.",
+            "Social dimension preset. ig_square = 1080x1080 (Instagram feed post). ig_story = 1080x1920 (Instagram / TikTok story). linkedin = 1200x628 (LinkedIn/Facebook link share). og = 1200x630 (generic Open Graph). Pick the one that matches where the user plans to post. If the user asks for custom dimensions, omit this and pass width/height instead.",
         },
         width: {
           type: "number",

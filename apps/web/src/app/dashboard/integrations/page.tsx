@@ -33,7 +33,6 @@ import {
   SiMailchimp,
   SiFacebook,
   SiInstagram,
-  SiX,
   SiYoutube,
   SiDropbox,
   SiAsana,
@@ -268,16 +267,6 @@ const INTEGRATIONS: IntegrationEntry[] = [
     icon: LinkedInIcon,
     capabilities: ['Post updates to your organization page', 'View post engagement', 'Read follower analytics', 'Manage job postings'],
     agentsUsing: [marketing, dev],
-    connectionType: 'oauth',
-  },
-  {
-    id: 'twitter',
-    name: 'Twitter / X',
-    category: 'social_media',
-    description: 'Connect your Twitter/X account so your Marketing Director can post content and engage with your community.',
-    icon: SiX,
-    capabilities: ['Post and schedule tweets', 'View mentions and replies', 'Track engagement data', 'Reply to conversations on your behalf'],
-    agentsUsing: [marketing],
     connectionType: 'oauth',
   },
   {
@@ -545,7 +534,6 @@ const INTEGRATION_UNLOCKS: Record<string, string> = {
   facebook: 'Social posting for Marketing Director',
   instagram: 'Content scheduling for Marketing Director',
   linkedin: 'Professional outreach for Marketing Director & Director of Development',
-  twitter: 'Social engagement for Marketing Director',
   youtube: 'Video management for Marketing Director',
   instrumentl: 'Grant discovery for Director of Development',
   grantstation: 'Funder research for Director of Development',
@@ -578,7 +566,6 @@ const CELEBRATION_COPY: Record<string, { agent: string; capability: string }> = 
   instagram: { agent: 'Marketing Director', capability: 'manage your Instagram content' },
   facebook: { agent: 'Marketing Director', capability: 'post to your Facebook Page' },
   linkedin: { agent: 'Marketing Director', capability: 'manage your LinkedIn presence' },
-  twitter: { agent: 'Marketing Director', capability: 'engage on Twitter/X' },
   youtube: { agent: 'Marketing Director', capability: 'manage your YouTube channel' },
 };
 
@@ -643,15 +630,12 @@ const CANVA_INTEGRATION_IDS = new Set(['canva']);
 /**
  * Integration ids that are brokered through Composio (OAuth on their end, we
  * just hold the connection reference). Keep in sync with TOOLKIT_SLUG in
- * apps/web/src/lib/composio.ts. The `twitter` slug here matches the integration
- * catalog id; the platform key we send to /api/integrations/composio/connect
- * is mapped via COMPOSIO_INTEGRATION_TO_PLATFORM below.
+ * apps/web/src/lib/composio.ts.
  */
 const COMPOSIO_INTEGRATION_IDS = new Set([
   'instagram',
   'facebook',
   'linkedin',
-  'twitter',
   'youtube',
 ]);
 
@@ -660,7 +644,6 @@ const COMPOSIO_INTEGRATION_TO_PLATFORM: Record<string, string> = {
   instagram: 'instagram',
   facebook: 'facebook',
   linkedin: 'linkedin',
-  twitter: 'x',
   youtube: 'youtube',
 };
 
@@ -735,7 +718,7 @@ function IntegrationsPageInner() {
         const data = await res.json() as {
           connections: Array<{ toolkit: string; status: string }>;
         };
-        // Composio `toolkit` values ("twitter", "instagram", etc.) match
+        // Composio `toolkit` values ("instagram", "facebook", etc.) match
         // our catalog ids 1:1 — see COMPOSIO_INTEGRATION_TO_PLATFORM for the
         // platform-key mapping (reverse direction, not needed here).
         const ids = data.connections
