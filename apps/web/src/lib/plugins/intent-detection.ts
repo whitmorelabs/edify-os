@@ -28,7 +28,7 @@ export const VENDOR_INTENT_PATTERNS: Record<string, RegExp[]> = {
   ],
   marketing: [
     /\b(post|graphic|social|campaign|brand|design|asset)\b/i,
-    /\b(instagram|linkedin|facebook|twitter|tiktok|youtube)\b/i,
+    /\b(instagram|linkedin|facebook|tiktok|youtube)\b/i,
     /\b(content|caption|copy|messaging)\b/i,
   ],
   hr: [

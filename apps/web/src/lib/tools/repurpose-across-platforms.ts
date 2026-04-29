@@ -48,11 +48,6 @@ const PLATFORM_CONSTRAINTS: Record<
     tone_notes: "Professional tone. 1300 chars before 'see more' cutoff — put the hook first.",
     preview_cutoff: 1300,
   },
-  twitter: {
-    max_chars: 280,
-    hashtag_guidance: "1–2 hashtags max. Character budget is tight.",
-    tone_notes: "Punchy and direct. Every word earns its place. Conversational.",
-  },
   youtube: {
     max_chars: 700,
     hashtag_guidance: "2–3 hashtags.",
@@ -91,14 +86,14 @@ export const repurposeTools: Anthropic.Tool[] = [
         },
         source_platform: {
           type: "string",
-          enum: ["linkedin", "instagram", "facebook", "twitter", "youtube"],
+          enum: ["linkedin", "instagram", "facebook", "youtube"],
           description: "The platform the base post was written for (used to correctly calibrate tone shifts).",
         },
         target_platforms: {
           type: "array",
           items: {
             type: "string",
-            enum: ["instagram", "facebook", "linkedin", "twitter", "youtube", "tiktok"],
+            enum: ["instagram", "facebook", "linkedin", "youtube", "tiktok"],
           },
           description:
             "Platforms to adapt the post for. TikTok will be silently dropped if the feature flag is off. At least one platform required.",

@@ -212,7 +212,7 @@ const FRONTEND_DESIGN_TRIGGER_PATTERNS: RegExp[] = [
   /\b(social\s+media\s+series|social\s+series|content\s+series)\b/i,
   /\b(create|draft|design|make|build|generate)\b.{0,30}\b(\d+|a\s+series\s+of|multiple|three|two|four|five)\b.{0,20}\b(posts?|graphics?|images?|cards?)\b/i,
   /\b(draft|design|create|make)\b.{0,20}\bposts?\b/i,
-  /\b(instagram|linkedin|facebook|twitter|tiktok)\b.{0,30}\b(post|graphic|card|image|banner|flyer)\b/i,
+  /\b(instagram|linkedin|facebook|tiktok)\b.{0,30}\b(post|graphic|card|image|banner|flyer)\b/i,
   /\bsocial\s+(post|graphic|content|card|image)\b/i,
   /\b(event\s+flyer|flyer|poster|banner)\b/i,
 ];

@@ -50,12 +50,6 @@ const PERMISSIONS_MAP: Record<string, Permission[]> = {
     { icon: <BarChart2 className="h-3.5 w-3.5" />, text: 'Read follower and reach analytics' },
     { icon: <Send className="h-3.5 w-3.5" />, text: 'Manage job postings' },
   ],
-  twitter: [
-    { icon: <PenLine className="h-3.5 w-3.5" />, text: 'Post and schedule tweets' },
-    { icon: <Eye className="h-3.5 w-3.5" />, text: 'View mentions and replies' },
-    { icon: <BarChart2 className="h-3.5 w-3.5" />, text: 'Read engagement analytics' },
-    { icon: <Send className="h-3.5 w-3.5" />, text: 'Reply to conversations' },
-  ],
   google_drive: [
     { icon: <FolderOpen className="h-3.5 w-3.5" />, text: 'View files and folders you share with your team' },
     { icon: <Eye className="h-3.5 w-3.5" />, text: 'Read documents, spreadsheets, and slides' },

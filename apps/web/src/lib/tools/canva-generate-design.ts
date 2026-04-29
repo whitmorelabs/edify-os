@@ -60,7 +60,6 @@ const DESIGN_TYPE_SPEC: Record<string, CanvaDesignTypeSpec> = {
   facebook_post:     { type: "custom", width: 1200, height: 630 },
   facebook_cover:    { type: "custom", width: 820,  height: 312 },
   story:             { type: "custom", width: 1080, height: 1920 },
-  twitter_post:      { type: "custom", width: 1200, height: 675 },
   youtube_thumbnail: { type: "custom", width: 1280, height: 720 },
 
   // Documents — Canva preset names are supported
@@ -105,7 +104,6 @@ export const canvaGenerateTools: Anthropic.Tool[] = [
             "facebook_post",
             "facebook_cover",
             "story",
-            "twitter_post",
             "youtube_thumbnail",
             "presentation",
             "flyer",

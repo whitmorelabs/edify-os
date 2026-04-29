@@ -3,7 +3,7 @@
  *
  * Marketing Director uses this after the Frontend Design skill produces an
  * HTML/JSX composition to turn it into a social-ready raster PNG (Instagram,
- * LinkedIn, Twitter/X). Claude can't generate raster images natively; this
+ * LinkedIn, etc.). Claude can't generate raster images natively; this
  * closes that gap without pulling in any image-gen API.
  *
  * URL: POST /api/render/og

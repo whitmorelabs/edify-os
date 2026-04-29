@@ -4,7 +4,7 @@
  * Composio brokers OAuth for 1000+ toolkits (social media, CRM, docs, etc.).
  * We pass the org's UUID as the Composio `user_id` — every call is scoped to
  * that user, and Composio holds the per-user OAuth tokens on its side. We
- * never see Instagram/Twitter/etc. access tokens directly.
+ * never see Instagram/Facebook/etc. access tokens directly.
  *
  * v1 scope: social posting only. Helpers here cover:
  *   - getConnectedAccounts(orgId)           → which toolkits has this org linked?
@@ -49,7 +49,6 @@ export const SOCIAL_PLATFORMS = [
   "facebook",
   "linkedin",
   "tiktok",
-  "x",
   "threads",
   "youtube",
 ] as const;
@@ -62,14 +61,12 @@ export const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = {
   facebook: "Facebook",
   linkedin: "LinkedIn",
   tiktok: "TikTok",
-  x: "X (Twitter)",
   threads: "Threads",
   youtube: "YouTube",
 };
 
 /**
- * Map of (platform → Composio toolkit slug). Composio uses lowercase slugs;
- * Twitter is historically under the "twitter" toolkit even though branding says "X".
+ * Map of (platform → Composio toolkit slug). Composio uses lowercase slugs.
  * Centralized so we have one place to update if Composio renames anything.
  */
 export const TOOLKIT_SLUG: Record<SocialPlatform, string> = {
@@ -77,10 +74,6 @@ export const TOOLKIT_SLUG: Record<SocialPlatform, string> = {
   facebook: "facebook",
   linkedin: "linkedin",
   tiktok: "tiktok",
-  // The X/Twitter toolkit may be published as either slug depending on Composio's
-  // current catalog; "twitter" is the long-standing one. If Composio switches to
-  // "x" we update here only.
-  x: "twitter",
   threads: "threads",
   youtube: "youtube",
 };
@@ -99,7 +92,6 @@ export const POST_ACTION_SLUG: Record<SocialPlatform, string> = {
   facebook: "FACEBOOK_CREATE_POST",
   linkedin: "LINKEDIN_CREATE_POST",
   tiktok: "TIKTOK_POST_VIDEO",
-  x: "TWITTER_CREATION_OF_A_POST",
   threads: "THREADS_CREATE_POST",
   // YouTube expects a video upload rather than a text post — the `content` the
   // agent passes becomes title + description, and `image_file_id` should be a
