@@ -14,7 +14,7 @@ Wow-factor overhaul (Apr 2026):
 import io
 import math
 import os
-import random
+import re
 import time
 import urllib.request
 from typing import List, Optional
@@ -80,7 +80,7 @@ def _shade(r: int, g: int, b: int, factor: float = 0.4) -> tuple:
 def _wrap_text_px(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:
     words = text.split()
     lines = []
-    current_words: list = []
+    current_words = []
     for word in words:
         test = " ".join(current_words + [word])
         bbox = font.getbbox(test)
@@ -137,21 +137,19 @@ def _apply_hero_photo(
     x0, y0, x1, y1 = hero_rect
     w, h = x1 - x0, y1 - y0
 
-    # Crop photo to hero dimensions
     photo_crop = _smart_crop(photo.convert("RGBA"), w, h)
 
-    # Brand-color tint overlay at 45% opacity
+    # 45% brand-color tint (115/255 ≈ 0.45) keeps photo from competing with headline
     tint_layer = Image.new("RGBA", (w, h), (*brand_rgb, 115))
     photo_tinted = Image.alpha_composite(photo_crop, tint_layer)
 
-    # Bottom-edge gradient: dark → transparent (keeps headline readable)
+    # Bottom-edge gradient drawn row-by-row (faster than pixel loop)
     gradient = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    grad_pixels = gradient.load()
-    grad_start = int(h * 0.45)  # gradient begins 45% down
-    for py in range(grad_start, h):
-        alpha = int(180 * (py - grad_start) / (h - grad_start))
-        for px in range(w):
-            grad_pixels[px, py] = (0, 0, 0, alpha)
+    gd = ImageDraw.Draw(gradient)
+    grad_start = int(h * 0.45)
+    for row in range(grad_start, h):
+        alpha = int(180 * (row - grad_start) / (h - grad_start))
+        gd.line([(0, row), (w, row)], fill=(0, 0, 0, alpha))
     photo_final = Image.alpha_composite(photo_tinted, gradient)
 
     canvas.alpha_composite(photo_final, (x0, y0))
@@ -216,18 +214,16 @@ def _load_icon(keyword: str) -> Optional[Image.Image]:
 
 
 def _tint_icon(icon: Image.Image, color_rgb: tuple, size: int = 52) -> Image.Image:
-    """Recolor icon to given RGB, resize to size x size."""
+    """Recolor icon to given RGB, resize to size x size. Preserves source alpha channel."""
     icon = icon.resize((size, size), Image.LANCZOS)
     r, g, b = color_rgb
-    pixels = icon.load()
-    result = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    res_pixels = result.load()
-    for y in range(size):
-        for x in range(size):
-            pr, pg, pb, pa = pixels[x, y]
-            # Replace color channels, keep alpha
-            res_pixels[x, y] = (r, g, b, pa)
-    return result
+    _, _, _, a_ch = icon.split()
+    return Image.merge("RGBA", [
+        Image.new("L", (size, size), r),
+        Image.new("L", (size, size), g),
+        Image.new("L", (size, size), b),
+        a_ch,
+    ])
 
 
 # ---------------------------------------------------------------------------
@@ -293,11 +289,9 @@ def _draw_halftone_dots(draw: ImageDraw.ImageDraw, area_x: int, area_y: int, are
 
 def _parse_date_parts(date_str: str) -> tuple:
     """
-    Try to extract (weekday, month_abbr, day_num, remainder) from a date string.
-    Returns (None, None, None, date_str) if parsing fails.
+    Extract (weekday, month_abbr, day_num) from a date string.
+    Returns (None, None, None) if fields cannot be found.
     """
-    import re
-
     weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     months = ["January", "February", "March", "April", "May", "June",
               "July", "August", "September", "October", "November", "December"]
@@ -440,13 +434,7 @@ def render(
         photo_h = HERO_H + diagonal_drop // 2 + 20
         _apply_hero_photo(canvas, hero_photo, (photo_x, 0, photo_x + photo_w, photo_h), bg)
 
-        # Diagonal mask: draw a polygon over left edge of photo to blend it into the hero band
-        blend_poly = [
-            (photo_x - 80, 0),
-            (photo_x + 60, 0),
-            (photo_x + 60, photo_h),
-            (photo_x - 80, photo_h),
-        ]
+        # Horizontal gradient blends left edge of photo into the hero band color
         gradient_blend = Image.new("RGBA", (200, photo_h), (0, 0, 0, 0))
         gb_draw = ImageDraw.Draw(gradient_blend)
         for bx in range(200):
@@ -470,7 +458,7 @@ def render(
     font_sub = _font("Outfit-Regular.ttf", 90)
     font_body = _font("Outfit-Regular.ttf", 72)
     font_logistics_label = _font("WorkSans-Bold.ttf", 68)
-    font_logistics = _font("Outfit-Regular.ttf", 72)
+    font_logistics = font_body  # same face + size
     font_bullet = _font("Outfit-Regular.ttf", 72)
     font_cta = _font("WorkSans-Bold.ttf", 96)
     font_footer = _font("Outfit-Regular.ttf", 56)
@@ -539,41 +527,38 @@ def render(
         y_body += 40
 
     # --- DATE CALLOUT as design element (wow element 3) ---
-    has_logistics = date or time_str or venue
-    if has_logistics:
+    if date or time_str or venue:
         weekday, month_abbr, day_num = _parse_date_parts(date) if date else (None, None, None)
 
         date_block_w = int(W * 0.30)
         date_block_x = W - MARGIN - date_block_w
+        DATE_BLOCK_H = 340
 
         # Soft shadow ellipse beneath date block
         shadow_ellipse = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         se_draw = ImageDraw.Draw(shadow_ellipse)
         se_draw.ellipse([
             (date_block_x - 30, y_body + 10),
-            (date_block_x + date_block_w + 30, y_body + 360)
+            (date_block_x + date_block_w + 30, y_body + DATE_BLOCK_H + 20)
         ], fill=(0, 0, 0, 40))
         shadow_blurred = shadow_ellipse.filter(ImageFilter.GaussianBlur(radius=30))
         canvas.alpha_composite(shadow_blurred)
         draw = ImageDraw.Draw(canvas, "RGBA")
 
-        # Sun-ray starburst behind date number
         if day_num:
             sun_cx = date_block_x + date_block_w // 2
             sun_cy = y_body + 140
             _draw_sun_rays(draw, sun_cx, sun_cy, accent, n_rays=16, r_inner=80, r_outer=160)
 
-        # Date block background (very light tint)
         date_bg = (*_tint(*bg, 0.92), 255)
         draw.rectangle([
             (date_block_x, y_body),
-            (date_block_x + date_block_w, y_body + 340)
+            (date_block_x + date_block_w, y_body + DATE_BLOCK_H)
         ], fill=date_bg)
 
-        # Left accent bar
         draw.rectangle([
             (date_block_x, y_body),
-            (date_block_x + 12, y_body + 340)
+            (date_block_x + 12, y_body + DATE_BLOCK_H)
         ], fill=(*accent, 255))
 
         # Weekday label above month (small)
@@ -629,7 +614,7 @@ def render(
             draw.text((info_block_x + 48, y_l), txt, font=f, fill=(*bg, 255))
             y_l += box_line_h
 
-        date_block_bottom = y_body + 340
+        date_block_bottom = y_body + DATE_BLOCK_H
         info_block_bottom = info_y + box_h
         y_body = max(date_block_bottom, info_block_bottom) + 70
 
@@ -675,7 +660,6 @@ def render(
             icon_img = _load_icon(icon_keyword) if icon_keyword else None
 
             if icon_img is not None:
-                # Tinted icon
                 icon_tinted = _tint_icon(icon_img, accent_dark, size=52)
                 canvas.alpha_composite(icon_tinted, (col_x, col_y + 4))
                 text_x = col_x + 64
