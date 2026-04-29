@@ -238,7 +238,9 @@ export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
  * integration state. Currently only Marketing Director is gated:
  *
  * - Canva connected (row in `mcp_connections` for the org) → return Marketing
- *   Director's tools WITHOUT render_design + unsplash. Kida must use Canva.
+ *   Director's tools WITHOUT render_design. Kida must use Canva for design
+ *   rendering, but unsplash stays available so she can search for hero photos
+ *   (Canva only creates blank canvases, not photo search).
  * - Canva NOT connected → return the static set unchanged (render + unsplash
  *   serve as the fallback design path).
  *
@@ -275,9 +277,10 @@ export async function resolveArchetypeTools({
     }
 
     if (data) {
-      // Canva is connected — hide render + unsplash so Kida can't fall back to them.
+      // Canva is connected — hide render so Kida uses Canva for design rendering.
+      // Unsplash stays available: Canva creates blank canvases, not photo search.
       return ARCHETYPE_TOOLS.marketing_director.filter(
-        (t) => !RENDER_TOOL_NAMES.has(t.name) && !UNSPLASH_TOOL_NAMES.has(t.name),
+        (t) => !RENDER_TOOL_NAMES.has(t.name),
       );
     }
 
