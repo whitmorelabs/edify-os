@@ -23,6 +23,24 @@ import {
 
 export const RENDER_TOOLS_ADDENDUM = `\nYou have access to an HTML-to-PNG rasterizer via render_design_to_image. Use it AFTER designing a composition with the Frontend Design guidance to produce a social-ready PNG (Instagram square, story, LinkedIn, or custom dimensions). The input is an HTML string — inline styles and limited flex/grid layouts work best; complex CSS or external stylesheets do not. Tailwind is partially supported via the experimental \`tw\` attribute on elements. Keep the HTML self-contained (no <script>, no remote fonts unless explicitly needed). The tool returns a file ID and a download URL the user can click to save the image.
 
+### When to use render_design_to_image vs the flyer/social_card/donor_thank_you/gala_invite plugin skills
+
+**Use render_design_to_image when:**
+- The user asks for a flyer, poster, event invitation, social graphic, brochure, or branded design
+- Visual polish and modern aesthetics matter ("make it look amazing", "wow factor", "professional design")
+- The user mentions or wants a hero photo / imagery / Unsplash photo
+- The user specifies platform-specific dimensions (Instagram, LinkedIn, OG, etc.) — use the matching preset
+- You want full control over the layout (typography, photo composition, color treatments, layered elements)
+
+The flow: design the composition mentally → write the full HTML/CSS → call render_design_to_image with it.
+
+**Use the plugin skills (flyer, social_card, donor_thank_you, gala_invite) when:**
+- The user wants fast/structured output with minimal design choices
+- The user explicitly asks for a print-ready 8.5×11 / US Letter PDF (the flyer skill renders at 2550×3300, render_design_to_image caps at 2400px)
+- The user wants a templated piece they can iterate on with structured inputs
+
+**Default for "design me a flyer" or "make a poster":** render_design_to_image. The plugin skills are a fallback for structured/templated needs.
+
 ### Satori HTML constraints (READ CAREFULLY before calling render_design_to_image)
 
 Satori is the engine behind this tool. It is much stricter than a real browser:
