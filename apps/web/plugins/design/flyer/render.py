@@ -4,19 +4,21 @@ Generates a print-ready US Letter portrait flyer (2550x3300 at 300 DPI).
 Uses Pillow directly — bundled Google Fonts (YoungSerif + Outfit + WorkSans).
 
 Wow-factor overhaul (Apr 2026):
-  1. Hero imagery — optional hero_image_url downloads + composites into hero band
-  2. Custom bullet icons — optional bullet_icons keywords mapped to bundled PNGs
-  3. Date as design element — big numeric day + month eyebrow + time sub
-  4. Texture + depth — paper-grain noise overlay on cream body area
-  5. Geometric accent stack — arc, vertical line, sun-ray, ribbon accents
+  1. Custom bullet icons — optional bullet_icons keywords mapped to bundled PNGs
+  2. Date as design element — big numeric day + month eyebrow + time sub
+  3. Texture + depth — paper-grain noise overlay on cream body area
+  4. Geometric accent stack — arc, vertical line, sun-ray, ribbon accents
+
+Note: Hero photo support (hero_image_url) was removed 2026-04-30.
+  The Anthropic Skills sandbox has no internet access, so urllib downloads
+  always fail. Photo support will be re-added in a future sprint using the
+  Anthropic Files API.
 """
 
-import io
 import math
 import os
 import re
 import time
-import urllib.request
 from typing import List, Optional
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -98,61 +100,6 @@ def _wrap_text_px(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> li
 def _letter_spaced(text: str, spacing: int = 12) -> str:
     """Insert spaces between characters to simulate letter-spacing."""
     return (" " * spacing).join(list(text))
-
-
-# ---------------------------------------------------------------------------
-# Image fetch helpers
-# ---------------------------------------------------------------------------
-
-def _fetch_image(url: str) -> Optional[Image.Image]:
-    """Download image from URL, return PIL Image or None on failure."""
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "EdifyFlyerSkill/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = resp.read()
-        return Image.open(io.BytesIO(data)).convert("RGBA")
-    except Exception:
-        return None
-
-
-def _smart_crop(img: Image.Image, target_w: int, target_h: int) -> Image.Image:
-    """Center-crop image to target dimensions, preserving aspect ratio."""
-    src_w, src_h = img.size
-    scale = max(target_w / src_w, target_h / src_h)
-    new_w = int(src_w * scale)
-    new_h = int(src_h * scale)
-    img = img.resize((new_w, new_h), Image.LANCZOS)
-    left = (new_w - target_w) // 2
-    top = (new_h - target_h) // 2
-    return img.crop((left, top, left + target_w, top + target_h))
-
-
-def _apply_hero_photo(
-    canvas: Image.Image,
-    photo: Image.Image,
-    hero_rect: tuple,  # (x0, y0, x1, y1)
-    brand_rgb: tuple,
-) -> None:
-    """Composite photo into hero_rect with tint + bottom-edge gradient overlay."""
-    x0, y0, x1, y1 = hero_rect
-    w, h = x1 - x0, y1 - y0
-
-    photo_crop = _smart_crop(photo.convert("RGBA"), w, h)
-
-    # 45% brand-color tint (115/255 ≈ 0.45) keeps photo from competing with headline
-    tint_layer = Image.new("RGBA", (w, h), (*brand_rgb, 115))
-    photo_tinted = Image.alpha_composite(photo_crop, tint_layer)
-
-    # Bottom-edge gradient drawn row-by-row (faster than pixel loop)
-    gradient = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(gradient)
-    grad_start = int(h * 0.45)
-    for row in range(grad_start, h):
-        alpha = int(180 * (row - grad_start) / (h - grad_start))
-        gd.line([(0, row), (w, row)], fill=(0, 0, 0, alpha))
-    photo_final = Image.alpha_composite(photo_tinted, gradient)
-
-    canvas.alpha_composite(photo_final, (x0, y0))
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +315,6 @@ def render(
     cta_url: Optional[str] = None,
     secondary_color: Optional[str] = None,
     org_name: Optional[str] = None,
-    hero_image_url: Optional[str] = None,
     output_dir: str = "/mnt/user-data/outputs",
     **kwargs,
 ) -> str:
@@ -376,9 +322,11 @@ def render(
     Render a US Letter portrait flyer PNG (2550x3300, 300 DPI).
     Returns absolute path to generated PNG.
 
-    New inputs (wow-factor overhaul):
-      hero_image_url: optional URL to a photo that composites into the hero band
+    Wow-factor overhaul inputs:
       bullet_icons: optional list of keyword strings matched to bundled icon PNGs
+
+    Note: hero_image_url was removed 2026-04-30 — sandbox has no internet access.
+      Photo support will return in a future sprint via Anthropic Files API.
     """
     if "time" in kwargs and time_str is None:
         time_str = kwargs.pop("time")
@@ -429,29 +377,6 @@ def render(
     corner_color = (*_tint(*bg, 0.12), 160)
     draw.rectangle([(W - corner_w, 0), (W, corner_h)], fill=corner_color)
 
-    # --- Hero photo compositing (wow element 1) ---
-    hero_photo = None
-    if hero_image_url:
-        hero_photo = _fetch_image(hero_image_url)
-
-    if hero_photo is not None:
-        # Photo fills the hero band (behind text) — right side panel approach
-        # Left 65% for text, right 35% for photo (split panel)
-        photo_x = int(W * 0.58)
-        photo_w = W - photo_x
-        photo_h = HERO_H + diagonal_drop // 2 + 20
-        _apply_hero_photo(canvas, hero_photo, (photo_x, 0, photo_x + photo_w, photo_h), bg)
-
-        # Horizontal gradient blends left edge of photo into the hero band color
-        gradient_blend = Image.new("RGBA", (200, photo_h), (0, 0, 0, 0))
-        gb_draw = ImageDraw.Draw(gradient_blend)
-        for bx in range(200):
-            alpha = int(255 * (1 - bx / 200))
-            gb_draw.line([(bx, 0), (bx, photo_h)], fill=(*bg, alpha))
-        canvas.alpha_composite(gradient_blend, (photo_x - 80, 0))
-
-        draw = ImageDraw.Draw(canvas, "RGBA")
-
     # --- Load fonts ---
     hl_len = len(headline)
     if hl_len <= 20:
@@ -477,8 +402,8 @@ def render(
     MARGIN = int(W * 0.09)
     text_w = W - MARGIN * 2
 
-    # Text area width — narrower when photo occupies right side
-    hero_text_w = int(W * 0.56) - MARGIN if hero_photo else text_w - corner_w - 100
+    # Text area width in hero band — keeps clear of the corner block
+    hero_text_w = text_w - corner_w - 100
 
     # --- Eyebrow label in hero band ---
     eyebrow_text = org_name.upper() if org_name else "ANNOUNCEMENT"

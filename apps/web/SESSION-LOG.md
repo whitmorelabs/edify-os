@@ -92,3 +92,40 @@ Ran full render with Citlali's exact prompt (with Unsplash hero photo URL). All 
 
 ### Upload Status
 - `.env.local` not in worktree — upload skipped. Lopmon to run from main checkout post-merge.
+
+---
+
+## 2026-04-30 — Remove hero_image_url (sandbox has no network)
+
+**Agent:** Sonnet coding agent (spawned by Lopmon)
+**Branch:** `lopmon/flyer-no-photo-2026-04-30`
+**PRD source:** Lopmon spawn prompt
+
+### Why
+PR #51 added `hero_image_url` which downloads a photo via `urllib.request.urlopen()` and composites it into the hero band. The Anthropic Skills API sandbox has no internet access — the download always fails. Kida (Marketing Director) reported "No external network in the sandbox" and gave up rather than producing a flyer.
+
+This PR removes the hero photo feature entirely so the skill works again. All other wow-factor elements (date hero, custom icons, paper texture, geometric accents, custom typography) are sandbox-safe and remain untouched.
+
+A future PR will add photo support using the Anthropic Files API.
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `apps/web/plugins/design/flyer/render.py` | Removed `hero_image_url` param, `_fetch_image`, `_smart_crop`, `_apply_hero_photo` functions; removed `io` and `urllib.request` imports; hero_text_w simplified to always use no-photo layout. |
+| `apps/web/plugins/design/flyer/SKILL.md` | Removed "Recommended workflow: hero photo" section, `hero_image_url` input entry, photo-panel layout description, `hero_image_url` from both example invocations. Added removal note to Visual upgrade notes. Fixed stale "logistics info box" reference (removed in PR #52) → "venue line". |
+
+### Smoke Test
+Ran `render()` with Citlali's full Open Doors Career Day prompt (no hero_image_url). Output: 2550×3300 PNG. Visual check:
+- Hero band renders cleanly with diagonal edge + headline — no broken photo panel
+- Date callout: single THURSDAY / MAY / 22 / 10:00 AM - 2:00 PM block (no duplicate)
+- Body text clean — no accent line crossings
+- Lunch icon reads as fork & knife
+- All four bullets visible
+
+### Typecheck
+- Ran from main checkout (node_modules not in worktree): `pnpm --filter web typecheck` — PASS
+
+### Upload Status
+- `.env.local` not in worktree — SKIPPED
+- Lopmon to run upload from main checkout after merge: `export ANTHROPIC_API_KEY=$(grep -E '^ANTHROPIC_API_KEY=' apps/web/.env.local | cut -d= -f2- | tr -d '"' | tr -d "'") && pnpm dlx tsx scripts/upload-plugin-skills.ts`

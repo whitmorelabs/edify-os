@@ -11,23 +11,6 @@ Invoke `flyer` when the user asks for a printable handout, a program flyer, an e
 
 Use `flyer` over `canvas-design` when the user needs a structured, information-rich layout (event details, bullet points, venue, date, CTA URL) rather than an artistic open-ended composition. `flyer` prioritizes clarity and print readiness; `canvas-design` prioritizes artistic expression.
 
-## Recommended workflow: hero photo
-
-For maximum visual impact, call `search_stock_photo` FIRST to find a relevant event photo, then pass the returned URL into `hero_image_url`. This gives the flyer real photographic energy versus a pure typography layout.
-
-**Pattern:**
-1. Call `search_stock_photo` with a short query describing the event (e.g. `"career fair young adults"`, `"community event nonprofit"`, `"fundraiser dinner"`)
-2. Take the first result's `url` field
-3. Pass it as `hero_image_url` in the flyer call
-
-```
-search_stock_photo → { url: "https://images.unsplash.com/..." }
-↓
-flyer(hero_image_url="https://images.unsplash.com/...", ...)
-```
-
-If `search_stock_photo` is unavailable or returns no results, omit `hero_image_url` — the flyer renders gracefully with the diagonal hero band alone.
-
 ## Inputs
 
 - `headline` *(required, string)* — Event name or primary announcement. Example: `"Fall Fundraiser Dinner"`
@@ -43,7 +26,6 @@ If `search_stock_photo` is unavailable or returns no results, omit `hero_image_u
 - `brand_color` *(required, hex string)* — Primary brand color applied to header band and accents.
 - `secondary_color` *(optional, hex string)* — Secondary accent. Defaults to a tint/shade of brand_color.
 - `org_name` *(optional, string)* — Organization name for eyebrow label and footer attribution.
-- `hero_image_url` *(optional, string)* — URL to a photo that composites into the hero band as a right-side panel. The renderer downloads the image, smart-crops it, applies a brand-color tint overlay, and adds a gradient edge so the headline stays legible. Graceful fallback when omitted.
 
 ## Icon keywords
 
@@ -78,8 +60,8 @@ If a keyword doesn't match, the bullet falls back to the diamond marker automati
 2550×3300 PNG at 300 DPI (US Letter portrait). Returned as a downloadable file artifact.
 
 **Layout regions:**
-- **Hero band** (top 38%): Diagonal-edge brand-color block with eyebrow label and YoungSerif headline. When `hero_image_url` is provided, a photo panel occupies the right ~42% with brand-color tint + bottom gradient.
-- **Body area** (middle ~48%): Cream off-white with paper-grain texture overlay. Contains subheadline, date callout (when `date` provided), logistics info box, body text, and two-column bullet grid.
+- **Hero band** (top 38%): Diagonal-edge brand-color block with eyebrow label and YoungSerif headline. Asymmetric corner block in upper-right adds depth.
+- **Body area** (middle ~48%): Cream off-white with paper-grain texture overlay. Contains subheadline, date callout (when `date` provided), venue line, body text, and two-column bullet grid.
 - **Date callout**: When `date` is provided, renders a tear-off calendar block — big numeric day in YoungSerif display size, month eyebrow label above, time below — with a sun-ray starburst accent behind the number.
 - **Footer** (bottom ~14%): Darker brand shade with accent stripe separator. Contains CTA + URL left, org name right.
 
@@ -99,18 +81,9 @@ If a keyword doesn't match, the bullet falls back to the diamond marker automati
     "cta": "RSVP at opendoors.edify.org",
     "cta_url": "opendoors.edify.org",
     "brand_color": "#F4801A",
-    "org_name": "Open Doors Program",
-    "hero_image_url": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80"
+    "org_name": "Open Doors Program"
   }
 }
-```
-
-**With hero photo workflow (recommended):**
-```
-Step 1 → search_stock_photo("career fair young adults")
-         returns { url: "https://images.unsplash.com/photo-abc123..." }
-
-Step 2 → flyer({ ..., hero_image_url: "https://images.unsplash.com/photo-abc123..." })
 ```
 
 ```json
@@ -129,8 +102,7 @@ Step 2 → flyer({ ..., hero_image_url: "https://images.unsplash.com/photo-abc12
     "cta_url": "edify.org/fundraiser",
     "brand_color": "#1A3C5E",
     "secondary_color": "#C89B3C",
-    "org_name": "Edify Nonprofit OS",
-    "hero_image_url": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80"
+    "org_name": "Edify Nonprofit OS"
   }
 }
 ```
@@ -160,15 +132,15 @@ Assemble inputs into a `render(**inputs)` call against `render.py`. Confirm `hea
 
 ## Visual upgrade notes (Apr 2026 — wow-factor overhaul)
 
-**1. Hero imagery** — `hero_image_url` downloads a photo via `urllib.request`, smart-crops to fill the right side of the hero band, applies a brand-color tint at 45% opacity, and adds a bottom-edge gradient so headline text stays legible. Graceful fallback to diagonal-band hero when omitted. Pattern: call `search_stock_photo` first, pass the URL here.
+**(Apr 30, 2026) Removed hero_image_url support** — Anthropic Skills sandbox has no internet access. Photo support requires Anthropic Files API integration, queued for a future sprint. Current flyer is typography + design-element driven.
 
-**2. Custom bullet icons** — `bullet_icons` maps keyword strings to a bundled set of ~20 procedurally-generated PNG icons (64×64) in `icons/`. Icons are recolored to match the accent color at render time. Partial keyword matching handles `"free lunch"` → `"lunch"` icon automatically. Falls back to diamond markers for unmatched keywords.
+**1. Custom bullet icons** — `bullet_icons` maps keyword strings to a bundled set of ~20 procedurally-generated PNG icons (64×64) in `icons/`. Icons are recolored to match the accent color at render time. Partial keyword matching handles `"free lunch"` → `"lunch"` icon automatically. Falls back to diamond markers for unmatched keywords.
 
-**3. Date as design element** — When `date` is provided, renders a tear-off calendar callout block: big numeric day (200pt YoungSerif), `MAY` month eyebrow (WorkSans-Bold, letter-spaced), weekday label above, time below. A sun-ray starburst pattern (16 rays) radiates behind the day number. The callout has a soft alpha-blended shadow underneath.
+**2. Date as design element** — When `date` is provided, renders a tear-off calendar callout block: big numeric day (200pt YoungSerif), `MAY` month eyebrow (WorkSans-Bold, letter-spaced), weekday label above, time below. A sun-ray starburst pattern (16 rays) radiates behind the day number. The callout has a soft alpha-blended shadow underneath.
 
-**4. Texture + depth** — A `assets/noise.png` (512×512 paper-grain texture) tiles across the cream body region at 4-6% opacity, giving the flyer a premium printed feel. The headline drop shadow radius is strengthened (GaussianBlur r=20). The hero band's top edge has a 3px lighter inset highlight.
+**3. Texture + depth** — A `assets/noise.png` (512×512 paper-grain texture) tiles across the cream body region at 4-6% opacity, giving the flyer a premium printed feel. The headline drop shadow radius is strengthened (GaussianBlur r=20). The hero band's top edge has a 3px lighter inset highlight.
 
-**5. Geometric accent stack** — Added beyond the original diagonal hero edge + corner block:
+**4. Geometric accent stack** — Added beyond the original diagonal hero edge + corner block:
 - Curved arc element cutting across the lower-left body area
 - Thin vertical accent line connecting hero bottom to footer (right side)
 - Sun-ray starburst behind the date number
