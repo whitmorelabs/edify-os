@@ -43,3 +43,52 @@ Ship a 5-element wow-factor overhaul of `apps/web/plugins/design/flyer/` — her
 
 ### Typecheck / Lint
 - Ran `pnpm --filter web typecheck` and `pnpm --filter web lint` — see PR notes for status
+
+---
+
+## 2026-04-29 — Flyer Skill 4-Bug Field-Test Cleanup
+
+**Agent:** Sonnet coding agent (spawned by Lopmon)
+**Branch:** `lopmon/flyer-fix-2026-04-29`
+**Source:** Citlali field-tested PR #51 wow-factor output and reported 4 bugs
+
+### Bug 1 — Hero photo never appears (unsplash gated off)
+**Root cause:** `resolveArchetypeTools` in `registry.ts` filtered out `unsplashTools` for Marketing Director when Canva is connected, preventing `search_stock_photo` from being available.
+**Fix:** Removed `&& !UNSPLASH_TOOL_NAMES.has(t.name)` from the Canva-connected filter. Canva gate now only strips render_design tools; unsplash stays available. Updated JSDoc to explain the rationale (Canva creates blank canvases, not photo search).
+
+### Bug 2 — Duplicate date callouts
+**Root cause:** `render.py` rendered BOTH the new date-hero block (big "22" + starburst) AND the old left tinted info-box with `date.upper()` + venue. They competed visually.
+**Fix:** Removed the old left info-box entirely. Venue is now rendered as a plain text line below the date hero block (left-aligned to MARGIN). Only one date treatment renders.
+
+### Bug 3 — Vertical accent line / arc crosses body text
+**Root cause:** Two issues: (a) vertical accent at `W * 0.91` was at the exact right edge of the text column; (b) the arc accent (radius 55% W, sweeping 340°→60°) passed through the body text at approximately x=1350, y=1200-1800. Citlali saw the arc cutting through "Meet" and "toward".
+**Fix:** (a) Moved vertical accent to `W * 0.955` (solidly in right margin). (b) Reduced arc radius to 22% W, moved center to canvas bottom-left corner (cx=0, cy=H), tightened sweep to 270°→360° so arc stays in the bottom ~10% of canvas only.
+
+### Bug 4 — "Lunch" icon doesn't read as fork & knife
+**Root cause:** Original procedural icon produced two thin rectangles — ambiguous at 64×64 (looked like two forks or musical notes).
+**Fix:** Regenerated `icons/lunch.png` with explicit fork (3 prongs + handle) and knife (blade with pointed tip + bevel) geometry using Pillow shape primitives. Icon now unambiguously reads as fork & knife.
+
+### Simplify Pass
+- Removed dead `font_logistics_label` variable (only used in the removed old info-box)
+- Fixed stale docstring angle range "(300°→360°)" → "(270°→360°)"
+
+### Files Changed
+| File | Change |
+|---|---|
+| `apps/web/src/lib/tools/registry.ts` | Remove unsplash filter from Canva-connected branch; update JSDoc |
+| `apps/web/plugins/design/flyer/render.py` | Remove duplicate date info-box; fix arc + vertical accent positions; remove dead font variable |
+| `apps/web/plugins/design/flyer/icons/lunch.png` | Replaced with clear fork+knife silhouette |
+
+### Smoke Test
+Ran full render with Citlali's exact prompt (with Unsplash hero photo URL). All 4 checkpoints passed:
+- Hero photo visible (orange-tinted career fair photo in right panel of hero band)
+- Single date callout (THURSDAY / MAY / 22 / 10:00 AM - 2:00 PM, no duplicate box)
+- Body text clean — no arc or line crossing letters
+- Lunch icon reads as fork & knife
+
+### Typecheck
+- `pnpm --filter web typecheck` — PASS (no errors)
+- No lint script exists in web package
+
+### Upload Status
+- `.env.local` not in worktree — upload skipped. Lopmon to run from main checkout post-merge.

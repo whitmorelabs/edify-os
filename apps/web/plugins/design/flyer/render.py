@@ -231,19 +231,27 @@ def _tint_icon(icon: Image.Image, color_rgb: tuple, size: int = 52) -> Image.Ima
 # ---------------------------------------------------------------------------
 
 def _draw_arc_accent(draw: ImageDraw.ImageDraw, W: int, H: int, color: tuple) -> None:
-    """Curved arc cutting across lower-left corner."""
-    # Large arc centered off-canvas lower-left
-    r = int(W * 0.55)
-    cx = -int(W * 0.02)
-    cy = int(H * 0.78)
+    """Curved arc in the lower-left corner, below the body text region.
+
+    Center is anchored at the canvas bottom-left corner. The small radius and
+    tight angle sweep (270°→360°) keep the arc entirely within the bottom
+    ~10% of the canvas so it never crosses body text.
+    """
+    r = int(W * 0.22)
+    cx = 0
+    cy = H
     bbox = [(cx - r, cy - r), (cx + r, cy + r)]
-    draw.arc(bbox, start=340, end=60, fill=(*color, 55), width=22)
-    draw.arc(bbox, start=340, end=60, fill=(*color, 30), width=44)
+    draw.arc(bbox, start=270, end=360, fill=(*color, 55), width=22)
+    draw.arc(bbox, start=270, end=360, fill=(*color, 30), width=44)
 
 
 def _draw_vertical_accent(draw: ImageDraw.ImageDraw, W: int, H: int, HERO_H: int, accent: tuple) -> None:
-    """Thin vertical accent line connecting hero bottom to footer top."""
-    x = int(W * 0.91)
+    """Thin vertical accent line connecting hero bottom to footer top.
+
+    Placed in the right-side margin (x ≈ 95% of canvas width) so it never
+    crosses the body text column, which spans from 9% to 91% of canvas width.
+    """
+    x = int(W * 0.955)
     y_start = HERO_H + 40
     y_end = int(H * 0.84)
     draw.rectangle([(x, y_start), (x + 6, y_end)], fill=(*accent, 80))
@@ -457,8 +465,7 @@ def render(
     font_eyebrow = _font("WorkSans-Bold.ttf", 80)
     font_sub = _font("Outfit-Regular.ttf", 90)
     font_body = _font("Outfit-Regular.ttf", 72)
-    font_logistics_label = _font("WorkSans-Bold.ttf", 68)
-    font_logistics = font_body  # same face + size
+    font_logistics = font_body  # same face + size as body; used for venue line
     font_bullet = _font("Outfit-Regular.ttf", 72)
     font_cta = _font("WorkSans-Bold.ttf", 96)
     font_footer = _font("Outfit-Regular.ttf", 56)
@@ -527,6 +534,10 @@ def render(
         y_body += 40
 
     # --- DATE CALLOUT as design element (wow element 3) ---
+    # Single treatment: the new date-hero block is the canonical date display.
+    # The old left info-box with date.upper() + venue is suppressed when a date
+    # is present — it caused duplicate date callouts in the rendered output.
+    # Venue is shown below the date hero block instead.
     if date or time_str or venue:
         weekday, month_abbr, day_num = _parse_date_parts(date) if date else (None, None, None)
 
@@ -584,39 +595,20 @@ def render(
             draw.text((day_x, date_y - 10), day_num, font=font_date_big, fill=(*bg, 255))
             date_y += 190
 
-        # Time below
+        # Time inside the lower band of the date hero
         if time_str:
             draw.text((date_text_x, date_y), time_str, font=font_date_time, fill=(*bg, 180))
-            date_y += 70
-
-        # Venue info in info block on the left
-        info_block_w = int(W * 0.52)
-        info_block_x = MARGIN
-        info_y = y_body
-
-        # Left info box (date text + venue)
-        box_lines = []
-        if date:
-            box_lines.append(("LABEL", date.upper()))
-        if venue:
-            box_lines.append(("INFO", venue))
-
-        box_line_h = 110
-        box_pad = 60
-        box_h = max(len(box_lines) * box_line_h + box_pad * 2, 200)
-        box_bg = (*_tint(*bg, 0.88), 255)
-        draw.rectangle([(info_block_x, info_y), (info_block_x + info_block_w, info_y + box_h)], fill=box_bg)
-        draw.rectangle([(info_block_x, info_y), (info_block_x + 12, info_y + box_h)], fill=(*accent, 255))
-
-        y_l = info_y + box_pad
-        for kind, txt in box_lines:
-            f = font_logistics_label if kind == "LABEL" else font_logistics
-            draw.text((info_block_x + 48, y_l), txt, font=f, fill=(*bg, 255))
-            y_l += box_line_h
 
         date_block_bottom = y_body + DATE_BLOCK_H
-        info_block_bottom = info_y + box_h
-        y_body = max(date_block_bottom, info_block_bottom) + 70
+
+        # Venue rendered below the date hero block (left-aligned with left margin).
+        # This replaces the old left tinted-box which duplicated the date text.
+        if venue:
+            venue_y = date_block_bottom + 24
+            draw.text((MARGIN, venue_y), venue, font=font_logistics, fill=(*_shade(*bg, 0.15), 220))
+            y_body = venue_y + int(72 * 1.55) + 20
+        else:
+            y_body = date_block_bottom + 70
 
     # --- Body text ---
     if body_text:
