@@ -1876,3 +1876,73 @@ First sprint of the grant-discovery research expansion — wire ProPublica Nonpr
 ### Notes for Lopmon
 - No new packages added. No UI changes. No archetype prompt edits beyond per-tool addenda. No migration / supabase / Grants.gov / ProPublica behavior changes.
 - Branch: `feat/usaspending-ca-grants-sprint2`. Ready for review.
+
+---
+
+## 2026-04-30 — MCP-0 Sprint 1 Agent (Sonnet)
+
+**Identity:** MCP-0 Sprint 1 Agent (Sonnet)
+**Branch:** `feat/mcp-0-sprint-1-notion`
+**Worktree:** `C:\Users\Araly\edify-os\.claude\worktrees\agent-ac5c0f13d1759e1f9`
+**PRD:** `C:\Users\Araly\edify-os\.claude\worktrees\agent-acb54aab05df95a44\MCP-0-PRD-2026-05-01.md`
+
+### What Was Built
+
+Generalized the bespoke Slack + Canva MCP wiring under `apps/web/src/lib/mcp/` into a config-driven factory and proved the new pipeline by wiring Notion end-to-end.
+
+**New files:**
+- `apps/web/src/lib/mcp/server-catalog.ts` — single source of truth for every MCP server (id, URL, auth mode, OAuth quirks, archetype scope). Adding a new server is now a config edit. Catalog ships with `slack` (bearer-env), `canva` (OAuth, retained from Sprint 2), `notion` (OAuth, the proof connector for MCP-0).
+- `apps/web/src/lib/mcp/oauth-factory.ts` — generic OAuth helpers: `getValidAccessToken()`, `refreshAccessToken()`, `revokeAccessToken()`, `exchangeCodeForTokens()`, `buildRedirectUri()`. Supports `clientAuth: "basic" | "post"`, optional PKCE (`usePkce`), refresh-token rotation, per-server `metadataFromTokenResponse` hook for storing workspace info.
+- `apps/web/src/app/api/oauth/[server]/connect/route.ts` — generic OAuth start (state cookie + optional PKCE).
+- `apps/web/src/app/api/oauth/[server]/callback/route.ts` — generic OAuth callback (CSRF check, code exchange, encrypt + upsert mcp_connections row, redirect with flash param).
+- `apps/web/src/app/api/oauth/[server]/disconnect/route.ts` — generic disconnect (best-effort revoke + hard-delete row).
+- `apps/web/src/app/api/oauth/[server]/route.ts` — generic GET status endpoint (`{ connected, metadata }`).
+- `apps/web/src/app/api/admin/mcp-status/route.ts` — diagnostic endpoint listing all servers + per-org connection state. Never returns tokens.
+
+**Modified files:**
+- `apps/web/src/lib/mcp/registry.ts` — `buildMcpServersForOrg()` now reads from `server-catalog.ts` via `listServersForArchetype()` and resolves tokens through the factory. Per-server resolution runs in parallel.
+- `apps/web/src/lib/mcp/canva-oauth.ts` — refactored into a backward-compat shim. All legacy exports (`CANVA_*`, `CanvaApiError`, `handleCanvaResponse`, `getValidCanvaAccessToken`, `refreshCanvaToken`, `revokeCanvaToken`) preserved verbatim. Token operations delegate to the factory.
+
+### Notion connector specifics
+
+- URL: `https://mcp.notion.com/mcp` (Anthropic Connectors directory)
+- OAuth: Authorization Code, HTTP Basic for client creds, NO PKCE, `owner=user` query param required
+- Scopes: none (Notion uses page-level grants at consent time)
+- Refresh tokens rotate; `metadataFromTokenResponse` stores workspace_id, workspace_name, bot_id, owner email/name in `mcp_connections.metadata`
+- Archetype scope: `executive_assistant`, `development_director`, `programs_director` (per memory `project_edify_archetype_roadmap`)
+
+To enable Notion in production, set:
+- `NOTION_OAUTH_CLIENT_ID`
+- `NOTION_OAUTH_CLIENT_SECRET`
+- (optional) `NOTION_OAUTH_REDIRECT_URI` — defaults to `<origin>/api/oauth/notion/callback`
+
+### Slack + Canva preservation
+
+- **Slack:** unchanged path. `bearer-env` mode reads `SLACK_MCP_OAUTH_TOKEN` exactly like before.
+- **Canva:** all legacy exports retained. `/api/integrations/canva/*` routes still work — the catalog entry pins `legacyRedirectPath: "/api/integrations/canva/callback"` so OAuth round-trips land on the existing handler.
+- `lib/tools/canva-generate-design.ts` and `lib/tools/canva-export-design.ts` import paths unchanged (`@/lib/mcp/canva-oauth`).
+- `/api/admin/canva-test` still uses `getValidCanvaAccessToken` which now delegates to factory's `getValidAccessToken("canva", …)`.
+
+### Verification
+
+- `pnpm --filter web typecheck` → CLEAN (0 errors)
+- All existing imports of `@/lib/mcp/canva-oauth` continue to resolve
+- New `/api/oauth/[server]/*` routes 404 cleanly for unknown server ids
+- `/api/admin/mcp-status` returns auth_mode, status, archetype scope per server
+
+### Out of scope (deferred to Sprint 2 per PRD)
+
+- Per-org per-archetype grant-management UI (`archetype_mcp_grants` table)
+- Settings → Integrations Notion tile (UI cosmetic; per memory `feedback_edify_no_visual_changes`, Z+Milo own visuals)
+- Observability dashboards / token-refresh failure surfacing
+- `MCP_TOOLS_ADDENDUM` builder in `tools/registry.ts` (the model already auto-discovers MCP-server tools; addendum is informational polish)
+- Migrating Slack from env-var bearer to per-org OAuth via factory (depends on Slack OAuth client setup)
+- Candid / Asana / Blackbaud / Benevity wiring
+
+### Notes for Lopmon
+
+- Z+Milo offline → auto-merge applies per `project_z_milo_offline_2026_04`. PR is safe to merge if review is clean.
+- No DB migration needed: `mcp_connections` is already keyed on `(org_id, server_name)` — generic.
+- No new packages installed. Anthropic's `mcp_servers` API parameter handles the protocol plumbing; no `@modelcontextprotocol/sdk` required.
+- No visual UI changes. Existing `dashboard/integrations/page.tsx` still has the Canva tile and Notion is reachable via direct route navigation — Sprint 2 will add the proper tile.
+
