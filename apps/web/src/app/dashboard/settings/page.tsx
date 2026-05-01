@@ -258,8 +258,8 @@ export default function SettingsPage() {
           {ARCHETYPE_SLUGS.map((slug) => {
             const config = ARCHETYPE_CONFIG[slug];
             return (
-              <div key={slug} className="flex items-center gap-3">
-                <label className="w-44 shrink-0 text-sm font-medium text-fg-1 truncate">
+              <div key={slug} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                <label className="sm:w-44 shrink-0 text-sm font-medium text-fg-1 truncate">
                   {config.label}
                 </label>
                 <input
