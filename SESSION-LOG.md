@@ -1693,3 +1693,29 @@ Add diagnostic logging to the file proxy 502 path so the next field test of the 
 ### Notes for Next Agent
 - After the next failing render, run `vercel logs <deployment>` and grep for `[file-proxy]` to see which SDK call is throwing and what `status` / `message` Anthropic returned.
 - Most likely candidates per prior diagnostic: stale/expired `file_id`, missing `anthropic-beta: files-api-2025-04-14` header on a downstream call, or a 404 because the file lives under a different org's API key than the one resolved by `getAnthropicClientForOrg`.
+
+---
+
+## File Proxy 502 Body Diagnostics Agent — 2026-04-30
+
+**Identity:** File Proxy 502 Body Diagnostics Agent (Sonnet)
+**Branch:** `worktree-agent-a9b83f428d115c516`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a9b83f428d115c516`
+
+### Task
+Path C: route the same `[file-proxy] download failed` diagnostic fields PR #55 logs to stderr into the 502 JSON response body. Citlali doesn't have Vercel log access (Z owns account, offline), so she'll reproduce in-browser and read the response body via devtools → Network tab.
+
+### What Was Done
+- Edited only `apps/web/src/app/api/files/[fileId]/route.ts`.
+- Outer catch's 502 response body extended from `{ error }` to `{ error, status, name, message, stack }` using the existing `e` cast already used by `console.error` directly above.
+- `console.error` line preserved — server logs still useful for Z when back.
+- Metadata `try/catch` (lines 58-68) untouched — still degrades silently to octet-stream as designed.
+- 502 status code unchanged so the chat client's existing `onError` still fires.
+
+### Verification
+- `pnpm --filter web typecheck` → clean (0 errors).
+- `/simplify` reviewed — code already clean. Field set in JSON body intentionally mirrors `console.error` shape (PRD spec). `error: msg` preserved for client-onError back-compat distinct from raw `message: e?.message`.
+
+### Notes for Next Agent
+- Citlali reproduces flyer render → opens devtools Network tab → clicks failing `/api/files/{fileId}` → response body now reveals `name` (e.g. `NotFoundError`, `AuthenticationError`) and `status` from Anthropic SDK.
+- Once the actual SDK error surfaces, that determines fix path: stale file_id, wrong org's key, missing beta header, or expired upload.

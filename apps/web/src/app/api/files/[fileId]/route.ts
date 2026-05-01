@@ -94,6 +94,15 @@ export async function GET(
       stack: e?.stack,
     });
     const msg = err instanceof Error ? err.message : "File download failed";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return NextResponse.json(
+      {
+        error: msg,
+        status: e?.status,
+        name: e?.name,
+        message: e?.message,
+        stack: e?.stack,
+      },
+      { status: 502 }
+    );
   }
 }
