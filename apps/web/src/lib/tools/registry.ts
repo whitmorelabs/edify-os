@@ -360,13 +360,7 @@ export async function executeTool({
   }
 
   if (RENDER_TOOL_NAMES.has(name)) {
-    if (!anthropic) {
-      return {
-        content: "Render tool requires an Anthropic client; none was provided.",
-        is_error: true,
-      };
-    }
-    return executeRenderTool({ name, input, anthropic });
+    return executeRenderTool({ name, input, serviceClient, orgId });
   }
 
   if (SOCIAL_TOOL_NAMES.has(name)) {
