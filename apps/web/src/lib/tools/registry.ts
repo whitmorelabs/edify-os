@@ -11,6 +11,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { calendarTools, executeCalendarTool, CALENDAR_TOOLS_ADDENDUM } from "@/lib/tools/calendar";
 import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/grants";
 import { nonprofitTools, executeNonprofitTool, NONPROFIT_TOOLS_ADDENDUM } from "@/lib/tools/nonprofit";
+import { usaspendingTools, executeUSAspendingTool, USASPENDING_TOOLS_ADDENDUM } from "@/lib/tools/usaspending";
+import { caGrantsTools, executeCaGrantsTool, CA_GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/ca-grants";
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { driveTools, executeDriveTool, DRIVE_TOOLS_ADDENDUM } from "@/lib/tools/drive";
@@ -71,6 +73,8 @@ export {
   CALENDAR_TOOLS_ADDENDUM,
   GRANTS_TOOLS_ADDENDUM,
   NONPROFIT_TOOLS_ADDENDUM,
+  USASPENDING_TOOLS_ADDENDUM,
+  CA_GRANTS_TOOLS_ADDENDUM,
   CRM_TOOLS_ADDENDUM,
   GMAIL_TOOLS_ADDENDUM,
   DRIVE_TOOLS_ADDENDUM,
@@ -106,6 +110,10 @@ const BRAND_GUIDELINES_TOOL_NAMES = new Set(brandGuidelinesTools.map((t) => t.na
 const REPORT_EVENT_TOOL_NAMES = new Set(reportEventTools.map((t) => t.name));
 const IMPACT_DATA_TOOL_NAMES = new Set(impactDataTools.map((t) => t.name));
 const CONSULT_TEAMMATE_TOOL_NAMES = new Set(consultTeammateTools.map((t) => t.name));
+// ca_grants_* tool names start with "ca_" — the prefix-split fallback would
+// resolve them to family "ca", which is ambiguous if more state portals land.
+// Pin the family to "ca_grants" via an explicit name set.
+const CA_GRANTS_TOOL_NAMES = new Set(caGrantsTools.map((t) => t.name));
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -173,6 +181,10 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("consult_teammate");
       continue;
     }
+    if (CA_GRANTS_TOOL_NAMES.has(t.name)) {
+      families.add("ca_grants");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -189,6 +201,8 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("calendar")) parts.push(CALENDAR_TOOLS_ADDENDUM);
   if (families.has("grants")) parts.push(GRANTS_TOOLS_ADDENDUM);
   if (families.has("nonprofit")) parts.push(NONPROFIT_TOOLS_ADDENDUM);
+  if (families.has("usaspending")) parts.push(USASPENDING_TOOLS_ADDENDUM);
+  if (families.has("ca_grants")) parts.push(CA_GRANTS_TOOLS_ADDENDUM);
   if (families.has("crm")) parts.push(CRM_TOOLS_ADDENDUM);
   if (families.has("gmail")) parts.push(GMAIL_TOOLS_ADDENDUM);
   if (families.has("drive")) parts.push(DRIVE_TOOLS_ADDENDUM);
@@ -216,7 +230,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
-  development_director: [...calendarTools, ...grantsTools, ...nonprofitTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
+  development_director: [...calendarTools, ...grantsTools, ...nonprofitTools, ...usaspendingTools, ...caGrantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   marketing_director: [
     ...driveTools,
     ...unsplashTools,
@@ -344,6 +358,14 @@ export async function executeTool({
 
   if (name.startsWith("nonprofit_")) {
     return executeNonprofitTool({ name, input });
+  }
+
+  if (name.startsWith("usaspending_")) {
+    return executeUSAspendingTool({ name, input });
+  }
+
+  if (name.startsWith("ca_grants_")) {
+    return executeCaGrantsTool({ name, input });
   }
 
   if (name.startsWith("crm_")) {
