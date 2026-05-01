@@ -1795,3 +1795,40 @@ Applied 10 of 11 Tier A fixes (skipped #6 — `animated-dashboard.tsx` mock — 
 ### Notes for Next Agent
 - Tier B items 1–5 in audit doc still need Z+Milo design judgment — DO NOT pick up.
 - One Tier A change (team-card grid) uses Tailwind arbitrary value `sm:[grid-template-columns:...]` to preserve the `auto-fit minmax(180px,1fr)` semantics at ≥sm. If Tailwind JIT chokes on this in a future Tailwind upgrade, swap to a real CSS class.
+
+---
+
+## ProPublica Nonprofit Explorer Agent — 2026-04-30
+
+**Identity:** ProPublica integration agent (Sonnet)
+**Branch:** `worktree-agent-a318c36437d2bd58e`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a318c36437d2bd58e`
+
+### Task
+First sprint of the grant-discovery research expansion — wire ProPublica Nonprofit Explorer into Edify-OS as a Development Director tool. Mirror the Grants.gov pattern; no UI changes, no new deps, typecheck clean.
+
+### What Was Done
+- New `apps/web/src/lib/propublica-nonprofits.ts` — typed REST wrappers for the v2 API (`/search.json` + `/organizations/{ein}.json`). Free public API, no auth. User-Agent identifies Edify. NTEE major-group constants exported. `ProPublicaNonprofitError` mirrors `GrantsGovError` shape and reuses the shared `handleJsonResponse` helper from `@/lib/http`.
+- New `apps/web/src/lib/tools/nonprofit.ts` — Anthropic tool definitions + executor for two tools:
+  - `nonprofit_search` — by query string + optional state + optional NTEE major group (1–10).
+  - `nonprofit_get_details` — by EIN, returns header info + recent 990 filings (revenue, expenses, assets, officer comp, contributions paid for 990-PF foundations).
+  - `NONPROFIT_TOOLS_ADDENDUM` system-prompt addendum embeds the NTEE major-group mapping and warns Claude about 6-12 month filing lag.
+- `apps/web/src/lib/tools/registry.ts` — wired tool family ("nonprofit"), addendum, dispatch branch, and added `nonprofitTools` to `development_director` archetype only.
+- `apps/web/src/lib/hours-saved/estimates.ts` — added `tool:nonprofit_search` (30 min) and `tool:nonprofit_get_details` (25 min) — funder due diligence is more time-consuming than grant search.
+
+### Verification
+- Live ProPublica API verified during dev:
+  - Search "youth mentoring" + state=NY → 6 hits, all 501(c)(3) (subseccd=3).
+  - Org detail EIN=131684331 (Ford Foundation) → 11 filings_with_data, formtype=2 (990-PF), latest 2023 filing shows totrevenue=$502M, totassetsend=$16.8B, contrpdpbks=$607M (Ford's 2023 grant outflow).
+  - Search "Ford Foundation" + state=NY → 891 hits, top result Ford Foundation EIN 13-1684331.
+- Invalid-EIN behavior handled: ProPublica returns HTTP 200 with `id=0` / `name="Unknown Organization"`. Lib detects this and throws 404 ProPublicaNonprofitError.
+- `pnpm --filter web typecheck` → clean (0 errors).
+
+### Risks / Follow-ups for Citlali
+- **Filing data lag:** ~6-12 months behind. Tool addendum warns Claude to use this for "historical funder behavior" not "what's open right now."
+- **No 990-PF schedule parser:** Schedule I / Part XV grant-recipient lists live inside the linked PDF/XML, NOT the JSON envelope. Surfaced via `pdfUrl` in filing rows but never fetched server-side. A schedule parser is a follow-up sprint if Citlali wants "Foundation X gave $50K to Org Y in 2023" granularity.
+- **Rate limits:** PDF download links are explicitly rate-limited; JSON endpoints have no published limit. We send a User-Agent identifying Edify so ProPublica can contact us if traffic spikes.
+- **Next sprints (per research doc):** USAspending.gov (federal awards triad), CA Grants Portal (state proof-of-concept), Candid MCP (top priority but gated on Phase MCP-0), AI matching layer over the combined sources.
+
+### Notes for Lopmon
+- Worktree pre-existed but had no `node_modules`; ran `pnpm install` to enable typecheck. Initial Write calls accidentally landed in main repo instead of worktree — files were copied into worktree and main repo reverted clean before commit.

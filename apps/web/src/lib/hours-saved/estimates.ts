@@ -33,6 +33,10 @@ export const TIME_SAVED_ESTIMATES_MINUTES = {
   "tool:grants_search": 45,         // reading Grants.gov manually, filtering
   "tool:grants_get_details": 15,    // reading full opportunity docs
 
+  // Nonprofit / funder due diligence (ProPublica)
+  "tool:nonprofit_search": 30,        // researching funders + peer orgs by hand
+  "tool:nonprofit_get_details": 25,   // pulling 990 financials + giving history
+
   // CRM
   "tool:crm_log_interaction": 8,    // updating a donor record manually
   "tool:crm_list_donors": 3,        // searching donor list

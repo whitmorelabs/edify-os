@@ -10,6 +10,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calendarTools, executeCalendarTool, CALENDAR_TOOLS_ADDENDUM } from "@/lib/tools/calendar";
 import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/grants";
+import { nonprofitTools, executeNonprofitTool, NONPROFIT_TOOLS_ADDENDUM } from "@/lib/tools/nonprofit";
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { driveTools, executeDriveTool, DRIVE_TOOLS_ADDENDUM } from "@/lib/tools/drive";
@@ -69,6 +70,7 @@ import { ARCHETYPE_SLUGS, type ArchetypeSlug } from "@/lib/archetypes";
 export {
   CALENDAR_TOOLS_ADDENDUM,
   GRANTS_TOOLS_ADDENDUM,
+  NONPROFIT_TOOLS_ADDENDUM,
   CRM_TOOLS_ADDENDUM,
   GMAIL_TOOLS_ADDENDUM,
   DRIVE_TOOLS_ADDENDUM,
@@ -186,6 +188,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   const parts: string[] = [];
   if (families.has("calendar")) parts.push(CALENDAR_TOOLS_ADDENDUM);
   if (families.has("grants")) parts.push(GRANTS_TOOLS_ADDENDUM);
+  if (families.has("nonprofit")) parts.push(NONPROFIT_TOOLS_ADDENDUM);
   if (families.has("crm")) parts.push(CRM_TOOLS_ADDENDUM);
   if (families.has("gmail")) parts.push(GMAIL_TOOLS_ADDENDUM);
   if (families.has("drive")) parts.push(DRIVE_TOOLS_ADDENDUM);
@@ -213,7 +216,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
-  development_director: [...calendarTools, ...grantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
+  development_director: [...calendarTools, ...grantsTools, ...nonprofitTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   marketing_director: [
     ...driveTools,
     ...unsplashTools,
@@ -337,6 +340,10 @@ export async function executeTool({
 
   if (name.startsWith("grants_")) {
     return executeGrantsTool({ name, input });
+  }
+
+  if (name.startsWith("nonprofit_")) {
+    return executeNonprofitTool({ name, input });
   }
 
   if (name.startsWith("crm_")) {
