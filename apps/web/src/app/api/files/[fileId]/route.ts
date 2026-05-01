@@ -55,8 +55,16 @@ export async function GET(
         const ext = filename.split(".").pop()?.toLowerCase();
         if (ext && SKILL_MIME[ext]) contentType = SKILL_MIME[ext];
       }
-    } catch {
+    } catch (err) {
       // Non-fatal — fall back to generic filename / octet-stream
+      const e = err as { status?: unknown; message?: unknown; name?: unknown; stack?: unknown };
+      console.error("[file-proxy] retrieveMetadata failed", {
+        fileId,
+        status: e?.status,
+        name: e?.name,
+        message: e?.message,
+        stack: e?.stack,
+      });
     }
 
     // Download the file content
@@ -77,7 +85,14 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error("[files/proxy] Download failed", { fileId, error: err });
+    const e = err as { status?: unknown; message?: unknown; name?: unknown; stack?: unknown };
+    console.error("[file-proxy] download failed", {
+      fileId,
+      status: e?.status,
+      name: e?.name,
+      message: e?.message,
+      stack: e?.stack,
+    });
     const msg = err instanceof Error ? err.message : "File download failed";
     return NextResponse.json({ error: msg }, { status: 502 });
   }
