@@ -14,23 +14,23 @@
  *     width?: number,                // Custom width in px (overrides preset)
  *     height?: number,               // Custom height in px (overrides preset)
  *     filename?: string,             // Filename for the resulting PNG (optional)
- *     upload?: boolean,              // If true, upload to Anthropic Files API and
- *                                    //   return { fileId, downloadUrl, name }.
+ *     upload?: boolean,              // If true, persist to Supabase Storage and
+ *                                    //   return { renderId, downloadUrl, name }.
  *                                    //   Otherwise stream the PNG bytes directly.
  *   }
  *
- * Auth: session cookie (same pattern as /api/files/[fileId]).
+ * Auth: session cookie (same pattern as /api/renders/[renderId]).
  * Render lives server-side in the Node runtime (satori-html + @vercel/og's
  * node build work on Vercel's standard Node functions).
  */
 import { NextResponse } from "next/server";
 import { getAuthContext, createServiceRoleClient } from "@/lib/supabase/server";
-import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import {
   renderHtmlToPng,
   resolveRenderDimensions,
   sanitizePngFilename,
 } from "@/lib/render/og";
+import { persistRenderedPng } from "@/lib/tools/render";
 
 export const runtime = "nodejs";
 
@@ -81,36 +81,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  // If upload=true, push to Anthropic Files so the FileChip UI / /api/files
-  // proxy can serve it — same pattern as skill-generated files.
   if (upload === true) {
     const serviceClient = createServiceRoleClient();
     if (!serviceClient) {
       return NextResponse.json({ error: "Database not configured" }, { status: 503 });
     }
-    const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId);
-    if ("error" in anthropicResult) return anthropicResult.error;
-    const { client: anthropic } = anthropicResult;
-
     try {
-      const blob = new Blob([new Uint8Array(pngBuffer)], { type: "image/png" });
-      const file = new File([blob], safeFilename, { type: "image/png" });
-      const uploaded = await anthropic.beta.files.upload(
-        { file },
-        { headers: { "anthropic-beta": "files-api-2025-04-14" } } as Parameters<
-          typeof anthropic.beta.files.upload
-        >[1]
-      );
+      const { renderId, downloadUrl } = await persistRenderedPng({
+        serviceClient,
+        orgId,
+        pngBuffer,
+        filename: safeFilename,
+      });
       return NextResponse.json({
-        fileId: uploaded.id,
+        renderId,
         name: safeFilename,
-        downloadUrl: `/api/files/${encodeURIComponent(uploaded.id)}`,
+        downloadUrl,
         width: finalWidth,
         height: finalHeight,
         bytes: pngBuffer.byteLength,
       });
     } catch (err) {
-      console.error("[render/og] upload to Anthropic Files failed", err);
+      console.error("[render/og] Supabase Storage upload failed", err);
       const msg = err instanceof Error ? err.message : "upload failed";
       return NextResponse.json({ error: msg }, { status: 502 });
     }

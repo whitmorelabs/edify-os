@@ -6,16 +6,65 @@
  * compositions, but nonprofits need social-ready raster images (Instagram,
  * LinkedIn, etc). Claude can't generate raster images natively. This tool
  * rasterizes the skill's HTML output into a PNG via @vercel/og (satori +
- * resvg) and uploads the PNG to Anthropic Files so the existing FileChip
- * UI and /api/files/[fileId] proxy can surface it for download.
+ * resvg) and persists the PNG in Supabase Storage so the FileChip UI and
+ * /api/renders/[renderId] proxy can surface it for download.
+ *
+ * Storage choice: Anthropic's Files API can't host these. Per the public
+ * Files API docs, files uploaded with an API key are not downloadable —
+ * only files produced by skills / code-execution containers are. Uploading
+ * the rendered PNG there returned a fileId that 400'd at download time
+ * ("is not downloadable"). Supabase Storage gives us a downloadable
+ * artifact whose URL is stable across page reloads.
  */
 
+import { randomUUID } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   renderHtmlToPng,
   resolveRenderDimensions,
   sanitizePngFilename,
 } from "@/lib/render/og";
+
+/** Supabase Storage bucket for rendered PNGs. Created by migration 00026. */
+export const RENDERED_FILES_BUCKET = "rendered-files";
+
+/**
+ * Upload a rendered PNG to Supabase Storage under `<orgId>/<renderId>.png`
+ * and return the proxy URL the FileChip UI can hit. Shared between
+ * render_design_to_image (tool executor) and POST /api/render/og.
+ *
+ * Throws on Supabase error so callers can wrap in their own try/catch and
+ * choose how to surface the failure.
+ */
+export async function persistRenderedPng({
+  serviceClient,
+  orgId,
+  pngBuffer,
+  filename,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serviceClient: SupabaseClient<any>;
+  orgId: string;
+  pngBuffer: Buffer;
+  filename: string;
+}): Promise<{ renderId: string; downloadUrl: string }> {
+  const renderId = randomUUID();
+  const { error } = await serviceClient.storage
+    .from(RENDERED_FILES_BUCKET)
+    .upload(`${orgId}/${renderId}.png`, pngBuffer, {
+      contentType: "image/png",
+      upsert: false,
+      // Keep the original requested filename in object metadata so the
+      // download endpoint can set Content-Disposition correctly.
+      metadata: { filename },
+    });
+  if (error) throw error;
+  return {
+    renderId,
+    downloadUrl: `/api/renders/${encodeURIComponent(renderId)}`,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum when render tool is active.
@@ -121,11 +170,14 @@ export interface ExecuteRenderToolResult {
 export async function executeRenderTool({
   name,
   input,
-  anthropic,
+  serviceClient,
+  orgId,
 }: {
   name: string;
   input: Record<string, unknown>;
-  anthropic: Anthropic;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serviceClient: SupabaseClient<any>;
+  orgId: string;
 }): Promise<ExecuteRenderToolResult> {
   if (name !== "render_design_to_image") {
     return { content: `Unknown render tool: ${name}`, is_error: true };
@@ -159,28 +211,23 @@ export async function executeRenderTool({
     return { content: `Render failed: ${msg}`, is_error: true };
   }
 
-  // Upload PNG to Anthropic Files API so the existing /api/files/[fileId]
-  // proxy can serve it — same storage pattern as skill-generated files.
-  let fileId: string;
+  let renderId: string;
+  let downloadUrl: string;
   try {
-    const blob = new Blob([new Uint8Array(pngBuffer)], { type: "image/png" });
-    const file = new File([blob], filename, { type: "image/png" });
-    const uploaded = await anthropic.beta.files.upload(
-      { file },
-      { headers: { "anthropic-beta": "files-api-2025-04-14" } } as Parameters<
-        typeof anthropic.beta.files.upload
-      >[1]
-    );
-    fileId = uploaded.id;
+    ({ renderId, downloadUrl } = await persistRenderedPng({
+      serviceClient,
+      orgId,
+      pngBuffer,
+      filename,
+    }));
   } catch (err) {
-    console.error("[render-tool] Anthropic Files upload failed", err);
+    console.error("[render-tool] Supabase Storage upload failed", err);
     const msg = err instanceof Error ? err.message : "upload failed";
     return { content: `PNG generated but upload failed: ${msg}`, is_error: true };
   }
 
-  const downloadUrl = `/api/files/${encodeURIComponent(fileId)}`;
   const summary = {
-    fileId,
+    renderId,
     name: filename,
     downloadUrl,
     width,

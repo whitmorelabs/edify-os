@@ -1722,6 +1722,41 @@ Path C: route the same `[file-proxy] download failed` diagnostic fields PR #55 l
 
 ---
 
+## render_design_to_image Downloadability Fix Agent — 2026-04-30
+
+**Identity:** render_design_to_image Downloadability Fix Agent (Sonnet)
+**Branch:** `worktree-agent-afa638fc052f44208`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-afa638fc052f44208`
+
+### Task
+Fix the `400 "File 'file_011...' is not downloadable"` error from `/api/files/{fileId}` after a flyer render — the smoking gun PR #56 surfaced.
+
+### Root Cause
+The Anthropic Files API does not allow downloading files uploaded via the API key. Per the public docs (https://platform.claude.com/docs/en/docs/build-with-claude/files):
+
+> You can only download files that were created by skills or the code execution tool. Files that you uploaded cannot be downloaded.
+
+The example response in the same docs explicitly returns `"downloadable": false` for an uploaded PDF. The render-tool path was uploading the @vercel/og PNG bytes into Anthropic's Files API and pointing the FileChip UI at `/api/files/{fileId}` — but those files are flagged non-downloadable, so the proxy's `files.download(fileId)` call 400'd. There is no `purpose` parameter; no SDK flag fixes this. The architectural premise was fundamentally incompatible with the API.
+
+### What Was Done
+- New migration `supabase/migrations/00026_rendered_files_storage.sql` creates a private `rendered-files` Supabase Storage bucket. Path scheme: `<orgId>/<renderId>.png` for tenant isolation.
+- `apps/web/src/lib/tools/render.ts` — `executeRenderTool` now uploads to Supabase Storage instead of Anthropic Files; signature changed from `{anthropic}` to `{serviceClient, orgId}`. Added shared helper `persistRenderedPng()` and exported `RENDERED_FILES_BUCKET` constant.
+- `apps/web/src/app/api/renders/[renderId]/route.ts` — new GET endpoint streams PNGs from Supabase Storage. Tenant isolation: lookup is hard-coded to the authenticated org's path inside the bucket.
+- `apps/web/src/app/api/render/og/route.ts` — `upload=true` path migrated to `persistRenderedPng()` (was using the same broken Anthropic Files upload).
+- `apps/web/src/lib/tools/registry.ts` — `executeTool`'s render branch now passes `serviceClient, orgId`; dropped the `if (!anthropic)` guard since render no longer needs it.
+- `/api/files/[fileId]` proxy left untouched per task spec — it still serves skill-generated DOCX/XLSX/PPTX/PDF (which ARE downloadable since they come from skills/code-exec).
+
+### Verification
+- `pnpm --filter web typecheck` → clean (0 errors).
+- `/simplify` review pass: extracted shared `persistRenderedPng()` helper to remove copy-paste between tool executor and route handler; trimmed unused metadata `list()` lookup in `/api/renders/[renderId]` since FileChip uses the client-side filename.
+
+### Risks / Unknowns Before Merge
+- The migration assumes Supabase Storage is enabled in the project (it is per `supabase/config.toml` line 109-110). The bucket-create SQL is the standard `INSERT INTO storage.buckets` pattern Supabase docs recommend; idempotent via `ON CONFLICT DO NOTHING`.
+- The `metadata: { filename }` field is written but not currently read — future enhancement could surface the original filename in `Content-Disposition`. Skipped for now since the FileChip's `download="..."` attribute on the client already provides the user-facing filename.
+- Existing rendered file_ids stored in chat history (Anthropic file IDs) will continue to 400 since that's the original bug; any new renders will work. No data migration needed — non-downloadable file_ids are unrecoverable by design.
+
+---
+
 ## Mobile Responsive Tier A Agent — 2026-04-30
 
 **Identity:** Mobile Responsive Tier A Agent (Sonnet)
