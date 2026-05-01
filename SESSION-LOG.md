@@ -1832,3 +1832,47 @@ First sprint of the grant-discovery research expansion — wire ProPublica Nonpr
 
 ### Notes for Lopmon
 - Worktree pre-existed but had no `node_modules`; ran `pnpm install` to enable typecheck. Initial Write calls accidentally landed in main repo instead of worktree — files were copied into worktree and main repo reverted clean before commit.
+
+---
+
+## 2026-04-30 — Grant Discovery Sprint 2 (USAspending.gov + CA Grants Portal)
+
+**Identity:** Sonnet coding agent (spawned by Lopmon)
+**Branch:** `feat/usaspending-ca-grants-sprint2`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a9ec87f66af67f774`
+**PRD reference:** `GRANT-DISCOVERY-RESEARCH-2026-05-01.md` sections 3 (USAspending) + 11 (state portals → California)
+
+### What Was Done
+- New `apps/web/src/lib/usaspending.ts` — typed REST wrappers for USAspending v2:
+  - `searchFederalAwards` → `POST /search/spending_by_award/` (filters by recipient/keyword/state/date/award type group; default `grants`).
+  - `findRecipients` → `POST /recipient/duns/` (legacy keyword search — only working free-text recipient lookup as of 2026-04).
+  - `getRecipientProfile` → `GET /recipient/{recipient_id}/`.
+  - `AWARD_TYPE_GROUPS` const for sane defaults (grants=02/03/04/05, loans=07/08, contracts=A-D, etc.).
+  - Earliest start_date clamped silently to 2007-10-01 per upstream contract.
+- New `apps/web/src/lib/ca-grants-portal.ts` — typed wrappers for the data.ca.gov CKAN datastore (resource id `111c8c88-21f6-453c-ae2c-b4785a0624f5`):
+  - `searchCaGrants` (q + status + agencyDept filter; default `Status=active`).
+  - `getCaGrant` (single row by `_id`).
+  - Description column truncated to 500 chars in search results, full text in get-details.
+- New `apps/web/src/lib/tools/usaspending.ts` — 2 Anthropic tools (`usaspending_search_awards`, `usaspending_recipient_profile`) + addendum. The recipient-profile tool collapses search→fetch into one round-trip by auto-fetching the top hit's full profile when a search returns ≥1 result.
+- New `apps/web/src/lib/tools/ca-grants.ts` — 2 Anthropic tools (`ca_grants_search`, `ca_grants_get_details`) + addendum.
+- `apps/web/src/lib/tools/registry.ts` — wired both families, added `ca_grants_*` to the explicit-name Set (avoids "ca" prefix collision with future state portals), added dispatch branches (`usaspending_*`, `ca_grants_*`), added both tool sets to `development_director` archetype only.
+- `apps/web/src/lib/hours-saved/estimates.ts` — added 4 entries: `usaspending_search_awards` (30min), `usaspending_recipient_profile` (25min), `ca_grants_search` (20min), `ca_grants_get_details` (8min).
+
+### Verification (live API tests during dev)
+- USAspending `/search/spending_by_award/` with `keywords=["youth"]`, NY place-of-perf, FY24 → top result: NY Department of Labor WIOA Youth/Adult/Dislocated Workers formula grant, $177M, DOL Employment & Training Admin, 2021-04-01 to 2024-06-30. 2nd result: Research Foundation for Mental Hygiene, $115.7M, HHS SAMHSA SOR-3.
+- USAspending `/recipient/duns/` keyword `"california"` → 15,603 total recipients; top is "HEALTH CARE SERVICES, CALIFORNIA DEPARTMENT OF" (id `7fe0d08f-...-R`, $112.4B total, UEI `JE73CDQUAPA7`).
+- USAspending `/recipient/{id}/` for that id → returned 8 alternate names, 114 total transactions, business types `government/national_government/regional_and_state_government`, Sacramento CA address.
+- CA Grants Portal `q=youth&Status=active` → 7 active matches incl. `_id=23` "Arts and Youth" by CA Arts Council (deadline 2026-05-12) and `_id=7` "California Services to Science Academy (CSSA) Cohort 2.0" by Dept of Health Care Services ($102,500, deadline 2026-05-29).
+- Distinct status values confirmed via SQL: `active`, `closed`, `forecasted`. Total dataset rows: 1,889.
+- `pnpm --filter web typecheck` → clean (0 errors).
+
+### Risks / Follow-ups for Citlali
+- **Recipient lookup uses deprecated endpoint:** USAspending docs flag `POST /recipient/duns/` as "Deprecated" in favor of an unspecified replacement, but the named replacement (`POST /recipient/`) returns 0 results for keyword searches as of 2026-04-30. Sticking with `/recipient/duns/` until USAspending publishes a working replacement; if it 404s in production we'll need to re-investigate.
+- **USAspending earliest start_date:** 2007-10-01. Older data requires bulk download (out of scope).
+- **CA dataset is hard-pinned to one resource id.** If California rebuilds the dataset, the id changes and the tools 404. Easy fix (constant in `ca-grants-portal.ts`); not automatic.
+- **All result limits capped at 10.** Both for USAspending searches and CA grants. Documented in tool descriptions; Claude should narrow filters rather than paginate.
+- **Next sprints flagged:** Candid MCP connector (gated on Phase MCP-0), AI matching layer over Grants.gov + USAspending + CA + ProPublica, ProPublica 990-PF schedule parser for "Foundation X gave $50K to Org Y" granularity.
+
+### Notes for Lopmon
+- No new packages added. No UI changes. No archetype prompt edits beyond per-tool addenda. No migration / supabase / Grants.gov / ProPublica behavior changes.
+- Branch: `feat/usaspending-ca-grants-sprint2`. Ready for review.

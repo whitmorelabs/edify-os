@@ -37,6 +37,14 @@ export const TIME_SAVED_ESTIMATES_MINUTES = {
   "tool:nonprofit_search": 30,        // researching funders + peer orgs by hand
   "tool:nonprofit_get_details": 25,   // pulling 990 financials + giving history
 
+  // Federal awards history (USAspending.gov)
+  "tool:usaspending_search_awards": 30,       // sifting USAspending.gov manually for landscape
+  "tool:usaspending_recipient_profile": 25,   // recipient-by-recipient drill-down
+
+  // California Grants Portal (data.ca.gov CKAN)
+  "tool:ca_grants_search": 20,        // browsing CA portal manually + filtering
+  "tool:ca_grants_get_details": 8,    // reading one grant's full record
+
   // CRM
   "tool:crm_log_interaction": 8,    // updating a donor record manually
   "tool:crm_list_donors": 3,        // searching donor list
