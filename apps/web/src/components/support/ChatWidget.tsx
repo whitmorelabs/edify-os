@@ -120,7 +120,7 @@ export function ChatWidget() {
       {/* Chat Panel */}
       <div
         className={cn(
-          'w-[360px] sm:w-[400px] rounded-2xl shadow-2xl border border-slate-200 overflow-hidden',
+          'w-[calc(100vw-24px)] max-w-[400px] sm:w-[400px] rounded-2xl shadow-2xl border border-slate-200 overflow-hidden',
           'transition-all duration-300 ease-in-out origin-bottom-right',
           'bg-white flex flex-col',
           isOpen && !isMinimized

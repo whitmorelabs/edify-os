@@ -48,7 +48,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-slide-up"
+      className="absolute right-0 top-full mt-2 w-[min(320px,calc(100vw-32px))] sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-slide-up"
       role="dialog"
       aria-label="Notifications"
     >

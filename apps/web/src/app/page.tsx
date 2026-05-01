@@ -15,7 +15,7 @@ function Hero() {
     <section
       className="relative overflow-hidden"
       style={{
-        padding: "96px 0 128px",
+        padding: "clamp(56px, 10vw, 96px) 0 clamp(72px, 14vw, 128px)",
         background: "var(--hero-gradient-marketing), var(--bg-1)",
       }}
     >
@@ -67,10 +67,7 @@ function Hero() {
         className="mx-auto relative z-[1] px-8"
         style={{ maxWidth: 1240 }}
       >
-        <div
-          className="grid gap-16 items-center"
-          style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.15fr)" }}
-        >
+        <div className="grid gap-16 items-center grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
           <div>
             <span className="eyebrow">AI STAFF · PRIVATE BETA</span>
             <h1
