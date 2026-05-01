@@ -1719,3 +1719,44 @@ Path C: route the same `[file-proxy] download failed` diagnostic fields PR #55 l
 ### Notes for Next Agent
 - Citlali reproduces flyer render → opens devtools Network tab → clicks failing `/api/files/{fileId}` → response body now reveals `name` (e.g. `NotFoundError`, `AuthenticationError`) and `status` from Anthropic SDK.
 - Once the actual SDK error surfaces, that determines fix path: stale file_id, wrong org's key, missing beta header, or expired upload.
+
+---
+
+## Mobile Responsive Tier A Agent — 2026-04-30
+
+**Identity:** Mobile Responsive Tier A Agent (Sonnet)
+**Branch:** `worktree-agent-a43164957da1a9283`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a43164957da1a9283`
+
+### Task
+Ship the 11 Tier A mobile-responsive fixes from `MOBILE-AUDIT-2026-05-01.md`. MOBILE-ONLY scope — desktop ≥lg appearance must be byte-identical. Z+Milo offline, Citlali authorized only "make the existing thing fit smaller screens."
+
+### What Was Done
+Applied 10 of 11 Tier A fixes (skipped #6 — `animated-dashboard.tsx` mock — see below). All changes are Tailwind className swaps wrapped in `sm:` / `lg:` breakpoint variants so the desktop class set is preserved at `≥lg`:
+
+1. `apps/web/src/app/dashboard/page.tsx:602-604` — Hero stats grid: inline `gridTemplateColumns: "3fr 2fr"` → `grid-cols-1 lg:grid-cols-[3fr_2fr]`.
+2. `apps/web/src/app/dashboard/page.tsx:756-757` — Team-card grid: lock to `grid-cols-1` under sm, keep `auto-fit minmax(180px,1fr)` from sm+ via arbitrary value.
+3. `apps/web/src/app/dashboard/page.tsx:769-770` — Activity grid: `gap-10 lg:gap-16 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]`. Below lg gap drops from 64→40, at desktop unchanged.
+4. `apps/web/src/app/page.tsx:18` — Hero padding clamps: `clamp(56px,10vw,96px) 0 clamp(72px,14vw,128px)` — at desktop ≥960px clamps to original 96/128.
+5. `apps/web/src/app/page.tsx:70` — Hero grid: `grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]`.
+6. **SKIPPED** — `animated-dashboard.tsx:228` — Internal mock grid. Audit itself called the change "acceptable" (passive illustration). Modifying internal grid of a fixed-aspect-ratio mock risks visual breakage on either viewport. Logged for Z+Milo if they want a redesigned mock.
+7. `apps/web/src/app/dashboard/memory/page.tsx:219` — Form row: `grid grid-cols-1 sm:grid-cols-2`.
+8. `apps/web/src/app/dashboard/settings/page.tsx:262` — Rename row: `flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3` + label `sm:w-44`.
+9. `apps/web/src/app/dashboard/inbox/page.tsx:587` — Modal panel: `p-4 sm:p-6`.
+10. `apps/web/src/app/dashboard/tasks/page.tsx:261` — Modal panel: `p-4 sm:p-6`.
+11. `apps/web/src/components/ui/dialog.tsx:53` — Backdrop wrapper: `p-4 sm:p-6`.
+12. `apps/web/src/components/support/ChatWidget.tsx:123` — Panel: `w-[calc(100vw-24px)] max-w-[400px] sm:w-[400px]` (sm wins at desktop).
+13. `apps/web/src/components/notifications/NotificationDropdown.tsx:51` — `w-[min(320px,calc(100vw-32px))] sm:w-96` (sm wins at desktop).
+
+### Verification
+- `pnpm --filter web typecheck` → clean (0 errors).
+- /simplify self-review: pure className swaps, no new functions/state/effects. Tightened one multi-line `<div>` for consistency.
+- Desktop preservation: every change uses sm:/lg: variants such that the original class/style applies at ≥lg.
+
+### Skipped — out of scope
+- Tier A item #6 (animated-dashboard internal mock grid) — passive illustration in fixed-aspect container; audit acknowledged change "acceptable but not required."
+- All Tier B items remain queued for Z+Milo as instructed.
+
+### Notes for Next Agent
+- Tier B items 1–5 in audit doc still need Z+Milo design judgment — DO NOT pick up.
+- One Tier A change (team-card grid) uses Tailwind arbitrary value `sm:[grid-template-columns:...]` to preserve the `auto-fit minmax(180px,1fr)` semantics at ≥sm. If Tailwind JIT chokes on this in a future Tailwind upgrade, swap to a real CSS class.

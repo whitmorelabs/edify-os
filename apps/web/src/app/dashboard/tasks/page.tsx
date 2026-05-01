@@ -258,7 +258,7 @@ export default function TasksPage() {
           onClick={() => setOpenTaskId(null)}
         >
           <div
-            className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl bg-bg-2 shadow-elev-4 p-6"
+            className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl bg-bg-2 shadow-elev-4 p-4 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">

@@ -216,7 +216,7 @@ export default function MemoryPage() {
             </button>
           </div>
           <div className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label mb-1.5 block">Title</label>
                 <input

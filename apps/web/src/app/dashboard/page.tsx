@@ -599,10 +599,7 @@ export default function DashboardHome() {
         )}
 
         {/* ————— HERO STATS ————— */}
-        <div
-          className="grid gap-5 mt-14 mb-20"
-          style={{ gridTemplateColumns: "3fr 2fr" }}
-        >
+        <div className="grid gap-5 mt-14 mb-20 grid-cols-1 lg:grid-cols-[3fr_2fr]">
           {/* Left: API Usage card */}
           <Card
             elevation={0}
@@ -756,10 +753,7 @@ export default function DashboardHome() {
             </span>
           </div>
         </div>
-        <div
-          className="grid gap-6 mb-20"
-          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
-        >
+        <div className="grid gap-6 mb-20 grid-cols-1 sm:[grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
           {otherDirectors.map((arc, i) => (
             <TeamCard
               key={arc.key}
@@ -771,10 +765,7 @@ export default function DashboardHome() {
         </div>
 
         {/* ————— ACTIVITY ————— */}
-        <div
-          className="grid gap-16 mt-10 pb-20"
-          style={{ gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)" }}
-        >
+        <div className="grid gap-10 lg:gap-16 mt-10 pb-20 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div>
             <div className="flex items-baseline justify-between mb-4">
               <h2
