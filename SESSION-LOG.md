@@ -1665,3 +1665,31 @@ Each: chat view for that director at `/dashboard/team/<slug>` at 1440px.
 
 ### Typecheck
 All errors in typecheck output are pre-existing environment-level errors (`Cannot find module 'next/server'`, `'next/link'`, etc.) caused by node_modules not being installed in typecheck context. Zero NEW type errors introduced by this PR's changes.
+
+---
+
+## File Proxy Diagnostics Agent — 2026-04-30
+
+**Identity:** File Proxy Diagnostics Agent (Sonnet)
+**Branch:** `worktree-agent-a8e05113fd1a0d939`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a8e05113fd1a0d939`
+
+### Task
+Add diagnostic logging to the file proxy 502 path so the next field test of the "Preview not available" bug surfaces the actual Anthropic SDK error instead of a generic 502.
+
+### What Was Done
+- Edited `apps/web/src/app/api/files/[fileId]/route.ts` only.
+- Inner metadata catch (was `catch {}` swallowing silently) now binds `err` and logs via `console.error("[file-proxy] retrieveMetadata failed", { fileId, status, name, message, stack })`. Still non-fatal — falls through to generic filename / octet-stream as before.
+- Outer download catch upgraded from `console.error("[files/proxy] Download failed", { fileId, error: err })` to the same structured log (`[file-proxy] download failed`, with `status`, `name`, `message`, `stack`).
+- 502 response body unchanged — `err.message` (or `"File download failed"`) is still what the client receives.
+
+### Verification
+- `pnpm --filter web typecheck` → clean (0 errors).
+- `/simplify` reviewed — kept as-is. The repeated `as { status?: unknown ... }` cast across two call sites was considered for extraction but skipped: scope was strict "console.error lines only, no refactor", and a 4-line helper for two call sites in the same file would be over-engineering.
+
+### Commit
+`44e5d9e` diagnostics: log Anthropic SDK errors in /api/files proxy to identify Preview-not-available root cause
+
+### Notes for Next Agent
+- After the next failing render, run `vercel logs <deployment>` and grep for `[file-proxy]` to see which SDK call is throwing and what `status` / `message` Anthropic returned.
+- Most likely candidates per prior diagnostic: stale/expired `file_id`, missing `anthropic-beta: files-api-2025-04-14` header on a downstream call, or a 404 because the file lives under a different org's API key than the one resolved by `getAnthropicClientForOrg`.
