@@ -55,6 +55,12 @@ export const TIME_SAVED_ESTIMATES_MINUTES = {
   // Foundation grants paid (990-PF Schedule I parser — funder→recipient graph)
   "tool:foundation_grants_paid_by_ein": 60,  // pulling Schedule I from a 990-PF PDF by hand is brutal
 
+  // Federal Register (NOFOs — primary signal, often before Grants.gov posts the structured opportunity)
+  "tool:federal_register_search_grants": 25, // manually scanning Federal Register PDFs is brutal
+
+  // Inside Philanthropy RSS (foundation news / signal — not structured opportunities)
+  "tool:inside_philanthropy_recent": 15,     // skim newsletter equivalent
+
   // CRM
   "tool:crm_log_interaction": 8,    // updating a donor record manually
   "tool:crm_list_donors": 3,        // searching donor list

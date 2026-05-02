@@ -16,6 +16,8 @@ import { caGrantsTools, executeCaGrantsTool, CA_GRANTS_TOOLS_ADDENDUM } from "@/
 import { charityNavigatorTools, executeCharityNavigatorTool, CHARITY_NAVIGATOR_TOOLS_ADDENDUM } from "@/lib/tools/charity-navigator";
 import { candidDemographicsTools, executeCandidDemographicsTool, CANDID_DEMOGRAPHICS_TOOLS_ADDENDUM } from "@/lib/tools/candid-demographics";
 import { foundationGrantsTools, executeFoundationGrantsTool, FOUNDATION_GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/foundation-grants";
+import { federalRegisterTools, executeFederalRegisterTool, FEDERAL_REGISTER_TOOLS_ADDENDUM } from "@/lib/tools/federal-register";
+import { insidePhilanthropyTools, executeInsidePhilanthropyTool, INSIDE_PHILANTHROPY_TOOLS_ADDENDUM } from "@/lib/tools/inside-philanthropy";
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { driveTools, executeDriveTool, DRIVE_TOOLS_ADDENDUM } from "@/lib/tools/drive";
@@ -81,6 +83,8 @@ export {
   CHARITY_NAVIGATOR_TOOLS_ADDENDUM,
   CANDID_DEMOGRAPHICS_TOOLS_ADDENDUM,
   FOUNDATION_GRANTS_TOOLS_ADDENDUM,
+  FEDERAL_REGISTER_TOOLS_ADDENDUM,
+  INSIDE_PHILANTHROPY_TOOLS_ADDENDUM,
   CRM_TOOLS_ADDENDUM,
   GMAIL_TOOLS_ADDENDUM,
   DRIVE_TOOLS_ADDENDUM,
@@ -133,6 +137,16 @@ const CANDID_DEMOGRAPHICS_TOOL_NAMES = new Set(
 // set so the prefix-split fallback doesn't resolve it to "foundation".
 const FOUNDATION_GRANTS_TOOL_NAMES = new Set(
   foundationGrantsTools.map((t) => t.name),
+);
+// federal_register_search_grants has prefix "federal_register" — pin via name
+// set so the prefix-split fallback doesn't resolve it to "federal".
+const FEDERAL_REGISTER_TOOL_NAMES = new Set(
+  federalRegisterTools.map((t) => t.name),
+);
+// inside_philanthropy_recent has prefix "inside_philanthropy" — pin via name
+// set so the prefix-split fallback doesn't resolve it to "inside".
+const INSIDE_PHILANTHROPY_TOOL_NAMES = new Set(
+  insidePhilanthropyTools.map((t) => t.name),
 );
 
 // ---------------------------------------------------------------------------
@@ -217,6 +231,14 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("foundation_grants");
       continue;
     }
+    if (FEDERAL_REGISTER_TOOL_NAMES.has(t.name)) {
+      families.add("federal_register");
+      continue;
+    }
+    if (INSIDE_PHILANTHROPY_TOOL_NAMES.has(t.name)) {
+      families.add("inside_philanthropy");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -238,6 +260,8 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("charity_navigator")) parts.push(CHARITY_NAVIGATOR_TOOLS_ADDENDUM);
   if (families.has("candid_demographics")) parts.push(CANDID_DEMOGRAPHICS_TOOLS_ADDENDUM);
   if (families.has("foundation_grants")) parts.push(FOUNDATION_GRANTS_TOOLS_ADDENDUM);
+  if (families.has("federal_register")) parts.push(FEDERAL_REGISTER_TOOLS_ADDENDUM);
+  if (families.has("inside_philanthropy")) parts.push(INSIDE_PHILANTHROPY_TOOLS_ADDENDUM);
   if (families.has("crm")) parts.push(CRM_TOOLS_ADDENDUM);
   if (families.has("gmail")) parts.push(GMAIL_TOOLS_ADDENDUM);
   if (families.has("drive")) parts.push(DRIVE_TOOLS_ADDENDUM);
@@ -265,7 +289,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
-  development_director: [...calendarTools, ...grantsTools, ...nonprofitTools, ...usaspendingTools, ...caGrantsTools, ...charityNavigatorTools, ...candidDemographicsTools, ...foundationGrantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
+  development_director: [...calendarTools, ...grantsTools, ...nonprofitTools, ...usaspendingTools, ...caGrantsTools, ...charityNavigatorTools, ...candidDemographicsTools, ...foundationGrantsTools, ...federalRegisterTools, ...insidePhilanthropyTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   marketing_director: [
     ...driveTools,
     ...unsplashTools,
@@ -413,6 +437,14 @@ export async function executeTool({
 
   if (FOUNDATION_GRANTS_TOOL_NAMES.has(name)) {
     return executeFoundationGrantsTool({ name, input });
+  }
+
+  if (FEDERAL_REGISTER_TOOL_NAMES.has(name)) {
+    return executeFederalRegisterTool({ name, input });
+  }
+
+  if (INSIDE_PHILANTHROPY_TOOL_NAMES.has(name)) {
+    return executeInsidePhilanthropyTool({ name, input });
   }
 
   if (name.startsWith("crm_")) {
