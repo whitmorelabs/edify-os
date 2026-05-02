@@ -13,6 +13,8 @@ import { grantsTools, executeGrantsTool, GRANTS_TOOLS_ADDENDUM } from "@/lib/too
 import { nonprofitTools, executeNonprofitTool, NONPROFIT_TOOLS_ADDENDUM } from "@/lib/tools/nonprofit";
 import { usaspendingTools, executeUSAspendingTool, USASPENDING_TOOLS_ADDENDUM } from "@/lib/tools/usaspending";
 import { caGrantsTools, executeCaGrantsTool, CA_GRANTS_TOOLS_ADDENDUM } from "@/lib/tools/ca-grants";
+import { charityNavigatorTools, executeCharityNavigatorTool, CHARITY_NAVIGATOR_TOOLS_ADDENDUM } from "@/lib/tools/charity-navigator";
+import { candidDemographicsTools, executeCandidDemographicsTool, CANDID_DEMOGRAPHICS_TOOLS_ADDENDUM } from "@/lib/tools/candid-demographics";
 import { crmTools, executeCrmTool, CRM_TOOLS_ADDENDUM } from "@/lib/tools/crm";
 import { gmailTools, executeGmailTool, GMAIL_TOOLS_ADDENDUM } from "@/lib/tools/gmail";
 import { driveTools, executeDriveTool, DRIVE_TOOLS_ADDENDUM } from "@/lib/tools/drive";
@@ -75,6 +77,8 @@ export {
   NONPROFIT_TOOLS_ADDENDUM,
   USASPENDING_TOOLS_ADDENDUM,
   CA_GRANTS_TOOLS_ADDENDUM,
+  CHARITY_NAVIGATOR_TOOLS_ADDENDUM,
+  CANDID_DEMOGRAPHICS_TOOLS_ADDENDUM,
   CRM_TOOLS_ADDENDUM,
   GMAIL_TOOLS_ADDENDUM,
   DRIVE_TOOLS_ADDENDUM,
@@ -114,6 +118,15 @@ const CONSULT_TEAMMATE_TOOL_NAMES = new Set(consultTeammateTools.map((t) => t.na
 // resolve them to family "ca", which is ambiguous if more state portals land.
 // Pin the family to "ca_grants" via an explicit name set.
 const CA_GRANTS_TOOL_NAMES = new Set(caGrantsTools.map((t) => t.name));
+// charity_navigator_* and candid_demographics_* both have multi-segment
+// prefixes. Pin them via explicit name sets so the prefix-split fallback
+// doesn't resolve them to "charity" / "candid".
+const CHARITY_NAVIGATOR_TOOL_NAMES = new Set(
+  charityNavigatorTools.map((t) => t.name),
+);
+const CANDID_DEMOGRAPHICS_TOOL_NAMES = new Set(
+  candidDemographicsTools.map((t) => t.name),
+);
 
 // ---------------------------------------------------------------------------
 // System-prompt addendum helpers
@@ -185,6 +198,14 @@ export function getToolFamilies(tools: Anthropic.Tool[]): Set<string> {
       families.add("ca_grants");
       continue;
     }
+    if (CHARITY_NAVIGATOR_TOOL_NAMES.has(t.name)) {
+      families.add("charity_navigator");
+      continue;
+    }
+    if (CANDID_DEMOGRAPHICS_TOOL_NAMES.has(t.name)) {
+      families.add("candid_demographics");
+      continue;
+    }
     const prefix = t.name.split("_")[0];
     if (prefix) families.add(prefix);
   }
@@ -203,6 +224,8 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
   if (families.has("nonprofit")) parts.push(NONPROFIT_TOOLS_ADDENDUM);
   if (families.has("usaspending")) parts.push(USASPENDING_TOOLS_ADDENDUM);
   if (families.has("ca_grants")) parts.push(CA_GRANTS_TOOLS_ADDENDUM);
+  if (families.has("charity_navigator")) parts.push(CHARITY_NAVIGATOR_TOOLS_ADDENDUM);
+  if (families.has("candid_demographics")) parts.push(CANDID_DEMOGRAPHICS_TOOLS_ADDENDUM);
   if (families.has("crm")) parts.push(CRM_TOOLS_ADDENDUM);
   if (families.has("gmail")) parts.push(GMAIL_TOOLS_ADDENDUM);
   if (families.has("drive")) parts.push(DRIVE_TOOLS_ADDENDUM);
@@ -230,7 +253,7 @@ export function buildSystemAddendums(tools: Anthropic.Tool[]): string {
 export const ARCHETYPE_TOOLS: Record<ArchetypeSlug, Anthropic.Tool[]> = {
   executive_assistant: [...calendarTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   events_director: [...calendarTools, ...driveTools, ...unsplashTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
-  development_director: [...calendarTools, ...grantsTools, ...nonprofitTools, ...usaspendingTools, ...caGrantsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
+  development_director: [...calendarTools, ...grantsTools, ...nonprofitTools, ...usaspendingTools, ...caGrantsTools, ...charityNavigatorTools, ...candidDemographicsTools, ...crmTools, ...gmailTools, ...driveTools, ...memoryTools, ...reportEventTools, ...impactDataReadTools, ...consultTeammateTools],
   marketing_director: [
     ...driveTools,
     ...unsplashTools,
@@ -366,6 +389,14 @@ export async function executeTool({
 
   if (name.startsWith("ca_grants_")) {
     return executeCaGrantsTool({ name, input });
+  }
+
+  if (name.startsWith("charity_navigator_")) {
+    return executeCharityNavigatorTool({ name, input });
+  }
+
+  if (name.startsWith("candid_demographics_")) {
+    return executeCandidDemographicsTool({ name, input });
   }
 
   if (name.startsWith("crm_")) {
