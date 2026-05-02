@@ -23,7 +23,7 @@
  *   https://candid.org/about/press-room/releases/candid-s-free-demographics-api...
  */
 
-import { handleJsonResponse, toFiniteNumber } from "@/lib/http";
+import { handleJsonResponse, toFiniteNumber, toStringOrNull } from "@/lib/http";
 
 const CANDID_DEMOGRAPHICS_BASE = "https://api.candid.org/demographics/v1";
 
@@ -155,10 +155,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 function toBooleanOrNull(v: unknown): boolean | null {
   return typeof v === "boolean" ? v : null;
-}
-
-function toStringOrNull(v: unknown): string | null {
-  return typeof v === "string" && v.length > 0 ? v : null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

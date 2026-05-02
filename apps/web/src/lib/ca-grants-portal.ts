@@ -16,7 +16,7 @@
  * Reference: https://data.ca.gov/dataset/california-grants-portal
  */
 
-import { handleJsonResponse } from "@/lib/http";
+import { handleJsonResponse, toStringOrNull } from "@/lib/http";
 
 const CA_DATA_BASE = "https://data.ca.gov/api/3/action";
 /** Stable resource id for "California Grants Portal - Updated Daily". */
@@ -95,10 +95,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
     },
     makeError: (status, msg) => new CaGrantsPortalError(status, msg),
   });
-}
-
-function toStringOrNull(v: unknown): string | null {
-  return typeof v === "string" && v.length > 0 ? v : null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
