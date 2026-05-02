@@ -11,6 +11,12 @@
  * config-only via the factory. Validated the "config-only new connector"
  * promise from the MCP-0 PRD (no factory or route changes required).
  *
+ * Post-Sprint-1 add (2026-04-30): zapier (bearer-env API key) — meta-connector
+ * unlocking Mailchimp / Eventbrite / Bloomerang / Neon / Typeform / Google
+ * Forms across five archetypes via a single catalog entry. Reinforces the
+ * factory's effort-savings promise — one config block replaces six planned
+ * REST integrations from the archetype roadmap.
+ *
  * Sprint 2 will add: per-org per-archetype grant management, integrations UI
  * polish, observability, and additional servers (Candid, Blackbaud,
  * Benevity). See PRD `MCP-0-PRD-2026-05-01.md` Sections 4–5.
@@ -302,12 +308,65 @@ const ASANA_ENTRY: ServerCatalogEntry = {
   },
 };
 
+/**
+ * Zapier — meta-connector wired through the MCP-0 factory (post-Asana add, 2026-04-30).
+ *
+ * Why Zapier as a *meta-connector*: per the nonprofit-outreach research
+ * (`NONPROFIT-OUTREACH-2026-05-01.md` §3), Zapier MCP proxies thousands of
+ * long-tail SaaS tools, collapsing six "REST, no MCP yet" placeholders from
+ * the archetype roadmap into one config entry:
+ *   - Marketing Director       → Mailchimp (email campaigns), social posting
+ *   - Events Director          → Eventbrite (registration, ticketing)
+ *   - Development Director     → Bloomerang / Neon (alternative CRMs)
+ *   - Programs Director        → Google Forms / Typeform (intake, surveys)
+ *   - Executive Assistant      → broad cross-team SaaS scheduling/coordination
+ *
+ * Auth: API key passed as the bearer token via Anthropic's `authorization_token`
+ * field on `mcp_servers`. Zapier categorizes this as "API Key" auth in the
+ * awesome-remote-mcp-servers index; the wire format Zapier accepts is
+ * `Authorization: Bearer <key>`, which is exactly what Anthropic's MCP
+ * connector forwards. This is the SAME shape as the Slack entry (bearer-env)
+ * — no OAuth wiring, no oauth-factory or callback-route changes needed.
+ *
+ * Tool surface: model auto-discovers Zapier's full Zaps catalog via Anthropic's
+ * `mcp_servers` parameter — no per-tool wiring in our codebase. Server-side
+ * dispatch by Anthropic means these tool calls do NOT flow through
+ * `insertActivityEvent` (MCP tool tracking is a Sprint 2+ concern, per
+ * PR #62 SESSION-LOG entry); deliberately no hours-saved entries here.
+ *
+ * Activation: Z provisions `ZAPIER_MCP_API_KEY` in Vercel. Until then, the
+ * registry's `bearer-env` branch returns null and the entry is silently skipped
+ * — same dormant-until-secrets pattern as Notion/Asana before their secrets
+ * landed.
+ */
+const ZAPIER_ENTRY: ServerCatalogEntry = {
+  id: "zapier",
+  displayName: "Zapier",
+  // Per Anthropic's remote-MCP-servers list and awesome-remote-mcp-servers (2026-04-30).
+  url: "https://mcp.zapier.com/api/mcp/mcp",
+  authMode: "bearer-env",
+  bearerEnv: "ZAPIER_MCP_API_KEY",
+  // Broad multi-archetype scope — Zapier is a meta-connector. HR & Volunteer
+  // Coordinator is intentionally omitted for now: per the archetype roadmap,
+  // HR's first integration priority is Slack MCP (already wired), and adding
+  // Zapier here without a clear HR-specific Zap use case would only inflate
+  // the model's tool budget.
+  archetypes: [
+    "marketing_director",
+    "programs_director",
+    "development_director",
+    "executive_assistant",
+    "events_director",
+  ],
+};
+
 /** Catalog keyed by id. Order doesn't matter — buildMcpServersForOrg sorts by archetype. */
 export const SERVER_CATALOG: Record<string, ServerCatalogEntry> = {
   [SLACK_ENTRY.id]: SLACK_ENTRY,
   [CANVA_ENTRY.id]: CANVA_ENTRY,
   [NOTION_ENTRY.id]: NOTION_ENTRY,
   [ASANA_ENTRY.id]: ASANA_ENTRY,
+  [ZAPIER_ENTRY.id]: ZAPIER_ENTRY,
 };
 
 /** Lookup helper — returns null for unknown ids so callers can 404 cleanly. */

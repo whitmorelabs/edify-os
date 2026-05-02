@@ -2329,3 +2329,81 @@ Synthetic profile: Brightline Detroit, youth mentoring nonprofit, $400K budget, 
 - The matcher is callable from non-chat code paths (heartbeats, etc.) by importing `findGrantsForOrg` directly — that's why the engine and the tool wrapper are in separate files.
 - Eligibility filter uses Grants.gov numeric codes (`12` = 501(c)(3), `23` = small business, etc.), with a free-text → code mapper. Unknown labels fall back to no filter (broader recall — judge sorts it out).
 - Foundation EINs are capped at 5 per call (each is 3-10s). Tool addendum directs the model to only pass them when the user has shortlisted prospects.
+
+---
+
+# SESSION-LOG — Zapier MCP Meta-Connector Agent
+
+**Identity:** Sonnet coding agent
+**Branch:** `worktree-agent-adc0834dc7e2f1281`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-adc0834dc7e2f1281`
+**Date:** 2026-04-30
+**Spawned by:** Lopmon
+
+## What Was Done
+
+Wired Zapier MCP as a multi-archetype meta-connector via the existing MCP-0 factory. Single catalog entry, no factory or registry refactor — validating the "config-only new connector" promise from MCP-0 PRD a second time (Asana was the first in PR #62).
+
+### Catalog entry summary
+
+| Field | Value |
+|-------|-------|
+| `id` | `zapier` |
+| `displayName` | `Zapier` |
+| `url` | `https://mcp.zapier.com/api/mcp/mcp` |
+| `authMode` | `bearer-env` |
+| `bearerEnv` | `ZAPIER_MCP_API_KEY` |
+| `archetypes` | `marketing_director`, `programs_director`, `development_director`, `executive_assistant`, `events_director` |
+
+HR & Volunteer Coordinator deliberately omitted — per the archetype roadmap, HR's first integration is Slack MCP (already wired); adding Zapier without a clear HR Zap use case would inflate the model's tool budget.
+
+### Why Zapier as a meta-connector
+
+Per the nonprofit-outreach research (`NONPROFIT-OUTREACH-2026-05-01.md` §3), Zapier MCP proxies thousands of long-tail SaaS tools. Single wiring unlocks six "REST, no MCP yet" placeholders from the archetype roadmap:
+
+- Marketing → Mailchimp (email campaigns)
+- Events → Eventbrite (registration)
+- Dev Director → Bloomerang / Neon (alternative CRMs)
+- Programs → Google Forms / Typeform (intake, surveys)
+- EA → broad cross-team SaaS scheduling
+
+### Auth model
+
+Zapier categorizes its MCP auth as "API Key" in `awesome-remote-mcp-servers` (the upstream Anthropic-curated index). Anthropic's `mcp_servers` connector forwards the value as `Authorization: Bearer <key>` to the MCP server, which is what Zapier expects. Same shape as Slack's bearer-env entry — no OAuth wiring, no oauth-factory or callback-route changes needed.
+
+### Files changed
+
+- `apps/web/src/lib/mcp/server-catalog.ts` — added `ZAPIER_ENTRY` const + registered in `SERVER_CATALOG` map; updated header doc-comment to note the post-Sprint-1 add. **No other files.**
+
+## Type Check
+
+`pnpm --filter web typecheck` — exit 0, clean.
+
+## /simplify Review
+
+- **Reuse:** No duplicated logic. Reuses `ServerCatalogEntry` type, `bearer-env` auth mode, registry's existing skip-if-env-unset branch.
+- **Quality:** No new functions, no parameter sprawl, no copy-paste. Comments explain WHY (auth choice, HR omission, deferred hours-saved tracking) not WHAT — kept dense to mirror the existing Asana entry's style for future-agent readability.
+- **Efficiency:** Static const, evaluated once at module load. No new I/O, no hot-path additions. Registry already short-circuits when `ZAPIER_MCP_API_KEY` is unset.
+
+Code was already clean — no fixes required.
+
+## Activation
+
+Z provisions `ZAPIER_MCP_API_KEY` in Vercel. Until then, the registry's `bearer-env` branch returns null and the entry is silently skipped at runtime — same dormant-until-secrets pattern as Notion/Asana before their secrets landed.
+
+## Hours-Saved Tracking
+
+**Intentionally NOT added.** Per PR #62 SESSION-LOG, MCP tool calls are dispatched server-side by Anthropic and don't flow through `insertActivityEvent`. Tool-level tracking for MCP servers is a Sprint 2+ concern (per PRD §4–5).
+
+## Worktree Discipline
+
+- All edits via absolute worktree paths under `C:/Users/Araly/edify-os/.claude/worktrees/agent-adc0834dc7e2f1281/`.
+- Main checkout (`C:/Users/Araly/edify-os`) verified clean before commit (only `.claude/worktrees/` untracked, expected).
+- Skipped committing `apps/web/tsconfig.tsbuildinfo` — incidental rebuild artifact (matches PR #65 / Asana PR pattern).
+
+## Notes for Lopmon
+
+- Z+Milo offline per memory → auto-merge applies if PR is clean.
+- Single-file diff. Should be a near-trivial review.
+- Reinforces the factory's effort-savings promise: one config block replaces six planned REST integrations.
+- Stayed in lane vs the parallel Dev Director AI matching agent — no `lib/tools/registry.ts` edits (factory reads `server-catalog.ts` directly via `listServersForArchetype`).
