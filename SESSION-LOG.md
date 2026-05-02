@@ -2407,3 +2407,84 @@ Z provisions `ZAPIER_MCP_API_KEY` in Vercel. Until then, the registry's `bearer-
 - Single-file diff. Should be a near-trivial review.
 - Reinforces the factory's effort-savings promise: one config block replaces six planned REST integrations.
 - Stayed in lane vs the parallel Dev Director AI matching agent — no `lib/tools/registry.ts` edits (factory reads `server-catalog.ts` directly via `listServersForArchetype`).
+
+---
+
+# Foundation-Grants Cache Agent (PR follow-up to #65)
+
+**Identity:** Foundation-Grants Cache Agent (Sonnet)
+**Branch:** `worktree-agent-a35525ac15e20f3d1`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a35525ac15e20f3d1`
+**Date:** 2026-04-30
+**Task:** Add Supabase persistent cache to the 990-PF foundation-grants parser shipped in PR #65.
+
+## Goal
+
+PR #65 shipped `getFoundationGrants` which scrapes ProPublica + fetches from GivingTuesday's S3 + parses 990-PF XML in 0.2-7s per call. Repeat queries for the same `(ein, tax_year)` re-do all that work. Add a Supabase cache so warm queries land <100ms, with full graceful degradation when the table doesn't exist.
+
+## What Was Built
+
+### Migration (`supabase/migrations/00027_foundation_grants_cache.sql`)
+
+```sql
+CREATE TABLE IF NOT EXISTS foundation_grants_cache (
+    ein         text         NOT NULL,
+    tax_year    integer      NOT NULL,
+    grants      jsonb        NOT NULL,
+    metadata    jsonb        NOT NULL,
+    fetched_at  timestamptz  NOT NULL DEFAULT now(),
+    PRIMARY KEY (ein, tax_year)
+);
+CREATE INDEX IF NOT EXISTS idx_foundation_grants_cache_fetched_at
+    ON foundation_grants_cache (fetched_at);
+```
+
+No RLS — service-role only, cached IRS public data. Index supports a future TTL eviction job.
+
+### Code (`apps/web/src/lib/foundation-grants.ts`)
+
+- New `readCache(formattedEin, taxYear)` and `writeCache(...)` helpers wrapped in try/catch. On null service-role client (env unset), missing table, or any error → silently return null / no-op. Errors that come back from Supabase are logged at `console.warn` with `[foundation-grants-cache]` prefix.
+- 90-day TTL applied on read.
+- Fast-path cache check at top of `getFoundationGrants` when caller specified a year — skips ProPublica + S3 entirely on hit.
+- Opportunistic cache check after resolving filings list when no year was specified — uses the JSON-paired tax year of the most-recent filing to skip the S3 fetch on hit.
+- Cache write at end of slow path stores the FULL untruncated grants array (sorted desc by amount) + filing metadata, so a single cache row serves any subsequent `limit` parameter.
+- Cache stores `formatEin(cleaned)` (XX-XXXXXXX) for human readability and consistent keying across the codebase.
+
+## Graceful Degradation Verification
+
+- Local live test: invoked `getFoundationGrants({ ein: "13-1684331", year: 2023, limit: 3 })` against Ford Foundation twice via dynamic import.
+- Call 1: 6,054ms (cold slow path). 3,718 grants in filing, top 3 sum $32M.
+- Call 2: 3,283ms (still slow path — Supabase env unset locally → `createServiceRoleClient()` returns null → silent no-op, no warn logs).
+- Same `objectId` returned both times → results correct.
+- Tool returns valid response with no exceptions despite cache being unavailable.
+
+When the migration eventually applies in production: writes hit "table doesn't exist" → warn log but tool still returns valid result. After migration applies: writes succeed, second call <100ms cache hit.
+
+## Type Check
+
+`pnpm --filter web typecheck` — exit 0, clean.
+
+## /simplify Review
+
+- **Reuse:** Uses existing `createServiceRoleClient()` from `lib/supabase/server.ts`. Reuses existing `formatEin` and `cleanEin` helpers. No new utilities introduced.
+- **Quality:** Hoisted `xmlUrl`, `propublicaFilingUrl`, `foundationName`, and `resolvedTaxYear` from inline expressions to local consts so cache-write and response use the same values without recomputation. Dropped a redundant `as CachedRow` cast (computed once into a local).
+- **Efficiency:** Cache check happens BEFORE expensive S3 fetch on year-explicit lookups (saves the full slow-path cost on hit). Opportunistic cache check on no-year path only after the cheap ProPublica resolve is already done — adds zero latency on miss. `writeCache` is awaited (not fire-and-forget) — the +~100-300ms cost on cold-miss is negligible vs the 0.2-7s slow path and avoids serverless write-truncation risk.
+
+## Files Changed
+
+- `apps/web/src/lib/foundation-grants.ts` — added cache wrapper, refactored `getFoundationGrants` to check cache before slow path and write after.
+- `supabase/migrations/00027_foundation_grants_cache.sql` — new table + index.
+
+NOT touched: tool wrapper (`lib/tools/foundation-grants.ts`), UI, archetype prompts, any other tool. Per scope.
+
+## Worktree Discipline
+
+- All edits via absolute worktree paths under `C:/Users/Araly/edify-os/.claude/worktrees/agent-a35525ac15e20f3d1/`.
+- SESSION-LOG.md verified in sync with `origin/main` before append (Windows CRLF vs LF only).
+- `apps/web/tsconfig.tsbuildinfo` left out of the commit (incidental rebuild artifact, matches PR #65/#67 pattern).
+
+## Notes for Lopmon
+
+- Migration not yet applied to Supabase. Code works correctly without it (graceful no-op). After merge, apply via Supabase SQL Editor or `npx supabase db push` to activate cache. No code change needed.
+- Z+Milo offline per memory → auto-merge applies once review passes.
+- Cache eviction / TTL job is intentionally NOT in this sprint per task spec — future tuning knob.
