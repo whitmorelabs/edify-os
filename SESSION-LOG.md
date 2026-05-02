@@ -2195,3 +2195,91 @@ ACLU Foundation case is critical: it's a 990 (not PF), uses `<RecipientTable>` b
 - No env var needed — both data sources are anonymous public, no key provisioning required.
 - This is the Sprint-2 crown-jewel from the deep-dive — combined with PRs #59-64 (ProPublica, USAspending, CA Grants, Charity Navigator, Candid Demographics), Edify now hits ~80% of Candid Premier's value at $0 vendor cost.
 - Worktree discipline maintained: all edits made via worktree absolute paths, main checkout verified clean before commit.
+
+---
+
+# SESSION-LOG — Federal Register + Inside Philanthropy RSS Agent (Sprint 3)
+
+**Identity:** Sprint 3 free-Candid-alternatives agent (Sonnet)
+**Branch:** `worktree-agent-a413c58f1a6d6072a`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a413c58f1a6d6072a`
+**Date:** 2026-04-30 / 2026-05-02
+**Spawned by:** Lopmon to close the data-lag gap left by PR #65 (990-PF parser, 12-18mo lag)
+
+## What Was Built
+
+Two new free public-data tools wired to Development Director, both surfacing CURRENT-year signals (vs. historical 990 data):
+
+### `apps/web/src/lib/federal-register.ts` (NEW)
+- Typed wrapper for Federal Register API v1 (`/documents.json`).
+- Free, no auth, no API key.
+- Exports `searchFederalRegister(...)`, `FederalRegisterError`, `FEDERAL_REGISTER_DOCUMENT_TYPES`, types.
+- Param shaping: `conditions[term]`, `conditions[type][]=NOTICE`, `conditions[publication_date][gte/lte]`, `conditions[agencies][]`, `fields[]` projection, `per_page` (capped 1-20).
+- Pitfall encoded in comments: the API rejects `conditions[document_type]` (the obvious-looking field name) — actual field is `conditions[type][]` with UPPERCASE values.
+
+### `apps/web/src/lib/inside-philanthropy.ts` (NEW)
+- Typed wrapper for Inside Philanthropy public RSS feed.
+- TS-native regex-based RSS parser (mirrors the 990-PF parser approach from PR #65 — no XML/RSS lib dep added).
+- HTML entity decoder + tag stripper for description cleanup.
+- Returns slim items: title, link, pubDate (raw + ISO), description (capped 600 chars), categories (up to 3), creator.
+- Optional `keyword` filter applied in-memory after fetch (feed has no server-side search).
+
+### `apps/web/src/lib/tools/federal-register.ts` (NEW)
+- Anthropic tool: `federal_register_search_grants`.
+- Addendum explains it's the *primary* federal NOFO signal (often days-weeks before Grants.gov), and how to chain with existing `grants_search` (NOFO signal → official Grants.gov listing once it opens).
+
+### `apps/web/src/lib/tools/inside-philanthropy.ts` (NEW)
+- Anthropic tool: `inside_philanthropy_recent`.
+- Addendum explicitly frames items as NEWS / SIGNAL not structured opportunities — directs the model to chain into nonprofit_search / charity_navigator_search / foundation_grants_paid_by_ein for follow-up structured data.
+
+### `apps/web/src/lib/tools/registry.ts` (MODIFIED)
+- Wired both tool families into `development_director` archetype only.
+- Added explicit name-set pinning (`FEDERAL_REGISTER_TOOL_NAMES`, `INSIDE_PHILANTHROPY_TOOL_NAMES`) so the prefix-split fallback doesn't resolve `federal_*` to family "federal" or `inside_*` to "inside".
+- Added addendum routing in `buildSystemAddendums`.
+- Added dispatch branches in `executeTool`.
+
+### `apps/web/src/lib/hours-saved/estimates.ts` (MODIFIED)
+- `tool:federal_register_search_grants` → 25 min
+- `tool:inside_philanthropy_recent` → 15 min
+
+## Live Verification (2026-05-02)
+
+**Federal Register** — `query="youth mentoring"`, `publishedFrom=2025-01-01`, `documentType=NOTICE`, `limit=3`:
+- HTTP 200, total count: 7
+- Sample NOFOs returned:
+  - 2025-01-17 — "Applications for New Awards; Supporting Effective Educator Development Program" — Education Department — doc# 2025-01275
+  - 2025-01-17 — "Applications for New Awards; Indian Education Discretionary Grants Programs; Professional Development Program (PD)-Training Grants" — Education Department — doc# 2025-01316
+
+**Inside Philanthropy** — `limit=5`, no keyword:
+- HTTP 200, totalInFeed: 20, feedTitle: "Inside Philanthropy"
+- Latest 3 items at test time (2026-05-02):
+  - 2026-05-01 — "Perelman Family Charitable Trust" by Alex Barnett — cats: Grants P
+  - 2026-05-01 — "Toplines May 2, 2026" by David Callahan — cats: Toplines | Gratis | Progressive
+  - 2026-05-01 — "Travelers Insurance Foundation and Corporate Giving" by Connie Petropoulos — cats: Grants T | Connecticut Grants | Funder Profile
+
+**Inside Philanthropy** — keyword="foundation": 12 of 20 items matched.
+
+## Type Check
+
+`pnpm --filter web typecheck` — exit 0, clean.
+
+## What's Deferred
+
+- **Full Inside Philanthropy article content** — paywalled on the website itself; RSS only exposes headline + ~600 char publisher-truncated description. Cannot be replicated at $0.
+- **Other philanthropy news sources** (Philanthropy Today, Chronicle of Philanthropy, Philanthropy News Digest) — could be added as a future tool family pattern matching this one. Not done here to keep diff minimal.
+- **Federal Register agency-list discovery** — agencies are returned in result records (so the model can discover slugs as it goes); a dedicated `federal_register_list_agencies` tool wasn't added because the agencies API is huge (~600 agencies) and the discovery-on-demand pattern is sufficient.
+- **Caching** — every call is a fresh fetch. RSS feed has 1-hr `<sy:updateFrequency>`; FR data is publication-permanent. A future cache layer (Redis or in-memory LRU) would help repeat queries but isn't needed for the chat UX volume.
+
+## Risks / Caveats
+
+- **RSS format drift** — Inside Philanthropy is WordPress; if they change theme/plugins the RSS shape could shift. The TS-native regex parser is permissive (handles CDATA + raw text + namespace prefixes), so format drift would degrade gracefully (missing fields go null) rather than throw.
+- **"Notice" is broader than "NOFO"** — the model is instructed to read each title/abstract before claiming a result is a grant opportunity. Even with `documentType=NOTICE`, the API returns admin notices and comment requests too.
+- **No paywall bypass** — Inside Philanthropy items are *signal* breadcrumbs, not direct grant-finding. The tool addendum is explicit about this.
+
+## Notes for Lopmon
+
+- Z+Milo offline per memory → auto-merge applies.
+- No env vars / no API keys / no new packages — both sources are anonymous public.
+- Closes the lag gap from PR #65: Sprint 1-2 covered historical funder→recipient graphs (12-18mo lag); Sprint 3 surfaces what's emerging NOW.
+- Worktree discipline: all edits via worktree absolute paths; main checkout was clean before commit (only stray `.claude/worktrees/` untracked dir, expected).
+- Skipped committing `apps/web/tsconfig.tsbuildinfo` — incidental rebuild artifact, not in PR #65 either.
