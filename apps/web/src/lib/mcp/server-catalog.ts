@@ -7,8 +7,12 @@
  * servers — slack (env-var bearer), canva (OAuth, retained from Sprint 2),
  * and notion (OAuth, the proof connector for the new factory).
  *
+ * Post-Sprint-1 add (2026-04-30): asana (OAuth) — first connector wired
+ * config-only via the factory. Validated the "config-only new connector"
+ * promise from the MCP-0 PRD (no factory or route changes required).
+ *
  * Sprint 2 will add: per-org per-archetype grant management, integrations UI
- * polish, observability, and additional servers (Asana, Candid, Blackbaud,
+ * polish, observability, and additional servers (Candid, Blackbaud,
  * Benevity). See PRD `MCP-0-PRD-2026-05-01.md` Sections 4–5.
  *
  * NOTE: Storage `server_name` keys (the DB column on mcp_connections) intentionally
@@ -242,11 +246,77 @@ const NOTION_ENTRY: ServerCatalogEntry = {
   },
 };
 
+/**
+ * Asana — second OAuth connector wired through the MCP-0 factory (post-Sprint 1).
+ *
+ * URL: Asana shipped a V2 MCP server (`https://mcp.asana.com/v2/mcp`) and is
+ * deprecating the V1 SSE endpoint (`https://mcp.asana.com/sse`) on 2026-05-11.
+ * We use V2 from day one to avoid an immediate URL migration.
+ *
+ * Auth quirks (per https://developers.asana.com/docs/oauth and the MCP integration guide):
+ *   - Form-body client credentials (NOT Basic) at the token endpoint
+ *   - PKCE (S256) supported on the authorize step — we opt in for defense-in-depth
+ *     even though it's not strictly required for confidential clients
+ *   - Refresh tokens are long-lived (do NOT rotate per use), unlike Notion/Canva
+ *   - MCP apps require the `resource=https://mcp.asana.com/v2` query param on
+ *     authorize, AND scopes MUST be omitted entirely (per Asana MCP docs:
+ *     "MCP apps don't require specific scopes—remove the `scope` parameter")
+ *   - Token response includes a `data` object with the connecting user's
+ *     name/email/gid that we surface as connection metadata.
+ *
+ * Per memory project_edify_archetype_roadmap (2026-04-20), Asana is on the
+ * roadmap for Events Director (event project management). We additionally scope
+ * it to Programs Director (program work tracking) and Executive Assistant
+ * (cross-team project visibility) — the same multi-archetype-per-server pattern
+ * the PRD recommends in §1.
+ */
+const ASANA_ENTRY: ServerCatalogEntry = {
+  id: "asana",
+  displayName: "Asana",
+  url: "https://mcp.asana.com/v2/mcp",
+  authMode: "oauth",
+  archetypes: ["events_director", "programs_director", "executive_assistant"],
+  oauth: {
+    authorizeUrl: "https://app.asana.com/-/oauth_authorize",
+    tokenUrl: "https://app.asana.com/-/oauth_token",
+    revokeUrl: "https://app.asana.com/-/oauth_revoke",
+    // Asana documents form-body POST for client credentials at the token endpoint.
+    clientAuth: "post",
+    usePkce: true,
+    // IMPORTANT: scopes intentionally undefined. Asana MCP docs explicitly
+    // require omitting the `scope` param entirely; capabilities are inherited
+    // from the connecting user's existing Asana workspace permissions.
+    authorizeExtraParams: { resource: "https://mcp.asana.com/v2" },
+    // Asana refresh tokens are long-lived (no rotation per use), unlike Canva/Notion.
+    // The factory still defensively persists any refresh_token returned, so this
+    // flag is documentary — but keep it accurate.
+    refreshTokenRotates: false,
+    clientIdEnv: "ASANA_OAUTH_CLIENT_ID",
+    clientSecretEnv: "ASANA_OAUTH_CLIENT_SECRET",
+    redirectUriEnv: "ASANA_OAUTH_REDIRECT_URI",
+    metadataFromTokenResponse: (resp) => {
+      // Asana token response carries `data: { id, gid, name, email }` for the
+      // connecting user. Surface it so the integrations UI can show the
+      // connected account.
+      const data = resp.data as Record<string, unknown> | undefined;
+      const gid = typeof data?.gid === "string" ? data.gid : null;
+      const name = typeof data?.name === "string" ? data.name : null;
+      const email = typeof data?.email === "string" ? data.email : null;
+      return {
+        asana_user_gid: gid,
+        asana_user_name: name,
+        asana_user_email: email,
+      };
+    },
+  },
+};
+
 /** Catalog keyed by id. Order doesn't matter — buildMcpServersForOrg sorts by archetype. */
 export const SERVER_CATALOG: Record<string, ServerCatalogEntry> = {
   [SLACK_ENTRY.id]: SLACK_ENTRY,
   [CANVA_ENTRY.id]: CANVA_ENTRY,
   [NOTION_ENTRY.id]: NOTION_ENTRY,
+  [ASANA_ENTRY.id]: ASANA_ENTRY,
 };
 
 /** Lookup helper — returns null for unknown ids so callers can 404 cleanly. */

@@ -1946,3 +1946,42 @@ To enable Notion in production, set:
 - No new packages installed. Anthropic's `mcp_servers` API parameter handles the protocol plumbing; no `@modelcontextprotocol/sdk` required.
 - No visual UI changes. Existing `dashboard/integrations/page.tsx` still has the Canva tile and Notion is reachable via direct route navigation — Sprint 2 will add the proper tile.
 
+
+---
+
+## Asana MCP Connector Agent — 2026-05-01
+
+**Identity:** Asana MCP Connector Agent (Sonnet)
+**Branch:** `worktree-agent-a151ee5c45e1b5d9c`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-a151ee5c45e1b5d9c`
+**Spawned by:** Lopmon (post PR #61 / MCP-0 Sprint 1)
+
+### Task
+Wire Asana via the new MCP-0 factory to validate the "config-only new connector" promise.
+
+### What Was Done
+Single `ASANA_ENTRY` added to `apps/web/src/lib/mcp/server-catalog.ts` (+71/-1). Zero changes to factory code or generic OAuth routes.
+
+### Asana Catalog Specifics
+- **URL:** `https://mcp.asana.com/v2/mcp` (V2 — V1 SSE endpoint shuts down 2026-05-11; using V2 from day one avoids an immediate migration)
+- **OAuth quirks:** `clientAuth: "post"` (form-body, not Basic), PKCE S256, long-lived refresh tokens, scopes intentionally omitted (Asana MCP requires dropping `scope` param), `resource=https://mcp.asana.com/v2` via `authorizeExtraParams`
+- **Archetypes wired:** `events_director`, `programs_director`, `executive_assistant`
+- **Env vars to activate:** `ASANA_OAUTH_CLIENT_ID`, `ASANA_OAUTH_CLIENT_SECRET` (optional `ASANA_OAUTH_REDIRECT_URI`). Dormant until set.
+
+### Effort
+~45 minutes total: ~10 min reading factory, ~15 min Asana docs research, ~10 min entry + doc-block, ~5 min typecheck, ~5 min /simplify. Net coding under 15 min. **5-10x faster than PRD's 4-8h post-MCP-0 estimate.** Most time spent verifying V2 URL, scope-omission rule, refresh-token rotation behavior.
+
+### Factory Friction Discovered
+1. **Hours-saved estimates aren't generic for MCP.** `lib/hours-saved/estimates.ts` keys on Edify-side `tool:<name>` events from `lib/tools/*.ts`. MCP tool calls dispatched server-side by Anthropic don't flow through `insertActivityEvent`. Notion (PR #61 proof) didn't add hours-saved either. Sprint 2+ work to wire MCP tool tracking.
+2. **`refreshTokenRotates` is documentary-only.** Factory always persists refresh tokens defensively regardless of this flag. Not broken, just misleading; future cleanup candidate.
+3. **No other catalog friction.** `OAuthConfig` shape covered every Asana quirk without extension.
+
+### Verification
+- `pnpm --filter web typecheck` → clean (0 errors)
+- `/simplify` → minimal cleanup, no reuse/quality/efficiency issues
+- Generic OAuth routes resolve via `getServerEntry("asana")` without any per-server code
+
+### Notes for Lopmon
+- The factory's promise checks out — config-only adds genuinely take ~45 min vs hours.
+- Z+Milo offline → auto-merge applies. Lopmon to merge after review.
+- This worktree's SESSION-LOG.md was inadvertently rewritten as a fresh file in the agent's first commit; Lopmon repaired it to preserve all prior session entries from main before merging.
