@@ -61,6 +61,10 @@ export const TIME_SAVED_ESTIMATES_MINUTES = {
   // Inside Philanthropy RSS (foundation news / signal — not structured opportunities)
   "tool:inside_philanthropy_recent": 15,     // skim newsletter equivalent
 
+  // Grant matcher (the headline Dev Director tool — does the work of an entire grant-research session)
+  // Aggregates all sources, applies hard filters, runs Claude judge, returns ranked top 12 with citations.
+  "tool:find_grants_for_org": 240,           // 4 hours: full prospect-research session by hand
+
   // CRM
   "tool:crm_log_interaction": 8,    // updating a donor record manually
   "tool:crm_list_donors": 3,        // searching donor list

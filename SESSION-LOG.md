@@ -2286,6 +2286,52 @@ Two new free public-data tools wired to Development Director, both surfacing CUR
 
 ---
 
+# SESSION-LOG appendix — Grant Matcher Agent (worktree-agent-aca98e3f48eeecfbd)
+
+**Identity:** Sonnet coding agent
+**Task:** Build `find_grants_for_org` meta-tool — the AI matching layer that turns Edify's 9 grant data sources into a ranked top-12 with citations
+**Date:** 2026-05-02
+**PRD:** AI matching layer (described inline by Lopmon — see deep-dive at agent-afd4396ebd04c74cd/CANDID-DEEP-DIVE-2026-05-01.md section 4)
+
+## Architecture chosen
+
+Option A (meta-tool). Single `find_grants_for_org` tool. Internal pipeline:
+1. Parallel fan-out: Grants.gov + CA Grants Portal (when geography signals CA) + Federal Register (last 90d). Foundation grant history is opt-in via `foundation_eins` (slow source).
+2. Hard filters: deadline future + within-N-days, amount band, de-dup by normalized title, cap at 50 candidates.
+3. Sonnet judge (claude-sonnet-4-6) with `cache_control: { type: "ephemeral" }` on the org-profile preamble.
+4. Citation validation: rankings projected back to the real candidate pool — fabricated ids dropped, model never overwrites title/source/amount/citation_url.
+
+## Files added
+
+- `apps/web/src/lib/grant-matcher.ts` — engine: types + aggregator + filters + judge + citation validator. Self-contained, no DB access.
+- `apps/web/src/lib/tools/grant-matcher.ts` — Anthropic tool definition + executor. Reads orgs.name/mission via Supabase, hands off to engine.
+
+## Files modified
+
+- `apps/web/src/lib/tools/registry.ts` — wired the new tool to development_director only via explicit name-set pinning (prefix-split fallback would resolve "find_*" to family "find").
+- `apps/web/src/lib/hours-saved/estimates.ts` — added `tool:find_grants_for_org` = 240 minutes (4 hours, the full grant-research session).
+
+## Live verification (2026-05-02)
+
+Synthetic profile: Brightline Detroit, youth mentoring nonprofit, $400K budget, Detroit, MI.
+- 30 candidates aggregated (grants.gov + federal_register; CA portal correctly skipped — Detroit not CA-relevant)
+- 30 judged
+- 12 matches returned
+- Latency: 15.2s (well under 30s budget)
+- Top hit: OJJDP FY25 National Mentoring Resource Center (score=82, deadline=05/04/2026, citation HTTP 200)
+- All 5 sampled citations resolved 2xx
+
+## Notes for Lopmon
+
+- Auto-merge applies (Z+Milo offline).
+- No new packages, no Supabase migration. `tsx` was added briefly to run a smoke-test driver from inside the worktree, then removed before commit (verified `git status` clean for package.json/pnpm-lock.yaml).
+- Smoke-test script was a temporary `apps/web/smoke-test-tmp.ts` — deleted before commit.
+- The matcher is callable from non-chat code paths (heartbeats, etc.) by importing `findGrantsForOrg` directly — that's why the engine and the tool wrapper are in separate files.
+- Eligibility filter uses Grants.gov numeric codes (`12` = 501(c)(3), `23` = small business, etc.), with a free-text → code mapper. Unknown labels fall back to no filter (broader recall — judge sorts it out).
+- Foundation EINs are capped at 5 per call (each is 3-10s). Tool addendum directs the model to only pass them when the user has shortlisted prospects.
+
+---
+
 # SESSION-LOG — Zapier MCP Meta-Connector Agent
 
 **Identity:** Sonnet coding agent
