@@ -27,3 +27,13 @@ export async function handleJsonResponse<T>(
   }
   throw options.makeError(response.status, msg);
 }
+
+/**
+ * Coerce an unknown value to a finite number, returning null for non-number
+ * inputs or non-finite numbers (NaN/Infinity). Useful when projecting external
+ * API responses where numeric fields may arrive as strings, nulls, or undefined.
+ */
+export function toFiniteNumber(v: unknown): number | null {
+  if (typeof v !== "number") return null;
+  return Number.isFinite(v) ? v : null;
+}

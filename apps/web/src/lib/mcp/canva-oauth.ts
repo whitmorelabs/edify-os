@@ -30,10 +30,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getValidAccessToken,
-  refreshAccessToken,
   revokeAccessToken,
   type AccessTokenResult,
-  type RefreshResult,
 } from "@/lib/mcp/oauth-factory";
 import { getServerEntry } from "@/lib/mcp/server-catalog";
 
@@ -43,7 +41,6 @@ import { getServerEntry } from "@/lib/mcp/server-catalog";
 
 export const CANVA_API_BASE = "https://api.canva.com/rest/v1";
 export const CANVA_TOKEN_URL = `${CANVA_API_BASE}/oauth/token`;
-export const CANVA_REVOKE_URL = `${CANVA_API_BASE}/oauth/revoke`;
 export const CANVA_AUTHORIZE_URL = "https://www.canva.com/api/oauth/authorize";
 
 /** server_name used as the mcp_connections row key for Canva. */
@@ -63,12 +60,11 @@ export const CANVA_SCOPES =
 export const CANVA_STATE_COOKIE = "canva_oauth_state";
 
 /**
- * Crypto labels — kept stable so log lines from lib/crypto.ts remain searchable
- * by their prior names. The factory uses dynamically-built labels for new
- * servers but Canva specifically retains these constants for log continuity.
+ * Crypto label for the access token — kept stable so log lines from lib/crypto.ts
+ * remain searchable by their prior name. The factory uses dynamically-built labels
+ * for new servers; Canva retains this constant for log continuity.
  */
 export const CRYPTO_LABEL_CANVA_ACCESS_TOKEN = "mcp_connections.canva.access_token";
-export const CRYPTO_LABEL_CANVA_REFRESH_TOKEN = "mcp_connections.canva.refresh_token";
 
 // ---------------------------------------------------------------------------
 // Canva-specific REST error class + response handler
@@ -130,19 +126,6 @@ export async function handleCanvaResponse<T>(response: Response): Promise<T> {
 // ---------------------------------------------------------------------------
 // OAuth helpers — thin wrappers around the factory for legacy callers
 // ---------------------------------------------------------------------------
-
-/**
- * Refresh a Canva access token. Delegates to the generic factory which knows
- * about Canva's quirks (HTTP Basic, single-use refresh tokens) via the catalog.
- */
-export async function refreshCanvaToken(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  serviceClient: SupabaseClient<any>,
-  orgId: string,
-  refreshToken: string,
-): Promise<RefreshResult> {
-  return refreshAccessToken(serviceClient, orgId, CANVA_SERVER_NAME, refreshToken);
-}
 
 /**
  * Revoke a Canva access or refresh token. Best-effort — never throws.

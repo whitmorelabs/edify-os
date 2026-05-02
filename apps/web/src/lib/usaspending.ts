@@ -24,7 +24,7 @@
  * Reference: https://api.usaspending.gov/docs/endpoints
  */
 
-import { handleJsonResponse } from "@/lib/http";
+import { handleJsonResponse, toFiniteNumber } from "@/lib/http";
 
 const USASPENDING_BASE = "https://api.usaspending.gov/api/v2";
 
@@ -135,11 +135,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
     },
     makeError: (status, msg) => new USAspendingError(status, msg),
   });
-}
-
-function toFiniteNumber(v: unknown): number | null {
-  if (typeof v !== "number") return null;
-  return Number.isFinite(v) ? v : null;
 }
 
 /** Clamp date strings to USAspending's earliest accepted value. */

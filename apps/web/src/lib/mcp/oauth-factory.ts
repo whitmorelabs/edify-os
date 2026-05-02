@@ -13,8 +13,11 @@
  * What's new (general):
  *   - clientAuth: "basic" | "post" — Notion + Canva use Basic; future POST-style servers supported
  *   - usePkce: boolean — Canva uses PKCE; Notion doesn't
- *   - refreshTokenRotates: boolean — both Canva and Notion rotate, but explicit flag future-proofs
  *   - metadataFromTokenResponse: optional hook to extract per-server metadata for storage
+ *
+ * Refresh-token rotation (Canva/Notion rotate per use, Asana doesn't) is handled
+ * uniformly: the factory always persists any refresh_token returned by the token
+ * endpoint, so non-rotating servers are a no-op and rotating servers stay safe.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
