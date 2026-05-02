@@ -2116,3 +2116,82 @@ That's ~75% of Candid Premier's value at $0 vendor cost, per the deep-dive's cov
 - Both tools are dormant-until-keys — no runtime breakage if env vars aren't set.
 - Charity Navigator's exact rate-limit ceiling needs production verification once a real key is in Vercel; my 10-request spike with bad keys hinted at IP throttling but the gateway gates `X-RateLimit-*` headers behind successful auth.
 - One workflow note: my first set of edits accidentally targeted the main checkout (absolute paths bypassed worktree). Caught before commit; stashed and reapplied in worktree. SESSION-LOG was untouched in main, so no repair needed.
+
+---
+
+## Sonnet Coding Agent — 990-PF Schedule I (Grants Paid) Parser (Sprint 2)
+
+**Identity:** Sonnet coding agent (worktree-agent-a91152b060b8946e4)
+**Branch:** `worktree-agent-a91152b060b8946e4`
+**Date:** 2026-05-01
+**Task:** Sprint 2 of the Candid-alternatives stack — wire the funder→recipient grant graph (the highest-leverage remaining sprint per the Candid deep-dive). Replicates Candid's crown-jewel "Foundation X gave $50K to Y in 2023" data using free public IRS data via GivingTuesday's S3 mirror.
+
+### Tools shipped (1)
+
+- **`foundation_grants_paid_by_ein`** — wired into `development_director` archetype only.
+  - Input: foundation EIN (required), `year` (optional — defaults to most recent), `limit` (optional — defaults to 25, max 50)
+  - Output: `{ein, foundationName, taxYear, formType, totalGrantsInFiling, totalGrantsAmount, grants[], truncated, objectId, xmlUrl, pdfUrl, propublicaFilingUrl}` where each grant row is `{recipientName, recipientType ("organization"|"person"), recipientEin, recipientCity, recipientState, recipientCountry, amount, purpose, recipientFoundationStatus}`
+  - Top N grants by amount when total exceeds limit; surfaces totals so the model can tell the user how much is hidden.
+  - Reverse lookup (`grants_received_by_recipient_ein`) deferred to future sprint — would require building an inverted index across all foundations (Supabase migration), out of scope per task brief.
+
+### Data source decisions
+
+- **GivingTuesday 990 Data Lake** (`s3://gt990datalake-rawdata/EfileData/XmlFiles/{object_id}_public.xml`) — anonymous public S3, no AWS auth. Confirmed actively maintained: latest index file is `2026-03-20`, regular cadence visible across 2025.
+- **NOT** the IRS direct downloads (`apps.irs.gov/pub/epostcard/990/xml/`) — those only expose monthly ZIPs (~50-200 MB), no per-filing files. GT lake hosts the same XMLs unpacked.
+- **EIN → object_id resolution:** scrape the ProPublica HTML org page (`projects.propublica.org/nonprofits/organizations/{ein}`). ProPublica's JSON API does NOT expose the IRS e-file `object_id` we need; the HTML page does, embedded in `download-xml?object_id=NNNN` links. Pair with JSON `filings_with_data` (both reverse-chrono) to map object_id → tax year. When user requests a specific year and JSON/HTML alignment is off (HTML occasionally has a newer filing PP's JSON cache hasn't picked up), probe up to ~5 candidate XMLs and verify via the XML's `<TaxPeriodEndDt>`.
+
+### Parsing strategy
+
+- **TS-native, custom parser** — no XML library dependency. Verified `fast-xml-parser` is NOT a transitive dep (`pnpm why fast-xml-parser` → empty), and the field set we need is small enough that a small regex-based extractor is the cleanest fit.
+- ~280 lines of pure parsing (in 628-line `foundation-grants.ts` total — rest is types, errors, request shaping, year-resolution logic).
+- Handles BOTH 990-PF Part XV (`<GrantOrContributionPdDurYrGrp>` blocks, `<RecipientUSAddress>`, `<Amt>`, `<GrantOrContributionPurposeTxt>`) AND 990 Schedule I (`<RecipientTable>` blocks, `<USAddress>`, `<CashGrantAmt>`, `<PurposeOfGrantTxt>`, `<RecipientEIN>`).
+- Streaming-style block iteration via JS generator — XML stays in memory once but parsing is one pass.
+
+### Live verification (5 foundations)
+
+| Foundation | EIN | Tax Year | Form | Total grants | Total $ | Latency |
+|---|---|---|---|---|---|---|
+| Ford Foundation | 13-1684331 | 2023 | 990PF | 3,718 | $735,763,273 | 6.7s |
+| Ford Foundation | 13-1684331 | 2024 (default) | 990PF | 4,007 | $844,698,067 | 5.3s |
+| Hewlett Foundation | 94-1655673 | 2022 | 990PF | 1,840 | $560,735,625 | 3.4s |
+| Knight Foundation | 65-0464177 | 2022 | 990PF | 411 | $102,293,248 | 1.7s |
+| ACLU Foundation | 13-6213516 | 2025 (default) | 990 + Sched I | 73 | $28,409,034 | 0.2s |
+
+ACLU Foundation case is critical: it's a 990 (not PF), uses `<RecipientTable>` blocks with `<RecipientEIN>` populated. All 5 top grants returned with valid recipient EINs. Confirms the parser handles both schemas.
+
+### Files added / changed
+
+- **Added:**
+  - `apps/web/src/lib/foundation-grants.ts` (628 lines — typed wrapper: ProPublica HTML scrape + JSON pair + GT S3 fetch + custom Schedule I / Part XV parser + year-probe logic)
+  - `apps/web/src/lib/tools/foundation-grants.ts` (130 lines — Anthropic tool def + executor + addendum)
+- **Modified:**
+  - `apps/web/src/lib/tools/registry.ts` — wired into `development_director` only, added explicit name-set pinning for the multi-segment `foundation_grants_*` prefix
+  - `apps/web/src/lib/hours-saved/estimates.ts` — `tool:foundation_grants_paid_by_ein` → 60 min (highest single-tool save in the stack — manually pulling Schedule I from a foundation's 990-PF PDF is brutal, often hours)
+
+### Performance & caveats (in PR body too)
+
+- **No caching this sprint.** Per-query latency: 0.2s–7s depending on filing size (Ford's 5.4 MB XML is the worst case observed). Acceptable for chat UX as-is. Supabase cache deferred to future sprint per brief.
+- **Data lag.** 990-PF returns are filed 6-18 months after fiscal year end + 1-3 months IRS processing → as of mid-2026, most-recent data is typically TY 2023 (some 2024). Tool addendum tells the model to surface this.
+- **Recipient EIN gap.** 990-PF Part XV only has EIN in ~1% of rows (Ford 2023: 42 of 3,718). 990 Schedule I has EIN in nearly all rows (ACLU: 73 of 73). The output schema marks `recipientEin: string | null`; the addendum explicitly tells the model to match by name+address when EIN is missing.
+- **Truncation.** Large foundations (Ford, Gates, Hewlett) file thousands of grants per year. We surface top N by amount (default 25, max 50) and expose `totalGrantsInFiling` / `totalGrantsAmount` so the model can tell the user how much is hidden.
+- **HTML scrape risk.** ProPublica's HTML structure could change. Detection: zero `object_id=` matches in the HTML. The wrapper throws a clean 404 in that case so the tool degrades gracefully rather than returning empty data.
+
+### Verification
+
+- `pnpm --filter web typecheck` → clean (0 errors)
+- `/simplify` pass: removed an unused `ProPublicaNonprofitError` import + re-export, removed an unused `formType` field on `FilingRef` (4-level nested ternary that wasn't used downstream), tightened step-numbering comments. Other findings false-positive (e.g. minor regex backreference perf, well-encapsulated as-is).
+- SESSION-LOG.md verified in sync with `origin/main` (only line endings differ — content identical) before this entry was appended.
+
+### What's deferred to future sprints
+
+- **Reverse lookup `grants_received_by_recipient_ein`** — would need an inverted index over all foundation 990-PFs (Supabase table + ingest cron). Out of scope per task brief.
+- **Supabase cache layer** — first call per EIN takes 3-10s. Repeat-call cache would drop to <100ms. Deferred per brief.
+- **Multi-year aggregation** — "show me Ford's grants to peer-org X across 2019-2023" requires N calls and aggregation client-side. Could be a future tool that wraps this one.
+- **Schedule I parsing for 990 (not -PF) at scale** — works for the ACLU test case but not all 990 filers report Schedule I (only those who paid $5K+ to other orgs). The schema variation across years is wider than 990-PF Part XV.
+
+### Notes for Lopmon
+
+- Z+Milo offline → auto-merge applies per memory.
+- No env var needed — both data sources are anonymous public, no key provisioning required.
+- This is the Sprint-2 crown-jewel from the deep-dive — combined with PRs #59-64 (ProPublica, USAspending, CA Grants, Charity Navigator, Candid Demographics), Edify now hits ~80% of Candid Premier's value at $0 vendor cost.
+- Worktree discipline maintained: all edits made via worktree absolute paths, main checkout verified clean before commit.

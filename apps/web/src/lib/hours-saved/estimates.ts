@@ -52,6 +52,9 @@ export const TIME_SAVED_ESTIMATES_MINUTES = {
   // Candid Demographics (free DEI / leadership / board data)
   "tool:candid_demographics_get": 15,    // DEI lookup, often impossible by hand
 
+  // Foundation grants paid (990-PF Schedule I parser — funder→recipient graph)
+  "tool:foundation_grants_paid_by_ein": 60,  // pulling Schedule I from a 990-PF PDF by hand is brutal
+
   // CRM
   "tool:crm_log_interaction": 8,    // updating a donor record manually
   "tool:crm_list_donors": 3,        // searching donor list
