@@ -29,7 +29,7 @@
  * Reference: https://www.federalregister.gov/developers/documentation/api/v1
  */
 
-import { handleJsonResponse } from "@/lib/http";
+import { handleJsonResponse, toStringOrNull } from "@/lib/http";
 
 const FR_API_BASE = "https://www.federalregister.gov/api/v1";
 
@@ -120,10 +120,6 @@ async function frHandle<T>(response: Response): Promise<T> {
     },
     makeError: (status, msg) => new FederalRegisterError(status, msg),
   });
-}
-
-function toStringOrNull(v: unknown): string | null {
-  return typeof v === "string" && v.length > 0 ? v : null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

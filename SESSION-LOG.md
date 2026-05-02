@@ -2488,3 +2488,56 @@ NOT touched: tool wrapper (`lib/tools/foundation-grants.ts`), UI, archetype prom
 - Migration not yet applied to Supabase. Code works correctly without it (graceful no-op). After merge, apply via Supabase SQL Editor or `npx supabase db push` to activate cache. No code change needed.
 - Z+Milo offline per memory → auto-merge applies once review passes.
 - Cache eviction / TTL job is intentionally NOT in this sprint per task spec — future tuning knob.
+
+---
+
+# Cross-PR /simplify Cleanup Agent (PRs #64-69)
+
+**Identity:** Cross-PR /simplify Cleanup Agent (Sonnet)
+**Branch:** `worktree-agent-aeb477d10763fb0eb`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-aeb477d10763fb0eb`
+**Date:** 2026-04-30
+**Scope:** PRs #64-69 cumulative diff vs PR #63 baseline (`a102c4f`)
+
+## Review checks performed
+
+1. Cross-tool duplication — found one clear hit, documented below
+2. Tool file consistency (`lib/tools/*.ts` for charity-navigator, candid-demographics, foundation-grants, federal-register, inside-philanthropy, grant-matcher) — all follow the same shape (addendum string, tool definitions, executor with try/catch + typed-error branch + console.error fallback). Differences are justified (grant-matcher gets an Anthropic client + orgId; foundation-grants requires no env var).
+3. Grant matcher (`lib/grant-matcher.ts`) — no duplicate types vs source modules (`Match` vs source types are intentionally different), helpers (`clipBlurb`, `formatUsd`, `formatAmountRange`, `parseLooseAmounts`, `normalizeTitle`, `mapEligibilityCodes`) are appropriately small and named. Source-priority Record is exhaustive over the union type. No cleanup needed.
+4. Foundation grants cache (`lib/foundation-grants.ts` PR #69) — try/catch wrap is consistent (`return null` on read miss, swallow on write), warn-log prefix is consistent (`[foundation-grants-cache]`), TTL named (`CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000`) with comment explaining the 90-day choice. Clean.
+5. RSS / XML parsing (`lib/inside-philanthropy.ts`) — handles missing fields (`readChild` returns null), HTML entities (numeric decimal + hex + 5 named), CDATA, malformed dates (Date.parse → null fallback). Robust.
+6. Registry (`lib/tools/registry.ts`) — explicit name-set pins for the 5 new tool families are required by the prefix-split fallback design and each carries a justification comment. Restructuring the dispatch model is out of scope for /simplify. No cleanup.
+7. Hours-saved estimates — research/scan tools 15-30 min, deep-record tools 25-60 min, `find_grants_for_org` at 240 min (4 hours, the meta-tool replacing a full prospect-research session). All within scale.
+
+## Issues fixed
+
+### Duplicate `toStringOrNull` helper across 3 files
+
+`function toStringOrNull(v: unknown): string | null { return typeof v === "string" && v.length > 0 ? v : null; }` was redefined identically in:
+- `apps/web/src/lib/candid-demographics.ts` (PR #64)
+- `apps/web/src/lib/federal-register.ts` (PR #66)
+- `apps/web/src/lib/ca-grants-portal.ts` (pre-existing PR #60)
+
+PR #63 had already extracted `toFiniteNumber` to `lib/http.ts` with the same justification. `toStringOrNull` is the natural sibling — also a tiny coercion helper, also used by every projection-from-external-API module. Extracting it now closes the gap before more modules pick up the pattern.
+
+**Fix:** Added `toStringOrNull` to `lib/http.ts`, replaced the 3 local definitions with named imports.
+
+## Files Changed
+
+- `apps/web/src/lib/http.ts` — added `toStringOrNull` export.
+- `apps/web/src/lib/candid-demographics.ts` — import `toStringOrNull` from `@/lib/http`, removed local copy.
+- `apps/web/src/lib/federal-register.ts` — import `toStringOrNull` from `@/lib/http`, removed local copy.
+- `apps/web/src/lib/ca-grants-portal.ts` — import `toStringOrNull` from `@/lib/http`, removed local copy.
+
+NOT touched: any tool wrapper, registry, archetype prompts, UI, migration files. Pure dedup.
+
+## Verification
+
+- `pnpm --filter web typecheck` — clean.
+- Confirmed main checkout had no edits (only `.claude/worktrees/` untracked).
+- SESSION-LOG.md verified in sync with `origin/main` (CRLF-only diff) before append.
+
+## Worktree Discipline
+
+- All edits via absolute worktree paths under `C:/Users/Araly/edify-os/.claude/worktrees/agent-aeb477d10763fb0eb/`.
+- `apps/web/tsconfig.tsbuildinfo` reverted before commit (incidental rebuild artifact).

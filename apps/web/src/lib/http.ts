@@ -37,3 +37,12 @@ export function toFiniteNumber(v: unknown): number | null {
   if (typeof v !== "number") return null;
   return Number.isFinite(v) ? v : null;
 }
+
+/**
+ * Coerce an unknown value to a non-empty string, returning null for non-strings
+ * or empty strings. Useful when projecting external API responses where text
+ * fields may be missing, null, or empty placeholders.
+ */
+export function toStringOrNull(v: unknown): string | null {
+  return typeof v === "string" && v.length > 0 ? v : null;
+}
