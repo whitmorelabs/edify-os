@@ -20,7 +20,7 @@
  * Reference: https://projects.propublica.org/nonprofits/api
  */
 
-import { handleJsonResponse } from "@/lib/http";
+import { handleJsonResponse, toFiniteNumber } from "@/lib/http";
 
 const PROPUBLICA_BASE = "https://projects.propublica.org/nonprofits/api/v2";
 
@@ -153,11 +153,6 @@ function formatTaxPeriod(taxPrd: number | null | undefined): string | null {
   const s = String(taxPrd);
   if (s.length !== 6) return null;
   return `${s.slice(0, 4)}-${s.slice(4)}`;
-}
-
-function toFiniteNumber(v: unknown): number | null {
-  if (typeof v !== "number") return null;
-  return Number.isFinite(v) ? v : null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

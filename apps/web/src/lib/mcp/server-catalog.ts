@@ -65,12 +65,6 @@ export interface OAuthConfig {
    */
   authorizeExtraParams?: Record<string, string>;
   /**
-   * Whether refresh tokens rotate on each use. If true, the factory always
-   * persists the new refresh_token returned alongside access_token. Canva does;
-   * Notion does too — it's safer to default true, but mark explicitly.
-   */
-  refreshTokenRotates: boolean;
-  /**
    * Env var holding the OAuth client_id. Required for "oauth" mode.
    */
   clientIdEnv: string;
@@ -158,7 +152,8 @@ const SLACK_ENTRY: ServerCatalogEntry = {
  * Auth quirks (locked-in from canva-oauth.ts):
  *   - HTTP Basic for client credentials at the token endpoint
  *   - PKCE (S256) on the authorize step
- *   - Single-use refresh tokens (refreshTokenRotates: true)
+ *   - Single-use refresh tokens — the factory defensively persists any new
+ *     refresh_token returned by the token endpoint
  *   - Scopes are NOT cumulative — each must be re-listed on every authorize call
  *
  * Legacy redirect path: Canva ships through /api/integrations/canva/callback,
@@ -185,7 +180,6 @@ const CANVA_ENTRY: ServerCatalogEntry = {
       "asset:write",
       "profile:read",
     ].join(" "),
-    refreshTokenRotates: true,
     clientIdEnv: "CANVA_OAUTH_CLIENT_ID",
     clientSecretEnv: "CANVA_OAUTH_CLIENT_SECRET",
     redirectUriEnv: "CANVA_OAUTH_REDIRECT_URI",
@@ -220,7 +214,6 @@ const NOTION_ENTRY: ServerCatalogEntry = {
     // Notion does not use OAuth scopes — capabilities are conveyed by
     // page-level grants the user picks at consent time. Leave scopes undefined.
     authorizeExtraParams: { owner: "user" },
-    refreshTokenRotates: true,
     clientIdEnv: "NOTION_OAUTH_CLIENT_ID",
     clientSecretEnv: "NOTION_OAUTH_CLIENT_SECRET",
     redirectUriEnv: "NOTION_OAUTH_REDIRECT_URI",
@@ -257,7 +250,9 @@ const NOTION_ENTRY: ServerCatalogEntry = {
  *   - Form-body client credentials (NOT Basic) at the token endpoint
  *   - PKCE (S256) supported on the authorize step — we opt in for defense-in-depth
  *     even though it's not strictly required for confidential clients
- *   - Refresh tokens are long-lived (do NOT rotate per use), unlike Notion/Canva
+ *   - Refresh tokens are long-lived (do NOT rotate per use), unlike Notion/Canva.
+ *     The factory always defensively persists any refresh_token returned, so
+ *     this difference is invisible at runtime.
  *   - MCP apps require the `resource=https://mcp.asana.com/v2` query param on
  *     authorize, AND scopes MUST be omitted entirely (per Asana MCP docs:
  *     "MCP apps don't require specific scopes—remove the `scope` parameter")
@@ -287,10 +282,6 @@ const ASANA_ENTRY: ServerCatalogEntry = {
     // require omitting the `scope` param entirely; capabilities are inherited
     // from the connecting user's existing Asana workspace permissions.
     authorizeExtraParams: { resource: "https://mcp.asana.com/v2" },
-    // Asana refresh tokens are long-lived (no rotation per use), unlike Canva/Notion.
-    // The factory still defensively persists any refresh_token returned, so this
-    // flag is documentary — but keep it accurate.
-    refreshTokenRotates: false,
     clientIdEnv: "ASANA_OAUTH_CLIENT_ID",
     clientSecretEnv: "ASANA_OAUTH_CLIENT_SECRET",
     redirectUriEnv: "ASANA_OAUTH_REDIRECT_URI",

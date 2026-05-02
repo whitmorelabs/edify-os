@@ -1985,3 +1985,49 @@ Single `ASANA_ENTRY` added to `apps/web/src/lib/mcp/server-catalog.ts` (+71/-1).
 - The factory's promise checks out — config-only adds genuinely take ~45 min vs hours.
 - Z+Milo offline → auto-merge applies. Lopmon to merge after review.
 - This worktree's SESSION-LOG.md was inadvertently rewritten as a fresh file in the agent's first commit; Lopmon repaired it to preserve all prior session entries from main before merging.
+
+---
+
+## Post-Sprint /simplify Cleanup — PRs #57-62 (2026-04-30)
+
+**Identity:** /simplify Sweep Agent (Sonnet)
+**Branch:** `chore/post-sprint-simplify-pr57-62`
+**Worktree:** `C:/Users/Araly/edify-os/.claude/worktrees/agent-ae30f7fbc36bf5af1`
+**Date:** 2026-04-30
+**Scope:** Cumulative diff `4fa0649..HEAD` (PRs #57, #58, #59, #60, #61, #62)
+
+### What was reviewed
+- Typed API wrappers: `propublica-nonprofits.ts`, `usaspending.ts`, `ca-grants-portal.ts`, `grants-gov.ts`
+- Tool files: `nonprofit.ts`, `usaspending.ts`, `ca-grants.ts`, `grants.ts`, `render.ts`
+- MCP factory: `oauth-factory.ts`, `server-catalog.ts`, `registry.ts`, `canva-oauth.ts` shim
+- Generic OAuth routes: `/api/oauth/[server]/{connect,callback,disconnect,route}.ts`
+- Render path: `lib/tools/render.ts`, `api/render/og/route.ts`, `api/renders/[renderId]/route.ts`
+- Hours-saved estimates additions
+- Mobile responsive Tailwind diff (PR #58)
+- Registry consistency (`lib/tools/registry.ts`)
+
+### Issues fixed
+
+1. **Dead config flag `OAuthConfig.refreshTokenRotates`** — declared on the interface and set on every server entry but never consulted by `oauth-factory.ts` (the factory always defensively persists any returned `refresh_token`, which is the safer default and works for both rotating and non-rotating servers). Removed the field, removed the four assignments, updated the factory + Asana entry comments to accurately describe the unified persistence behavior.
+
+2. **Dead exports in `canva-oauth.ts` shim** — `CANVA_REVOKE_URL`, `CRYPTO_LABEL_CANVA_REFRESH_TOKEN`, and `refreshCanvaToken` were exported but no other file imports them (verified via grep across `apps/web/src/`). Removed the constants and the unused wrapper function. The shim still re-exports everything Canva integration code actually uses (`CANVA_API_BASE`, `CanvaApiError`, `handleCanvaResponse`, `getValidCanvaAccessToken`, `revokeCanvaToken`, `CANVA_AUTHORIZE_URL`, `CANVA_SCOPES`, `CANVA_STATE_COOKIE`, `CANVA_TOKEN_URL`, `CANVA_SERVER_NAME`, `CRYPTO_LABEL_CANVA_ACCESS_TOKEN`).
+
+3. **Duplicated `toFiniteNumber` helper** — identical 3-line helper appeared verbatim in `propublica-nonprofits.ts` and `usaspending.ts`. Hoisted to `lib/http.ts` (the existing home for shared HTTP utilities), exported, and consumed by both wrappers.
+
+### What was clean (no action)
+- Tool file consistency — `grants.ts`, `nonprofit.ts`, `usaspending.ts`, `ca-grants.ts` follow the same pattern (addendum constant, tools array, executor with switch on name, instanceof error class check, console.error fallback).
+- Registry wiring (`lib/tools/registry.ts`) — new `nonprofit_`, `usaspending_`, `ca_grants_` families wired identically to `grants_`. The `ca_grants` family explicitly pinned via name set so the prefix-split fallback doesn't ambiguously resolve to family `ca`. Justified, well-commented.
+- Render path — `persistRenderedPng()` is reused both in `lib/tools/render.ts` and `api/render/og/route.ts`; `api/renders/[renderId]/route.ts` uses the shared `RENDERED_FILES_BUCKET` constant. No leakage.
+- Generic OAuth routes — connect/callback/disconnect consistently 404 non-OAuth servers; `/api/oauth/[server]/route.ts` (status) intentionally accepts any catalog entry so it can also report on bearer-env servers, which is correct.
+- Hours-saved estimate additions are plausible and consistent with other tools.
+- Mobile diff (PR #58) — pure responsive Tailwind tokens (`grid-cols-1 lg:grid-cols-[...]`, `clamp(...)`, `p-4 sm:p-6`). No hardcoded breakpoint duplication. Visuals owned by Z+Milo per memory; no further changes attempted.
+- Typed API wrapper boilerplate — considered extracting headers/handleResponse into a single factory but left in place: each wrapper's `extractMessage` body is the substance (different keys per API: ProPublica `error/message`, USAspending `detail/message`, Grants.gov `errorMessage/message/msg`, CKAN `error.message`), so a factory would mostly be ceremony. The `lib/http.ts` `handleJsonResponse` already extracts the genuinely shared "parse JSON or fall back to statusText" piece.
+
+### Verification
+- `pnpm --filter web typecheck` → clean (0 errors)
+- Net change: 23 lines removed across 6 files
+- SESSION-LOG.md verified in sync with `origin/main` before edit (only this entry appended)
+
+### Notes for Lopmon
+- Z+Milo offline → auto-merge applies. Cleanup PR safe to merge.
+- No behavior changes — pure boilerplate reduction. Existing Canva flow, OAuth refresh, and tool execution paths unchanged.
