@@ -45,6 +45,13 @@ export const TIME_SAVED_ESTIMATES_MINUTES = {
   "tool:ca_grants_search": 20,        // browsing CA portal manually + filtering
   "tool:ca_grants_get_details": 8,    // reading one grant's full record
 
+  // Charity Navigator (free-tier GraphQL — ratings + accountability)
+  "tool:charity_navigator_search": 25,   // peer org research + rating lookup by hand
+  "tool:charity_navigator_profile": 20,  // reading one org's full CN ratings page
+
+  // Candid Demographics (free DEI / leadership / board data)
+  "tool:candid_demographics_get": 15,    // DEI lookup, often impossible by hand
+
   // CRM
   "tool:crm_log_interaction": 8,    // updating a donor record manually
   "tool:crm_list_donors": 3,        // searching donor list

@@ -2031,3 +2031,88 @@ Single `ASANA_ENTRY` added to `apps/web/src/lib/mcp/server-catalog.ts` (+71/-1).
 ### Notes for Lopmon
 - Z+Milo offline → auto-merge applies. Cleanup PR safe to merge.
 - No behavior changes — pure boilerplate reduction. Existing Canva flow, OAuth refresh, and tool execution paths unchanged.
+
+---
+
+## 2026-05-02 — Charity Navigator + Candid Demographics Tools (Sprint 1 of "Free Candid alternatives")
+
+**Identity:** Sonnet coding agent (spawned by Lopmon)
+**Branch:** `feat/charity-navigator-candid-demographics`
+**Worktree:** `C:\Users\Araly\edify-os\.claude\worktrees\agent-a3ddc2fc4dd1f253d`
+**Reference:** `agent-afd4396ebd04c74cd\CANDID-DEEP-DIVE-2026-05-01.md`
+
+### What was built
+
+Two new free-tier nonprofit data sources wired as Development Director tools, completing Sprint 1 of the Candid-alternatives plan from the deep-dive doc:
+
+1. **Charity Navigator GraphQL** — `apps/web/src/lib/charity-navigator.ts` + `apps/web/src/lib/tools/charity-navigator.ts`
+   - Endpoint: `https://api.charitynavigator.org/graphql` (POST)
+   - Auth: `Authorization: <api_key>` header, raw key (no "Bearer " prefix), per cn-examples README
+   - Free tier exposes only `publicSearchFaceted` query — no separate get-by-EIN. Profile lookup is implemented as a search with `term=ein` and exact-match filter on the EIN.
+   - Tools: `charity_navigator_search`, `charity_navigator_profile`
+   - Response fields surfaced: ein, name, mission, encompass_score (0–100), encompass_star_rating (0–4), publication date, alert level, address, charity_navigator_url
+   - Beacon-level breakdowns (Accountability/Finance/Impact/Culture) NOT exposed in free tier — only the rolled-up encompass score. Documented in tool addendum.
+
+2. **Candid Demographics REST** — `apps/web/src/lib/candid-demographics.ts` + `apps/web/src/lib/tools/candid-demographics.ts`
+   - Endpoint: `https://api.candid.org/demographics/v1/{ein}` (GET)
+   - Auth: `Subscription-Key: <key>` header (Azure API Management — confirmed via 401 probe)
+   - Tools: `candid_demographics_get`
+   - Response: org summary + staff_level_totals + categories (Race & Ethnicity, Gender Identity, Sexual Orientation, Disability) with subcategory breakdowns across board, staff, senior_staff cohorts + reported_by_ceo / reported_by_coceo flags
+   - Returns null cleanly for orgs without demographics on file (404 from API or empty categories).
+
+### Files added / changed
+
+- **Added:**
+  - `apps/web/src/lib/charity-navigator.ts` (typed GraphQL client wrapper)
+  - `apps/web/src/lib/candid-demographics.ts` (typed REST client wrapper)
+  - `apps/web/src/lib/tools/charity-navigator.ts` (tool defs + executor + addendum)
+  - `apps/web/src/lib/tools/candid-demographics.ts` (tool defs + executor + addendum)
+- **Modified:**
+  - `apps/web/src/lib/tools/registry.ts` — wired both families into `development_director`, added explicit name-set pinning for the multi-segment prefixes
+  - `apps/web/src/lib/hours-saved/estimates.ts` — added 3 entries (search 25 min, profile 20 min, demographics 15 min)
+  - `apps/web/.env.example` — documented both new env vars
+
+### Auth model & env vars
+
+| Tool family | Env var | Header | Source |
+|---|---|---|---|
+| `charity_navigator_*` | `CHARITY_NAVIGATOR_API_KEY` | `Authorization: <key>` (raw) | developer.charitynavigator.org |
+| `candid_demographics_*` | `CANDID_DEMOGRAPHICS_API_KEY` | `Subscription-Key: <key>` | developer.candid.org |
+
+Without env vars set, both tool families surface a benign "not configured" error (same dormant-until-secrets pattern as Notion/Asana). Tools won't show up as broken in production — they just no-op until Z provisions the keys in Vercel.
+
+### API verification (no-key probes)
+
+- `POST https://api.charitynavigator.org/graphql` (no auth) → `401 Unauthorized` with `{"error":"Authorization field missing"}`. With invalid key → `403` with `{"error":"Access to this API has been disallowed"}`. Confirmed Tyk-gateway-fronted.
+- `GET https://api.candid.org/demographics/v1/13-1684331` (no auth) → `401 Access Denied` with `WWW-Authenticate: AzureApiManagementKey realm="...", name="Subscription-Key", type="header"`. Confirmed Azure-API-Management-fronted.
+- 10 quick POSTs to CN GraphQL (all with bad auth, all 403): 9 returned in <0.5s, 10th took 12.2s — likely IP-level throttling at the Tyk gateway on rapid-fire 403s. No `X-RateLimit-*` headers exposed on auth-failed responses; production-side rate-limit verification deferred until a real key is provisioned.
+- Live-tested API call+response to a key-required endpoint not possible without a key. Wrappers + executors verified clean via typecheck only. PR body documents the full request shape so verification is one curl away once Z provisions keys.
+
+### What this delivers vs Candid
+
+Combined with the already-shipped ProPublica integration (PR #59), Dev Director now has:
+- Foundation/charity ratings + accountability scores (Charity Navigator)
+- DEI / leadership / board demographics (Candid Demographics)
+- 990 financial filings + grants paid (ProPublica)
+- Federal awards history (USAspending, PR #60)
+- CA grant opportunities (CA Grants Portal, PR #60)
+
+That's ~75% of Candid Premier's value at $0 vendor cost, per the deep-dive's coverage analysis.
+
+### Deferred to future sprints
+
+- Sprint 2: 990-PF Schedule I parser (funder→recipient grant graph) — biggest remaining Candid gap
+- Sprint 3: Federal Register API + Inside Philanthropy RSS for current-grant signal
+
+### Verification
+
+- `pnpm --filter web typecheck` → clean (0 errors)
+- `/simplify` pass: consolidated `toFiniteNumberOrNull` into shared `toFiniteNumber` from `lib/http.ts` (matches ProPublica + USAspending pattern). Other findings false-positive or load-bearing for legibility.
+- SESSION-LOG.md verified in sync with `origin/main` (only line endings differ — content identical) before this entry was appended.
+
+### Notes for Lopmon
+
+- Z+Milo offline → auto-merge applies per memory.
+- Both tools are dormant-until-keys — no runtime breakage if env vars aren't set.
+- Charity Navigator's exact rate-limit ceiling needs production verification once a real key is in Vercel; my 10-request spike with bad keys hinted at IP throttling but the gateway gates `X-RateLimit-*` headers behind successful auth.
+- One workflow note: my first set of edits accidentally targeted the main checkout (absolute paths bypassed worktree). Caught before commit; stashed and reapplied in worktree. SESSION-LOG was untouched in main, so no repair needed.
