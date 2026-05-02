@@ -33,15 +33,23 @@
  *   2023 = 3,718 grants in a 5.4 MB XML). We surface the top N by amount
  *   and document the cap so the user knows.
  *
- * No caching in this sprint:
- *   Per-query S3 fetch + parse runs ~3-10 sec for typical 990-PFs. Acceptable
- *   for chat UX. A Supabase cache layer is a future-sprint concern.
+ * Caching:
+ *   Per-query S3 fetch + parse runs 0.2-7 sec for typical 990-PFs. To keep
+ *   warm queries under 100ms, results are cached in the
+ *   `foundation_grants_cache` Supabase table keyed by (ein, tax_year). TTL
+ *   is 90 days — 990-PF data lags 12-18 months anyway, stale-by-a-few-months
+ *   is fine. Cache is fully optional: every cache call is wrapped in
+ *   try/catch and silently falls through to the slow path on any error
+ *   (table missing, service-role unset, network blip). See readCache /
+ *   writeCache below.
  *
  * References:
  *   https://990data.givingtuesday.org/access-via-aws-account-2/
  *   https://github.com/grantmakers/grantmakers-next  (precedent ETL)
  *   https://github.com/jsfenfen/990-xml-reader        (IRSx — Python ref)
  */
+
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -459,6 +467,128 @@ function parseReturnHeader(xml: string): {
 }
 
 // ---------------------------------------------------------------------------
+// Cache layer (Supabase) — graceful degradation on every error
+// ---------------------------------------------------------------------------
+
+/** 90-day TTL. 990-PF data lags 12-18 months anyway — being stale by a few
+ *  months on a multi-year-stale upstream is fine. */
+const CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Shape persisted in `foundation_grants_cache.metadata`. */
+type CachedMetadata = {
+  foundationName: string | null;
+  formType: string;
+  totalGrantsInFiling: number;
+  totalGrantsAmount: number;
+  objectId: string;
+  xmlUrl: string;
+  pdfUrl: string | null;
+  propublicaFilingUrl: string;
+};
+
+type CachedRow = {
+  ein: string;
+  tax_year: number;
+  grants: FoundationGrantPaid[];
+  metadata: CachedMetadata;
+  fetched_at: string;
+};
+
+/** Read a cache row. Returns null on miss, stale, or any error. */
+async function readCache(
+  formattedEin: string,
+  taxYear: number,
+): Promise<CachedRow | null> {
+  try {
+    const sb = createServiceRoleClient();
+    if (!sb) return null;
+    const { data, error } = await sb
+      .from("foundation_grants_cache")
+      .select("ein, tax_year, grants, metadata, fetched_at")
+      .eq("ein", formattedEin)
+      .eq("tax_year", taxYear)
+      .maybeSingle();
+    if (error) {
+      console.warn(
+        `[foundation-grants-cache] read error for ${formattedEin}/${taxYear}: ${error.message}`,
+      );
+      return null;
+    }
+    if (!data) return null;
+    const row = data as CachedRow;
+    const fetchedAt = Date.parse(row.fetched_at);
+    if (!Number.isFinite(fetchedAt)) return null;
+    if (Date.now() - fetchedAt > CACHE_TTL_MS) return null;
+    return row;
+  } catch (err) {
+    console.warn(
+      `[foundation-grants-cache] read threw for ${formattedEin}/${taxYear}: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+    return null;
+  }
+}
+
+/** Write a cache row. Errors are swallowed (logged at warn). */
+async function writeCache(
+  formattedEin: string,
+  taxYear: number,
+  grants: FoundationGrantPaid[],
+  metadata: CachedMetadata,
+): Promise<void> {
+  try {
+    const sb = createServiceRoleClient();
+    if (!sb) return;
+    const { error } = await sb.from("foundation_grants_cache").upsert(
+      {
+        ein: formattedEin,
+        tax_year: taxYear,
+        grants,
+        metadata,
+        fetched_at: new Date().toISOString(),
+      },
+      { onConflict: "ein,tax_year" },
+    );
+    if (error) {
+      console.warn(
+        `[foundation-grants-cache] write error for ${formattedEin}/${taxYear}: ${error.message}`,
+      );
+    }
+  } catch (err) {
+    console.warn(
+      `[foundation-grants-cache] write threw for ${formattedEin}/${taxYear}: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+}
+
+/** Build the public response shape from a cache row + the requested limit. */
+function responseFromCache(
+  row: CachedRow,
+  limit: number,
+): FoundationGrantsResponse {
+  // The cached grants array is already sorted desc by amount (we sort before
+  // writing). Slice to honor the per-call limit.
+  const grants = row.grants.slice(0, limit);
+  return {
+    ein: row.ein,
+    foundationName: row.metadata.foundationName,
+    taxYear: row.tax_year,
+    formType: row.metadata.formType,
+    totalGrantsInFiling: row.metadata.totalGrantsInFiling,
+    totalGrantsAmount: row.metadata.totalGrantsAmount,
+    grants,
+    truncated: row.grants.length > grants.length,
+    objectId: row.metadata.objectId,
+    xmlUrl: row.metadata.xmlUrl,
+    pdfUrl: row.metadata.pdfUrl,
+    propublicaFilingUrl: row.metadata.propublicaFilingUrl,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -481,10 +611,22 @@ export async function getFoundationGrants(
   params: GetFoundationGrantsParams,
 ): Promise<FoundationGrantsResponse> {
   const cleaned = cleanEin(params.ein);
+  const formattedEin = formatEin(cleaned);
   const limit = Math.max(
     1,
     Math.min(params.limit ?? DEFAULT_GRANTS_LIMIT, MAX_GRANTS_LIMIT),
   );
+
+  // 0) Cache fast-path — only possible when the caller specified a year, since
+  // the cache is keyed on (ein, tax_year) and we don't know the most-recent
+  // year until we resolve filings. Cache misses (table doesn't exist, no row,
+  // stale, error) return null and we fall through to the slow path silently.
+  if (typeof params.year === "number") {
+    const hit = await readCache(formattedEin, params.year);
+    if (hit) {
+      return responseFromCache(hit, limit);
+    }
+  }
 
   // 1) Resolve filings list.
   const { filings, foundationName: ppName } = await resolveFilingsByEin(cleaned);
@@ -577,6 +719,16 @@ export async function getFoundationGrants(
     header = matched.header;
   } else {
     target = filings[0];
+    // Opportunistic cache check using the JSON-paired tax year from PP. If we
+    // have a valid year and the cache hits, we skip the S3 fetch entirely.
+    // The JSON tax year is reliable for the most-recent filing (the off-by-one
+    // issue only bites year-explicit lookups). Miss → continue to slow path.
+    if (typeof target.taxYear === "number") {
+      const hit = await readCache(formattedEin, target.taxYear);
+      if (hit) {
+        return responseFromCache(hit, limit);
+      }
+    }
     xml = await fetchXmlByObjectId(target.objectId);
     header = parseReturnHeader(xml);
   }
@@ -596,18 +748,39 @@ export async function getFoundationGrants(
   grantsAll.sort((a, b) => b.amount - a.amount);
   const grants = grantsAll.slice(0, limit);
 
+  const resolvedTaxYear = header.taxYear ?? target.taxYear ?? 0;
+  const xmlUrl = `${GT_DATALAKE_XML_BASE}/${target.objectId}_public.xml`;
+  const propublicaFilingUrl = `${PROPUBLICA_HTML_BASE}/${cleaned}/${target.objectId}/full`;
+  const foundationName = header.filerName ?? ppName;
+
+  // 5) Persist to cache (best-effort, fire-and-forget on errors). Only cache
+  // when we have a real tax year — the (ein, tax_year) PK requires a year
+  // and storing under 0 would shadow real lookups.
+  if (resolvedTaxYear > 0) {
+    await writeCache(formattedEin, resolvedTaxYear, grantsAll, {
+      foundationName,
+      formType: header.formType,
+      totalGrantsInFiling: grantsAll.length,
+      totalGrantsAmount: totalAmount,
+      objectId: target.objectId,
+      xmlUrl,
+      pdfUrl: target.pdfUrl,
+      propublicaFilingUrl,
+    });
+  }
+
   return {
-    ein: formatEin(cleaned),
-    foundationName: header.filerName ?? ppName,
-    taxYear: header.taxYear ?? target.taxYear ?? 0,
+    ein: formattedEin,
+    foundationName,
+    taxYear: resolvedTaxYear,
     formType: header.formType,
     totalGrantsInFiling: grantsAll.length,
     totalGrantsAmount: totalAmount,
     grants,
     truncated: grantsAll.length > grants.length,
     objectId: target.objectId,
-    xmlUrl: `${GT_DATALAKE_XML_BASE}/${target.objectId}_public.xml`,
+    xmlUrl,
     pdfUrl: target.pdfUrl,
-    propublicaFilingUrl: `${PROPUBLICA_HTML_BASE}/${cleaned}/${target.objectId}/full`,
+    propublicaFilingUrl,
   };
 }
