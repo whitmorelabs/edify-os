@@ -25,7 +25,7 @@
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
-import { searchGrants } from "@/lib/grants-gov";
+import { searchGrants, fetchGrantDetails } from "@/lib/grants-gov";
 import { searchCaGrants } from "@/lib/ca-grants-portal";
 import { searchFederalRegister } from "@/lib/federal-register";
 import { getFoundationGrants } from "@/lib/foundation-grants";
@@ -649,6 +649,76 @@ function projectRankingsToMatches(
 }
 
 // ---------------------------------------------------------------------------
+// Amount enrichment — chain grants_get_details (fetchOpportunity) to fill in
+// real award amounts for ranked Grants.gov hits.
+//
+// Grants.gov's search2 endpoint omits awardCeiling/awardFloor on every hit —
+// only fetchOpportunity returns them. So a freshly-ranked Grants.gov match
+// always shows "Range not stated" without this enrichment step.
+//
+// Strategy:
+//   - Filter ranked matches to source === "grants.gov" only. Other sources
+//     (USAspending, Federal Register, CA Grants, foundation history) already
+//     carry whatever amount info their APIs expose.
+//   - Parse the opportunityId out of the citation_url (canonical form
+//     https://www.grants.gov/search-results-detail/<opportunityId>).
+//   - Promise.all the per-grant fetchOpportunity calls so total enrichment
+//     latency = max(per-call), not sum.
+//   - Per-call try/catch: if any single detail fetch errors, log + leave that
+//     match's existing amount string in place. Do NOT fail the whole tool.
+//   - Use the same formatAmountRange helper the search-projection step uses,
+//     so the output formatting is consistent.
+// ---------------------------------------------------------------------------
+
+/** Pull the opportunityId out of a Grants.gov citation_url. Returns null
+ *  when the URL doesn't match the canonical shape (defensive — protects
+ *  against future URL-template changes upstream). */
+function extractGrantsGovOpportunityId(citationUrl: string): string | null {
+  const m = citationUrl.match(
+    /\/search-results-detail\/(\d+)(?:[/?#]|$)/,
+  );
+  return m ? m[1] : null;
+}
+
+/**
+ * Enrich Grants.gov matches in-place by calling fetchOpportunity per match
+ * and replacing the amount string. Other sources are left untouched.
+ *
+ * Returns the same array (mutated in-place is fine — these objects were
+ * created in this function's caller). The mutation is the cheapest way to
+ * preserve match ordering without a second pass.
+ */
+async function enrichGrantsGovAmounts(matches: GrantMatch[]): Promise<void> {
+  const targets = matches.filter((m) => m.source === "grants.gov");
+  if (targets.length === 0) return;
+
+  await Promise.all(
+    targets.map(async (match) => {
+      const opportunityId = extractGrantsGovOpportunityId(match.citation_url);
+      if (!opportunityId) {
+        // URL shape we don't recognize — skip silently rather than fail.
+        return;
+      }
+      try {
+        const { grant } = await fetchGrantDetails({ opportunityId });
+        const enriched = formatAmountRange(grant.awardFloor, grant.awardCeiling);
+        // Only overwrite when we actually got useful info — keeps the original
+        // "Range not stated" stable when a detail fetch returns nulls too.
+        if (enriched !== "Range not stated") {
+          match.amount = enriched;
+        }
+      } catch (err) {
+        console.warn(
+          `[grant-matcher] amount enrichment failed for opportunityId=${opportunityId}:`,
+          err instanceof Error ? err.message : err,
+        );
+        // Leave match.amount alone — fall back to "Range not stated".
+      }
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Public entrypoint
 // ---------------------------------------------------------------------------
 
@@ -719,6 +789,11 @@ export async function findGrantsForOrg(
 
   // 4. Validate citations + project to GrantMatch[]. Fabrications are dropped.
   const matches = projectRankingsToMatches(rankings, survivors, topN);
+
+  // 5. Amount enrichment for Grants.gov hits. The search response omits award
+  //    amounts; only fetchOpportunity returns them. We do this AFTER ranking
+  //    so we only pay for the (<=12) survivors the user actually sees.
+  await enrichGrantsGovAmounts(matches);
 
   return {
     matches,
