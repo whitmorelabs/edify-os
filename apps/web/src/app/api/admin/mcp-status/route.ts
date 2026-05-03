@@ -11,8 +11,8 @@
  * `mcp_servers` payload is strictly assembled in buildMcpServersForOrg() at
  * chat time; this endpoint is read-only and hits the same DB rows.
  *
- * Auth: any authenticated user in a valid org. Mirrors /api/admin/canva-test
- * pattern (no admin-role gating because only Citlali / test orgs hit this).
+ * Auth: any authenticated user in a valid org. No admin-role gating because
+ * only Citlali / test orgs hit this.
  */
 
 import { NextResponse } from "next/server";
