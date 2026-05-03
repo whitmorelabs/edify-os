@@ -8,9 +8,11 @@
  * edit in `server-catalog.ts`, not a registry change.
  *
  * Auth resolution per server entry:
- *   1. authMode === "oauth"      — per-org token from mcp_connections (auto-refresh)
- *   2. authMode === "bearer-env" — single-tenant fallback from process.env
- *   3. authMode === "anonymous"  — no Authorization header sent
+ *   1. authMode === "oauth"        — per-org token from mcp_connections (auto-refresh)
+ *   2. authMode === "bearer-env"   — single-tenant fallback from process.env
+ *   3. authMode === "url-from-env" — URL itself (with embedded secret in path) read
+ *                                     from process.env at request time; no header sent
+ *   4. authMode === "anonymous"    — no Authorization header sent
  *
  * Graceful degradation: if a server's token can't be resolved (no connection,
  * env var unset, refresh failure), the entry is silently dropped from the
@@ -62,6 +64,7 @@ export async function buildMcpServersForOrg(
   // Resolve one server entry to either a ResolvedMCPServer or null (skip).
   const resolveOne = async (entry: ServerCatalogEntry): Promise<ResolvedMCPServer | null> => {
     let token: string | undefined;
+    let url = entry.url;
 
     if (entry.authMode === "oauth") {
       if (!serviceClient) return null; // DB unavailable — skip rather than send blank auth
@@ -79,13 +82,20 @@ export async function buildMcpServersForOrg(
     } else if (entry.authMode === "bearer-env") {
       token = entry.bearerEnv ? process.env[entry.bearerEnv] : undefined;
       if (!token) return null; // Env var unset — skip rather than send blank auth
+    } else if (entry.authMode === "url-from-env") {
+      // URL-as-credential (e.g., Zapier MCP "Anthropic API" client). Read the
+      // entire URL — including the embedded secret — from process.env. No
+      // Authorization header is sent; the URL itself is the credential.
+      const fromEnv = entry.urlEnv ? process.env[entry.urlEnv] : undefined;
+      if (!fromEnv) return null; // Env var unset — entry already filtered out, but defensive
+      url = fromEnv;
     }
-    // authMode === "anonymous" → no token needed
+    // authMode === "anonymous" → no token, static url
 
     return {
       type: "url",
       name: entry.id,
-      url: entry.url,
+      url,
       ...(token ? { authorization_token: token } : {}),
     };
   };

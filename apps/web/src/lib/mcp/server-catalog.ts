@@ -11,11 +11,28 @@
  * config-only via the factory. Validated the "config-only new connector"
  * promise from the MCP-0 PRD (no factory or route changes required).
  *
- * Post-Sprint-1 add (2026-04-30): zapier (bearer-env API key) — meta-connector
- * unlocking Mailchimp / Eventbrite / Bloomerang / Neon / Typeform / Google
- * Forms across five archetypes via a single catalog entry. Reinforces the
- * factory's effort-savings promise — one config block replaces six planned
- * REST integrations from the archetype roadmap.
+ * Post-Sprint-1 add (2026-04-30): zapier — meta-connector unlocking Mailchimp /
+ * Eventbrite / Bloomerang / Neon / Typeform / Google Forms across five
+ * archetypes via a single catalog entry. Reinforces the factory's
+ * effort-savings promise — one config block replaces six planned REST
+ * integrations from the archetype roadmap.
+ *
+ * Auth-mode reconcile (2026-05-03): the original 2026-04-30 wiring used
+ * `bearer-env` (Authorization: Bearer + ZAPIER_MCP_API_KEY against a static
+ * URL). That contract was inferred from the awesome-remote-mcp-servers index
+ * and is INCORRECT — Zapier MCP's actual auth model is "URL-as-credential":
+ * the user provisions a server at https://mcp.zapier.com/, picks the
+ * "Anthropic API" client type, and copies a per-server URL whose path embeds
+ * the secret (Zapier's docs literally say "keep this secret — it's like a
+ * password"). Anthropic's Messages API receives that URL with NO
+ * authorization_token field. See https://zapier.com/blog/zapier-mcp-anthropic-api/
+ * for the canonical sample payload and the GitHub README at
+ * https://github.com/zapier/zapier-mcp for the API-key-vs-OAuth split.
+ * Zapier exposes a separate OAuth endpoint at
+ * https://mcp.zapier.com/api/v1/connect for "end users connect their own
+ * account" apps, but that's a different product than what we want for
+ * single-tenant Edify and would require Anthropic-side OAuth flows we don't
+ * have today.
  *
  * Sprint 2 will add: per-org per-archetype grant management, integrations UI
  * polish, observability, and additional servers (Candid, Blackbaud,
@@ -31,12 +48,17 @@ import type { ArchetypeSlug } from "@/lib/archetypes";
 /**
  * How a server's bearer token is obtained at request time.
  *
- *   - "oauth"        — per-org token from mcp_connections, refreshed by oauth-factory
- *   - "bearer-env"   — server-wide bearer pulled from process.env (single-tenant fallback,
- *                       used for Sprint-1-style Slack wiring before per-org OAuth ships)
- *   - "anonymous"    — no auth header sent (rare, public MCP servers)
+ *   - "oauth"         — per-org token from mcp_connections, refreshed by oauth-factory
+ *   - "bearer-env"    — server-wide bearer pulled from process.env (single-tenant fallback,
+ *                        used for Sprint-1-style Slack wiring before per-org OAuth ships)
+ *   - "url-from-env"  — the entire MCP URL (with embedded credential in the path) is
+ *                        read from process.env at request time; NO Authorization header
+ *                        is sent. Used for Zapier MCP's "Anthropic API client" flow,
+ *                        where the URL itself is the secret (per Zapier's blog: "keep
+ *                        this secret — it's like a password").
+ *   - "anonymous"     — no auth header sent (rare, public MCP servers)
  */
-export type AuthMode = "oauth" | "bearer-env" | "anonymous";
+export type AuthMode = "oauth" | "bearer-env" | "url-from-env" | "anonymous";
 
 /** OAuth client_credentials transport — how the client authenticates to the token endpoint. */
 export type OAuthClientAuth = "basic" | "post";
@@ -109,11 +131,20 @@ export interface ServerCatalogEntry {
   id: string;
   /** Human-readable display name (used in admin diagnostics, logs). */
   displayName: string;
-  /** SSE/HTTP endpoint passed to Anthropic's `mcp_servers` parameter. */
+  /**
+   * SSE/HTTP endpoint passed to Anthropic's `mcp_servers` parameter.
+   * For authMode === "url-from-env" this is the empty string — the actual URL
+   * is resolved at request time from `urlEnv` and contains the embedded secret.
+   */
   url: string;
   authMode: AuthMode;
   /** When authMode === "bearer-env", the env var name holding the bearer token. */
   bearerEnv?: string;
+  /**
+   * When authMode === "url-from-env", the env var name holding the full MCP
+   * URL (credential embedded in the path). Required for that auth mode.
+   */
+  urlEnv?: string;
   /** When authMode === "oauth", the OAuth config block. */
   oauth?: OAuthConfig;
   /**
@@ -321,12 +352,24 @@ const ASANA_ENTRY: ServerCatalogEntry = {
  *   - Programs Director        → Google Forms / Typeform (intake, surveys)
  *   - Executive Assistant      → broad cross-team SaaS scheduling/coordination
  *
- * Auth: API key passed as the bearer token via Anthropic's `authorization_token`
- * field on `mcp_servers`. Zapier categorizes this as "API Key" auth in the
- * awesome-remote-mcp-servers index; the wire format Zapier accepts is
- * `Authorization: Bearer <key>`, which is exactly what Anthropic's MCP
- * connector forwards. This is the SAME shape as the Slack entry (bearer-env)
- * — no OAuth wiring, no oauth-factory or callback-route changes needed.
+ * Auth (corrected 2026-05-03 — see file header): URL-as-credential. The user
+ * creates a server at https://mcp.zapier.com/, picks the "Anthropic API"
+ * client type, and copies a per-server URL whose path embeds the secret
+ * token. That full URL is the credential; Anthropic's Messages API receives
+ * it as `mcp_servers[].url` with NO `authorization_token` field.
+ *
+ * Wire format is documented in https://zapier.com/blog/zapier-mcp-anthropic-api/:
+ *
+ *   "mcp_servers": [
+ *     { "type": "url", "url": "<YOUR_ZAPIER_MCP_SERVER_URL>", "name": "zapier" }
+ *   ]
+ *
+ * The original 2026-04-30 wiring assumed a static `https://mcp.zapier.com/api/mcp/mcp`
+ * endpoint plus a separately-issued bearer token. That endpoint is NOT a public
+ * static URL with bearer auth — it's the OAuth-style host that's only reachable
+ * via the per-server token-embedded URL. We model this with the new
+ * `url-from-env` auth mode so the registry pulls the full URL from
+ * `ZAPIER_MCP_URL` at request time and forwards it untouched.
  *
  * Tool surface: model auto-discovers Zapier's full Zaps catalog via Anthropic's
  * `mcp_servers` parameter — no per-tool wiring in our codebase. Server-side
@@ -334,18 +377,21 @@ const ASANA_ENTRY: ServerCatalogEntry = {
  * `insertActivityEvent` (MCP tool tracking is a Sprint 2+ concern, per
  * PR #62 SESSION-LOG entry); deliberately no hours-saved entries here.
  *
- * Activation: Z provisions `ZAPIER_MCP_API_KEY` in Vercel. Until then, the
- * registry's `bearer-env` branch returns null and the entry is silently skipped
- * — same dormant-until-secrets pattern as Notion/Asana before their secrets
- * landed.
+ * Activation: Citlali (or Z) provisions `ZAPIER_MCP_URL` in Vercel by
+ * generating a server at https://mcp.zapier.com/ → "Anthropic API" client →
+ * Connect tab → copy URL. Until that env var is set, listServersForArchetype
+ * silently drops the entry — same dormant-until-secrets pattern as Notion/Asana
+ * before their secrets landed.
  */
 const ZAPIER_ENTRY: ServerCatalogEntry = {
   id: "zapier",
   displayName: "Zapier",
-  // Per Anthropic's remote-MCP-servers list and awesome-remote-mcp-servers (2026-04-30).
-  url: "https://mcp.zapier.com/api/mcp/mcp",
-  authMode: "bearer-env",
-  bearerEnv: "ZAPIER_MCP_API_KEY",
+  // URL is resolved at request time from ZAPIER_MCP_URL (see urlEnv below).
+  // The static field is empty because the secret token is embedded in the URL
+  // path and varies per Zapier-MCP-server provisioning.
+  url: "",
+  authMode: "url-from-env",
+  urlEnv: "ZAPIER_MCP_URL",
   // Broad multi-archetype scope — Zapier is a meta-connector. HR & Volunteer
   // Coordinator is intentionally omitted for now: per the archetype roadmap,
   // HR's first integration priority is Slack MCP (already wired), and adding
@@ -378,12 +424,20 @@ export function getServerEntry(id: string): ServerCatalogEntry | null {
  * All server entries that include a given archetype in their scope. Used by
  * buildMcpServersForOrg to decide which servers to resolve at request time.
  *
- * Skips entries gated by an unset env var (e.g., Canva when CANVA_MCP_URL is empty).
+ * Skips entries gated by an unset env var:
+ *   - `urlEnvGate` (e.g., Canva when CANVA_MCP_URL is empty)
+ *   - `urlEnv` for `url-from-env` auth mode (e.g., Zapier when ZAPIER_MCP_URL is empty)
+ *   - empty `url` field for any non-`url-from-env` entry
  */
 export function listServersForArchetype(archetype: ArchetypeSlug): ServerCatalogEntry[] {
   return Object.values(SERVER_CATALOG).filter((entry) => {
     if (!entry.archetypes.includes(archetype)) return false;
     if (entry.urlEnvGate && !process.env[entry.urlEnvGate]) return false;
+    if (entry.authMode === "url-from-env") {
+      // URL itself lives in the env var; skip if unset.
+      if (!entry.urlEnv || !process.env[entry.urlEnv]) return false;
+      return true;
+    }
     if (!entry.url) return false;
     return true;
   });

@@ -1,94 +1,136 @@
-# SESSION-LOG — Grants.gov Amount Enrichment Agent
+# SESSION-LOG — Zapier MCP Auth Reconcile Agent
 
-**Identity:** Grants Amount Enrichment Agent (Sonnet)
-**Branch:** `lopmon/grants-amount-enrichment`
-**Worktree:** `C:/Users/Araly/edify-os-grants-amounts`
+**Identity:** Zapier MCP Auth Reconcile Agent (Sonnet)
+**Branch:** `lopmon/zapier-mcp-auth-reconcile`
+**Worktree:** `C:/Users/Araly/edify-os-zapier-mcp-fix`
 **Date:** 2026-05-03
-**Task:** Chain `grants_get_details` (Grants.gov fetchOpportunity) for amount
-enrichment of `find_grants_for_org` ranked Grants.gov hits. Follow-up to PR #68
-where Grants.gov matches surfaced as `amount: "Range not stated"`.
+**Task:** Reconcile the Zapier MCP wiring landed in PR #67 against the
+authentication model Zapier MCP actually supports today. The original entry
+in `apps/web/src/lib/mcp/server-catalog.ts` used `authMode: "bearer-env"`
+with `bearerEnv: "ZAPIER_MCP_API_KEY"` against a static URL
+`https://mcp.zapier.com/api/mcp/mcp`, but Citlali's signup attempt at
+https://mcp.zapier.com/ on 2026-05-03 surfaced no path to a static
+bearer-token URL — every client option either ran a copy-paste consumer
+wizard or initiated an OAuth handshake.
 
 ---
 
-## Commits
+## Research findings
 
-| SHA | Message |
-|-----|---------|
-| (pending) | feat(find_grants_for_org): chain grants_get_details for Grants.gov amount enrichment |
+**Zapier MCP supports two auth models today (2026-05-03):**
 
-## What Changed
+1. **API Key (URL-as-credential)** — best for personal use and local
+   development. The user provisions an MCP server at
+   https://mcp.zapier.com/, picks the **"Anthropic API"** client type, opens
+   the Connect tab, and copies a per-server URL whose path embeds the secret
+   token. Zapier's blog says verbatim: **"copy your server URL (keep this
+   secret — it's like a password)"**. Anthropic's Messages API receives that
+   URL with NO `authorization_token` field — the URL itself is the credential.
 
-### `apps/web/src/lib/grant-matcher.ts` (MODIFIED)
+2. **OAuth** — best for apps where end users connect their own Zapier
+   accounts. Initiated at `https://mcp.zapier.com/api/v1/connect`. This is
+   the URL Citlali saw under the "ChatGPT" client option. Not applicable to
+   single-tenant Edify and would require Anthropic-side OAuth flows we don't
+   have today.
 
-- Added `fetchGrantDetails` to the existing `@/lib/grants-gov` import.
-- New `extractGrantsGovOpportunityId(citationUrl)` helper — pulls the numeric
-  opportunityId out of the canonical citation URL
-  (`/search-results-detail/<id>`). Returns null on shape mismatch.
-- New `enrichGrantsGovAmounts(matches)` async helper:
-  - Filters ranked matches to `source === "grants.gov"` only.
-  - `Promise.all` over the filtered matches — parallel, per-call try/catch.
-  - On success, replaces `match.amount` with `formatAmountRange(floor, ceiling)`
-    using the existing helper (so output formatting stays consistent).
-  - On failure, logs `console.warn` with opportunityId + error, leaves the
-    original `"Range not stated"` string in place (no whole-tool failure).
-  - Skips overwrite when the detail fetch also returns nulls (keeps the
-    "Range not stated" stable rather than making a noisy round-trip for
-    no improvement).
-- Wired into `findGrantsForOrg` as step 5, immediately after
-  `projectRankingsToMatches`. Other sources (USAspending, Federal Register,
-  CA Grants, foundation history) are untouched.
+The static URL `https://mcp.zapier.com/api/mcp/mcp` referenced by the
+awesome-remote-mcp-servers index is NOT a public bearer-auth endpoint — it's
+the OAuth host. The "Claude" / "Cursor" / "ChatGPT" client wizards Citlali
+found are consumer-friendly variants of the OAuth flow; the **"Anthropic
+API" client option** (which Citlali did not see surfaced because the wizard
+hides it behind the typical client list) yields the static URL with embedded
+secret.
 
-## Live Verification
+**Citation URLs:**
+- https://zapier.com/blog/zapier-mcp-anthropic-api/ — sample `mcp_servers`
+  payload showing `{ type: "url", url: "<YOUR_ZAPIER_MCP_SERVER_URL>", name:
+  "zapier" }` with NO `authorization_token`.
+- https://github.com/zapier/zapier-mcp — splits auth into "API Key (best for
+  personal/local)" and "OAuth (best for apps)".
+- https://help.zapier.com/hc/en-us/articles/36265392843917-Use-Zapier-MCP-with-your-client
+  — confirms the "Other" / custom client option produces the API-key URL.
 
-Synthetic profile: Detroit Youth Mentors, $400K/year, mission "one-on-one
-mentoring, college/career prep, after-school enrichment for at-risk youth
-ages 12-18 across Detroit metro area" (matches PR #68 verification profile).
+## Reconciliation path chosen: **A (URL-as-credential)**
 
-Wall-clock: **18.8s** (well under the 30s budget).
+- Path B (drop Zapier entirely) was rejected — the auth model is supportable,
+  the previous wiring just had the wrong shape.
+- Path C (account-level Zapier API key as bearer) was rejected — that
+  product doesn't exist today; Zapier's developer API keys are for the
+  Platform CLI, not MCP.
 
-Top 11 ranked matches included **8 Grants.gov hits, all 8 enriched** with real
-dollar amounts. Examples surfaced:
+## Implementation
 
-- OJJDP FY25 Expanding Youth Access to Community-Based Treatment — $0 - $600,000
-- Educational Opportunity Centers Program (EOC) — $238,000 - $3,000,000
-- BJA FY25 Second Chance Act — $0 - $900,000
-- 2026 Alumni Engagement Innovation Fund (AEIF 2026) — $10,000 - $35,000
+Added a new `AuthMode` value `"url-from-env"` to capture Zapier's
+URL-as-credential pattern. The catalog entry now points at a new env var
+`ZAPIER_MCP_URL` (full URL with embedded token); the registry resolves that
+URL at request time and forwards it untouched, with no `authorization_token`
+field.
 
-`sourceErrors: 0`, no per-match enrichment failures observed in this run.
+Files touched (Zapier-only, no scope creep):
+
+- `apps/web/src/lib/mcp/server-catalog.ts` — extended `AuthMode` union,
+  added `urlEnv` field on `ServerCatalogEntry`, refactored `ZAPIER_ENTRY` to
+  the new mode, updated `listServersForArchetype` to skip when `urlEnv`
+  unset. Updated file-header docstring with the 2026-05-03 reconcile
+  rationale and citations to Zapier's blog + repo.
+- `apps/web/src/lib/mcp/registry.ts` — added `"url-from-env"` branch in
+  `resolveOne`. Reads `process.env[entry.urlEnv]` and assigns it as the URL;
+  no token is emitted, so `authorization_token` stays absent in the
+  resolved server payload.
+- `apps/web/src/app/api/admin/mcp-status/route.ts` — added a status branch
+  for `"url-from-env"` that reports `ready` / `missing_env_url` without
+  echoing the secret URL back. Hardened `base.url` and `url_configured` so
+  Zapier's URL never appears in the diagnostic response (the URL itself is
+  the secret).
+- `apps/web/.env.example` — added `ZAPIER_MCP_URL` block with the 5-step
+  provisioning instructions and a "treat as a credential" warning. Removed
+  the implicit reliance on `ZAPIER_MCP_API_KEY` (which never had an example
+  entry, so nothing to delete).
 
 ## Decisions / Notes
 
-- **Why mutate matches in-place** (instead of returning a new array): preserves
-  rank ordering without a second pass. The `GrantMatch` objects are constructed
-  in `projectRankingsToMatches` and not held by anyone else at that point, so
-  mutation is safe.
-- **Why skip when detail returns nulls**: the search response itself can return
-  legitimate `(null, null)` floor/ceiling — overwriting `"Range not stated"`
-  with the same string is wasteful. The conditional in `enrichGrantsGovAmounts`
-  keeps the no-op branch a true no-op.
-- **Latency budget**: worst case 12 parallel HTTP calls to Grants.gov
-  fetchOpportunity. Each call ~500ms-1s in practice; total enrichment overhead
-  observed ~2-3s on the live test (18.8s total wall-clock vs. ~16s typical
-  before — the rest is the Sonnet judge call dominating).
-- **/simplify pass**: dropped an unused `idx` from a `.map((m, idx) => …)` that
-  was only being filtered. Otherwise reused existing `formatAmountRange` and
-  `fetchGrantDetails` — no new utilities.
+- **Why a new auth mode instead of overloading `bearer-env`**: the wire shape
+  is genuinely different. `bearer-env` sends `Authorization: Bearer <token>`
+  alongside a static URL; `url-from-env` sends NO header and a dynamic URL.
+  Conflating them would mean either always sending a blank `Authorization`
+  header (some servers reject that) or carrying ambiguous semantics inside
+  the registry. A new variant keeps the dispatch table readable.
+- **Why `url: ""` on the static field**: kept for type-safety so existing
+  call sites (`SERVER_CATALOG[id].url`) don't crash on the Zapier entry.
+  `listServersForArchetype` short-circuits before any URL access.
+- **Why no DB migration**: `url-from-env` is single-tenant (one URL across
+  the whole deployment), same scope as `bearer-env`. Per-org Zapier
+  connections would require a separate Sprint 2 migration to store URLs in
+  `mcp_connections.metadata` — out of scope for this reconcile.
+- **/simplify pass**: collapsed a duplicated `Boolean(entry.urlEnv &&
+  process.env[entry.urlEnv])` check in `mcp-status/route.ts` into a single
+  `urlEnvPresent` const reused by both `base` and the response branch.
 - **Typecheck**: `pnpm --filter web typecheck` CLEAN (0 errors).
 
 ## Files Changed
 
-- `apps/web/src/lib/grant-matcher.ts` — +75 / -1 lines (one new import, one
-  new helper, one new wired-in call site).
+- `apps/web/src/lib/mcp/server-catalog.ts` — +69 / -19 lines (mostly
+  docstring + new `urlEnv` field + new auth-mode branch in
+  `listServersForArchetype`).
+- `apps/web/src/lib/mcp/registry.ts` — +14 / -5 lines.
+- `apps/web/src/app/api/admin/mcp-status/route.ts` — +21 / -3 lines.
+- `apps/web/.env.example` — +16 / 0 lines.
+
+Total: 4 files, ~120 / -27 lines (largely docstring; ~25 lines of actual
+code change).
 
 ## Follow-ups
 
-None required for this PR. Possible future enhancements:
-
-1. Cache fetchOpportunity responses by opportunityId for the duration of a
-   request — same opportunityId rarely shows twice in one match run, but if
-   the chat does multiple matching passes in a row this would amortize.
-2. Consider a similar enrichment for CA Grants if the CA Grants Portal
-   detail endpoint exposes more reliable amount fields than the search
-   endpoint.
+1. Once Citlali provisions the Zapier MCP server and pastes
+   `ZAPIER_MCP_URL` into Vercel, run a smoke test: pick the Marketing
+   Director archetype, ask Lopmon to "list available Zapier tools", confirm
+   the model lists Mailchimp / Eventbrite / etc. tools instead of the empty
+   set it returns today.
+2. The existing `ZAPIER_MCP_API_KEY` env var (if it was ever set in Vercel)
+   is now dead and can be removed. No code path reads it.
+3. Sprint 2 may want to revisit Path B (Zapier OAuth) if Edify pivots to
+   end-user-connects-their-own-Zapier-account — that would require
+   Anthropic-side OAuth wiring on `mcp_servers` that doesn't exist today,
+   and a new `mcp_connections` row shape for storing URLs.
 
 ---
