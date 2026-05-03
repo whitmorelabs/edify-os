@@ -10,10 +10,9 @@
  * lib/tools/canva-generate-design.ts and lib/tools/canva-export-design.ts.
  *
  * Why we keep this shim instead of editing every caller:
- *   - canva-generate-design.ts, canva-export-design.ts, /api/integrations/canva/*,
- *     /api/admin/canva-test all import from "@/lib/mcp/canva-oauth". Preserving
- *     these import paths means MCP-0 Sprint 1 is purely additive — zero risk
- *     to the production Canva flow.
+ *   - canva-generate-design.ts, canva-export-design.ts, and /api/integrations/canva/*
+ *     all import from "@/lib/mcp/canva-oauth". Preserving these import paths means
+ *     MCP-0 Sprint 1 is purely additive — zero risk to the production Canva flow.
  *   - The server-catalog entry for Canva (CANVA_ENTRY) carries the same URLs,
  *     scopes, and quirks that used to live as constants here. The factory
  *     reads them from the catalog. Nothing about Canva's runtime behavior
