@@ -34,11 +34,18 @@ export async function GET() {
   // Hydrate per-server status. Done sequentially because the call count is small (3-ish today).
   const servers = await Promise.all(
     Object.values(SERVER_CATALOG).map(async (entry) => {
+      // For "url-from-env" entries the URL itself is the secret — never echo
+      // it (or any prefix) in this diagnostic response. Just report whether the
+      // env var is populated via `url_configured`.
+      const isUrlFromEnv = entry.authMode === "url-from-env";
+      const urlEnvPresent = Boolean(
+        isUrlFromEnv && entry.urlEnv && process.env[entry.urlEnv],
+      );
       const base = {
         id: entry.id,
         displayName: entry.displayName,
-        url: entry.url,
-        url_configured: Boolean(entry.url),
+        url: isUrlFromEnv ? "" : entry.url,
+        url_configured: isUrlFromEnv ? urlEnvPresent : Boolean(entry.url),
         url_env_gate: entry.urlEnvGate ?? null,
         auth_mode: entry.authMode,
         archetypes: entry.archetypes,
@@ -54,6 +61,17 @@ export async function GET() {
           ...base,
           status: tokenPresent ? ("ready" as const) : ("missing_env_token" as const),
           bearer_env: entry.bearerEnv,
+        };
+      }
+
+      if (isUrlFromEnv) {
+        // URL-as-credential — readiness is "URL env var set". The URL itself
+        // contains the secret so we never echo it back; just report whether
+        // the env var is populated and which name to set.
+        return {
+          ...base,
+          status: urlEnvPresent ? ("ready" as const) : ("missing_env_url" as const),
+          url_env: entry.urlEnv,
         };
       }
 
