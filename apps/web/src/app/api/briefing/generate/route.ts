@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient, getAuthContext } from "@/lib/supabase/server";
 import { getAnthropicClientForOrg } from "@/lib/anthropic";
 import { generateBriefing } from "@/lib/briefing/generator";
+import { claimCronRun } from "@/lib/cron-idempotency";
 
 /**
  * POST /api/briefing/generate
@@ -17,6 +18,20 @@ export async function POST() {
   const serviceClient = createServiceRoleClient();
   if (!serviceClient) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  // Idempotency guard (migration 00033): a frozen legacy Vercel project
+  // shares this Supabase backend and fires the same cron path against it.
+  // Briefings already have UNIQUE(org_id, date), but without this guard the
+  // duplicate cron still burns a full 6-agent LLM run before the upsert
+  // collapses. Short-circuit early. The GET handler below will still serve
+  // the briefing row once the original run finishes.
+  const claimed = await claimCronRun(serviceClient, "briefing_generate", orgId);
+  if (!claimed) {
+    return NextResponse.json(
+      { skipped: true, reason: "already_ran_today" },
+      { status: 200 }
+    );
   }
 
   // Get Anthropic client for this org (BYOK)

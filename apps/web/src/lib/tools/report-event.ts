@@ -130,9 +130,19 @@ export async function executeReportEventTool({
 
     // Fire the ripple engine asynchronously (fire-and-forget)
     // We use a fetch to the internal API so the chat response is not blocked.
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+    //
+    // Operator-precedence note: the previous form
+    //   NEXT_PUBLIC_APP_URL || VERCEL_URL ? `https://${VERCEL_URL}` : "..."
+    // parses as `(NEXT_PUBLIC_APP_URL || VERCEL_URL) ? ... : ...`, which
+    // means even when NEXT_PUBLIC_APP_URL was set we used VERCEL_URL — the
+    // auto-generated deployment-specific URL, NOT the registered OAuth
+    // redirect URI. Use ?? chaining so NEXT_PUBLIC_APP_URL is honored when
+    // present.
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ??
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
 
     fetch(`${baseUrl}/api/ripple/process`, {
       method: "POST",
