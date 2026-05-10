@@ -6,6 +6,7 @@ import { ARCHETYPE_HEARTBEAT_PROMPTS } from "@/lib/heartbeat-prompts";
 import { runArchetypeTurn } from "@/lib/chat/run-archetype-turn";
 import type { HeartbeatResult } from "@/app/dashboard/inbox/heartbeats";
 import { insertActivityEvent } from "@/lib/hours-saved/insert-event";
+import { claimCronRun } from "@/lib/cron-idempotency";
 
 // Give Vercel enough runway for a full tool-use loop (up to 8 rounds).
 // A heartbeat with tool calls can take 30-50s; the default 10s limit would cut it off.
@@ -35,6 +36,26 @@ export async function POST(request: Request) {
     archetype = slug as ArchetypeSlug;
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // Idempotency guard (migration 00033): a frozen legacy Vercel project
+  // shares this Supabase backend and fires the same cron path against it.
+  // If we already ran heartbeat for (archetype, org) today, short-circuit
+  // before doing any LLM work. See lib/cron-idempotency.ts.
+  const claimed = await claimCronRun(
+    serviceClient,
+    `heartbeat_trigger:${archetype}`,
+    orgId
+  );
+  if (!claimed) {
+    return NextResponse.json(
+      {
+        skipped: true,
+        reason: "already_ran_today",
+        archetype,
+      },
+      { status: 200 }
+    );
   }
 
   const anthropicResult = await getAnthropicClientForOrg(serviceClient, orgId, ["mission", "timezone"]);
